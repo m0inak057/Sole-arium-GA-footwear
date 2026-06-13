@@ -1,0 +1,145 @@
+# Gait Analysis — Shoe Design Recommendation Rules
+# Version: 1.0
+# Last updated: 2026-06-10
+#
+# Rules are applied in order. Each rule has:
+# - id: unique identifier
+# - when: condition (pronation, arch, foot_strike, flags, etc.)
+# - then: recommendation patch (orthopedic guidance)
+#
+# Rules are evaluated sequentially; later rules can refine earlier ones.
+# Set `needs_human_review: true` to flag for clinician review.
+#
+# NOTE: Only orthotists and admins should edit this file.
+
+version: 1
+
+rules:
+  # Rule 1: Severe overpronation with low arch
+  - id: overpronation_low_arch
+    when:
+      pronation: overpronation
+      arch: low
+    then:
+      medial_post: required
+      post_density: firm
+      arch_support: high
+      heel_counter: rigid
+      heel_drop_mm: 10
+      last_shape: straight
+      cushioning_zone_priority: ["heel", "medial_midfoot", "medial_forefoot"]
+      notes: "High overpronation + low arch: prioritize medial support and rearfoot control"
+
+  # Rule 2: Mild pronation with normal arch
+  - id: mild_pronation_normal_arch
+    priority: 50
+    when:
+      pronation: mild_pronation
+      arch: normal
+    then:
+      medial_post: optional
+      arch_support: medium
+      heel_counter: semi_rigid
+      heel_drop_mm: 8
+      last_shape: semi_curved
+      notes: "Mild pronation: consider conservative support; monitor for progression"
+
+  # Rule 3: Neutral pronation
+  - id: neutral_pronation
+    priority: 50
+    when:
+      pronation: neutral
+    then:
+      medial_post: none
+      arch_support: medium
+      heel_counter: flexible
+      heel_drop_mm: 8
+      last_shape: semi_curved
+      cushioning_zone_priority: ["heel", "forefoot"]
+      notes: "Neutral gait: standard supportive shoe recommended"
+
+  # Rule 4: Oversupination with high arch
+  - id: oversupination_high_arch
+    priority: 60
+    when:
+      pronation: oversupination
+      arch: high
+    then:
+      medial_post: none
+      arch_support: low
+      heel_counter: flexible
+      heel_drop_mm: 6
+      last_shape: curved
+      cushioning_zone_priority: ["lateral_heel", "lateral_midfoot"]
+      notes: "Oversupination + high arch: lateral cushioning critical; minimize medial post"
+
+  # Rule 5: Forefoot striker
+  - id: forefoot_striker
+    priority: 40
+    when:
+      foot_strike: forefoot
+    then:
+      heel_drop_mm: 4
+      cushioning_zone_priority: ["forefoot", "midfoot"]
+      notes: "Forefoot strike: reduced heel drop and extra forefoot cushioning"
+
+  # Rule 6: Rearfoot striker (conservative default)
+  - id: rearfoot_striker
+    priority: 40
+    when:
+      foot_strike: rearfoot
+    then:
+      heel_drop_mm: 10
+      cushioning_zone_priority: ["heel", "midfoot"]
+      notes: "Rearfoot strike: standard heel drop and rearfoot cushioning"
+
+  # Rule 7: High asymmetry between L and R (flag for review)
+  - id: high_asymmetry
+    priority: 80
+    when:
+      flag: high_asymmetry
+    then:
+      needs_human_review: true
+      notes: "High L/R asymmetry detected: clinician review recommended"
+
+  # Rule 8: Early peak eversion (poor shock absorption)
+  - id: early_peak_eversion
+    priority: 70
+    when:
+      eversion_peak_early: true
+    then:
+      medial_post: required
+      post_density: firm
+      heel_counter: rigid
+      notes: "Early peak eversion: poor shock absorption; recommend firm support"
+
+  # Rule 9: Pathological gait flags
+  - id: pathological_gait
+    priority: 90
+    when:
+      flag: pathological_gait
+    then:
+      needs_human_review: true
+      notes: "Pathological gait detected: requires clinician evaluation before shoe recommendation"
+
+  # Rule 10: Pediatric adjustments (age < 18)
+  - id: pediatric_adjustment
+    priority: 95
+    when:
+      age_years_below: 18
+    then:
+      heel_counter: semi_rigid  # Less rigid for developing feet
+      notes: "Pediatric feet still developing: moderate support recommended"
+
+# Rule application notes:
+# 1. Rules are evaluated in priority order (higher first)
+# 2. Earlier rules set initial recommendations
+# 3. Later rules can override or refine
+# 4. If ANY rule sets `needs_human_review: true`, the profile is flagged
+# 5. Orthopedic experts should review and approve new rules before merging
+
+# Future rules to consider:
+# - BMI-based adjustments (obesity → more support)
+# - Activity level (athlete → different priorities)
+# - Pain location (if available from patient history)
+# - Diabetes/neuropathy flags (special shoe requirements)

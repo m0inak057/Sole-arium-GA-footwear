@@ -1,0 +1,44 @@
+# Gait Analysis - Production Dependencies
+# Install with: pip install -r requirements.txt
+# For development: pip install -r requirements.txt && pip install -r requirements-dev.txt
+
+# Core scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-image>=0.21.0
+
+# Computer Vision
+opencv-python>=4.8.0
+mediapipe>=0.14.0
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+
+# Data Validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+jsonschema>=4.19.0
+
+# Task Queue
+celery>=5.3.0
+redis>=5.0.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+
+# File Storage
+boto3>=1.28.0
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Logging
+python-json-logger>=2.0.0
+
+# Utilities
+click>=8.1.0

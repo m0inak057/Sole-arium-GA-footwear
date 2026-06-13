@@ -1,0 +1,111 @@
+# Gait Analysis — Pipeline Configuration
+# Version: 1.0
+# Last updated: 2026-06-10
+#
+# Controls processing parameters for each stage of the pipeline.
+
+# Ingestion (video preprocessing)
+ingestion:
+  fps: 120                      # Target frames per second
+  resolution: [1920, 1080]      # Target resolution [width, height]
+  sync_tolerance_ms: 10         # Camera sync tolerance in milliseconds
+  background_subtraction_model: mog2  # 'mog2' (MVP); extend factory for others
+  person_tracking_model: simple_iou   # 'simple_iou' (MVP) | 'bytetrack' (falls back with WARNING)
+  roi_margin_px: 50             # Margin around detected person in pixels
+
+  # Decode error tolerance
+  max_consecutive_decode_failure_pct: 10  # Raise VideoDecodeError when this % of frames fail
+
+  # Multi-camera sync
+  max_unsync_frames_before_error: 30  # Raise FrameSyncError after N consecutive unsync windows
+
+  # MOG2 background subtraction
+  mog2_history: 500             # Number of frames for background model warmup
+  mog2_var_threshold: 16.0      # Mahalanobis distance threshold for foreground
+  mog2_detect_shadows: true     # Mark shadows as 127 (treated as background)
+  mog2_morph_kernel_size_px: 5  # Ellipse kernel for morphological open/close cleanup
+
+  # Person tracking (IoU)
+  iou_threshold: 0.3            # Min IoU to accept blob as continuation of track
+  max_lost_frames: 15           # Raise TrackingLostError after this many consecutive misses
+  min_blob_area_px2: 5000       # Ignore foreground blobs smaller than this (px²)
+
+# Pose estimation
+pose:
+  model: mediapipe              # 'mediapipe' (Phase 1) or custom (Phase 2+)
+  confidence_threshold: 0.5     # Drop keypoints with confidence < 0.5
+  smoothing_window: 5           # 1-Euro filter window size
+  use_3d_lifting: true          # Use 2D→3D monocular lift (Phase 1)
+  use_multiview_triangulation: false  # Multi-view 3D (Phase 3+)
+  batch_size: 32                # Frames per inference batch
+
+# Event detection
+events:
+  heel_strike_model: velocity_based  # 'velocity_based' (MVP)
+  heel_strike_threshold: 0.3         # HS peak prominence (fraction of y range)
+  toe_off_threshold: 0.2             # TO peak prominence (fraction of y range)
+  event_confidence_min: 0.5          # Drop events with keypoint confidence < this
+  min_frames_between_events: 15      # Minimum frames between two HS (or two TO)
+  smoothing_window_frames: 5         # Moving-average window before peak detection
+
+# Analysis
+analysis:
+  compute_kinematics_peaks: true
+  compute_symmetry_indices: true
+  symmetry_flag_threshold_pct: 10.0
+  # Foot-strike classification thresholds (degrees)
+  rearfoot_min_deg: 5.0       # FSA > +5° → rearfoot
+  forefoot_max_deg: -5.0      # FSA < -5° → forefoot
+  # Pronation classification (positive = eversion/pronation)
+  overpronation_min_deg: 8.0
+  mild_pronation_min_deg: 4.0
+  neutral_min_deg: 0.0
+  mild_supination_min_deg: -4.0
+  # Arch height index
+  high_ahi_min: 0.30
+  normal_ahi_min: 0.20
+  # Quality gating
+  min_clean_cycles_per_foot: 4
+  target_clean_cycles_per_foot: 8
+
+# Profile generation
+profile:
+  schema_version: profile/v1
+  include_quality_metrics: true
+  include_processing_metadata: true
+  include_cycle_timeseries: false  # Separate endpoint for timeseries
+  apply_recommendation_rules: true
+  version_schema_in_output: true
+
+# Features (enable/disable by phase)
+features:
+  multi_view_3d: false         # Phase 3
+  pressure_mat_validation: false  # Phase 3
+  custom_foot_model: false     # Phase 2
+  face_blur_pipeline: true     # Privacy
+  audit_logging: true          # Privacy/compliance
+
+# Performance tuning
+performance:
+  ingestion_timeout_sec: 60
+  pose_estimation_timeout_sec: 120
+  event_detection_timeout_sec: 30
+  analysis_timeout_sec: 60
+  profile_generation_timeout_sec: 30
+  batch_processing: true       # Batch pose detection for efficiency
+  batch_size: 32               # Frames per batch
+
+# Logging
+logging:
+  level: INFO                  # DEBUG, INFO, WARNING, ERROR
+  format: json                 # json or text
+  include_timestamps: true
+  include_module_names: true
+
+# Development/testing
+development:
+  mock_video_enabled: false              # Use synthetic video for testing
+  synthetic_data_mode: false             # Generate synthetic profiles
+  skip_calibration_check: false          # Allow uncalibrated cameras
+  skip_gating_check: false               # Bypass quality gates
+  verbose_logging: false                 # Extra debug logging

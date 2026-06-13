@@ -1,0 +1,68 @@
+# Gait Analysis — Tunable Thresholds Configuration
+# Version: 1.0
+# Last updated: 2026-06-10
+#
+# These thresholds drive the biomechanical classifiers.
+# All values are defaults based on clinical heuristics and will be
+# re-tuned after validation study (Phase 3).
+#
+# NOTE: Do NOT hardcode these in Python. Load at runtime via config.py.
+
+foot_strike:
+  # Foot strike angle (FSA) thresholds (degrees)
+  rearfoot_min_deg: 5.0       # FSA > +5° → rearfoot
+  forefoot_max_deg: -5.0      # FSA < -5° → forefoot
+                              # -5° ≤ FSA ≤ +5° → midfoot
+
+pronation:
+  # Rearfoot eversion angle thresholds at midstance (degrees)
+  overpronation_min_deg: 8.0  # > +8° → overpronation
+  mild_pronation_min_deg: 4.0 # +4° to +8° → mild pronation
+  neutral_min_deg: 0.0        # 0° to +4° → neutral
+  mild_supination_min_deg: -4.0  # -4° to 0° → mild supination
+  # < -4° → oversupination
+
+arch:
+  # Arch height index (AHI) thresholds
+  # AHI = navicular_height / truncated_foot_length
+  high_ahi_min: 0.30          # AHI ≥ 0.30 → high arch (pes cavus)
+  normal_ahi_min: 0.20        # 0.20 ≤ AHI < 0.30 → normal
+  # AHI < 0.20 → low arch (pes planus)
+
+symmetry:
+  # Symmetry detection thresholds
+  flag_threshold_pct: 10.0    # Flag asymmetry if |L - R| / mean > 10%
+
+quality_gating:
+  # Data quality gates
+  min_keypoint_confidence: 0.5        # Drop frames where confidence < 0.5
+  min_clean_cycles_per_foot: 4        # RERECORD if < 4 clean cycles/foot
+  target_clean_cycles_per_foot: 8     # PROCEED_OK if ≥ 8 clean cycles/foot
+  proceed_warning_threshold: 4        # 4-7 cycles → proceed with warning
+
+smoothing:
+  # 1-Euro filter parameters for keypoint smoothing
+  cutoff_hz: 1.0              # Cutoff frequency
+  beta: 0.5                   # Beta parameter (0-1)
+  dcutoff_hz: 1.0             # Derivative cutoff frequency
+
+heel_strike_detection:
+  # Heel strike detection parameters
+  velocity_threshold: 0.3     # Heel velocity threshold
+  window_size_frames: 5       # Smoothing window
+  prominence_threshold: 0.2   # Peak prominence
+
+toe_off_detection:
+  # Toe off detection parameters
+  velocity_threshold: 0.2
+  window_size_frames: 5
+  prominence_threshold: 0.1
+
+# Advanced: tuning parameters (set after validation study)
+tuning_notes: |
+  These defaults are based on literature and clinical experience.
+  After Phase 3 validation study:
+  1. Compare against pressure mat (ground truth)
+  2. Compute ICC (intra-class correlation) per metric
+  3. Update thresholds to maximize sensitivity/specificity
+  4. Document changes with commit message and validation metrics

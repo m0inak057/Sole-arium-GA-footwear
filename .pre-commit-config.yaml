@@ -1,0 +1,85 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        exclude: ^docs/
+      - id: end-of-file-fixer
+        name: Fix end of file
+      - id: check-yaml
+        name: Check YAML syntax
+        args: [--unsafe]
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-added-large-files
+        name: Prevent large files
+        args: ['--maxkb=5000']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect private keys
+
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        name: Black code formatter
+        language_version: python3.11
+        args: [--line-length=100]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.290
+    hooks:
+      - id: ruff
+        name: Ruff linter
+        args: [--fix, --exit-zero]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.0
+    hooks:
+      - id: mypy
+        name: MyPy type checker
+        additional_dependencies:
+          - pydantic
+          - types-pyyaml
+          - types-redis
+          - types-requests
+        args: [--show-error-codes, --ignore-missing-imports]
+        exclude: ^(tests/|migrations/|docs/)
+
+  - repo: https://github.com/hadialqattan/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: PEP 257 docstring checker
+        args: [--convention=google]
+        exclude: ^(tests/|migrations/|docs/)
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: 3.12.0
+    hooks:
+      - id: commitizen
+        name: Check commit message format
+        stages: [commit-msg]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+        name: Detect secrets
+        entry: gitleaks detect --verbose --log-opts=-10
+
+ci:
+  autofix_commit_msg: |
+    ci(pre-commit): auto-fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: 'ci(pre-commit): pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
