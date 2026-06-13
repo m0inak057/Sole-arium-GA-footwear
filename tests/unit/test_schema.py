@@ -213,7 +213,7 @@ class TestGaitPatientProfile:
             ),
             arch=Arch(
                 type={"L": ArchType.LOW, "R": ArchType.LOW},
-                arch_height_index=LRPair(L=0.21, "R": 0.22),
+                arch_height_index=LRPair(L=0.21, R=0.22),
             ),
             shoe_design_recommendations=ShoeDesignRecommendations(
                 medial_post=MedialPostType.REQUIRED,
