@@ -15,7 +15,7 @@ Gait sign conventions:
 from __future__ import annotations
 
 import math
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from src.gait.common.geometry import signed_angle_deg
 from src.gait.common.interfaces import GaitCycle, Keypoint
@@ -58,7 +58,41 @@ def compute_spatiotemporal(cycle: GaitCycle, fps: float) -> Dict[str, float]:
     return result
 
 
+def compute_step_length(
+    ipsilateral_heel_x_px: float,
+    contralateral_heel_x_px: float,
+    scale_m_per_px: float,
+) -> float:
+    """Step length = horizontal distance between consecutive contralateral heel strikes.
+
+    Args:
+        ipsilateral_heel_x_px: x-coordinate (px) of this foot's heel at initial contact.
+        contralateral_heel_x_px: x-coordinate (px) of the opposite foot's heel at its
+            preceding initial contact.
+        scale_m_per_px: camera calibration factor (metres per pixel in the floor plane).
+
+    Returns:
+        Step length in metres (always non-negative).
+    """
+    return abs(ipsilateral_heel_x_px - contralateral_heel_x_px) * scale_m_per_px
+
+
 # ── Foot-strike classification ─────────────────────────────────────────────────
+
+
+def compute_foot_progression_angle(heel: Keypoint, foot_index: Keypoint) -> float:
+    """Foot progression angle (FPA) at heel-strike.
+
+    FPA = angle between the foot's long axis (heel→toe) and the direction of
+    travel, assumed to be the image +x axis.  Image y is inverted relative to
+    world y, so the world-space angle is atan2(-dy, dx).
+
+    Positive FPA: toe points above the direction of travel (toe-out / external rotation).
+    Negative FPA: toe points below the direction of travel (toe-in / internal rotation).
+    """
+    dx = foot_index.x - heel.x
+    dy = foot_index.y - heel.y  # image space: positive = downward
+    return math.degrees(math.atan2(-dy, dx if abs(dx) > 1e-9 else 1e-9))
 
 
 def compute_foot_strike_angle(heel: Keypoint, foot_index: Keypoint) -> float:
@@ -116,6 +150,18 @@ def classify_pronation(angle_deg: float, cfg: AnalysisConfig) -> str:
     if angle_deg >= cfg.mild_supination_min_deg:
         return "mild_supination"
     return "oversupination"
+
+
+def compute_frontal_plane_excursion(rearfoot_angles_deg: List[float]) -> float:
+    """Total frontal-plane rearfoot excursion during stance.
+
+    Returns max - min of the rearfoot angle series (degrees), which represents
+    the full range of calcaneal motion from initial contact through toe-off.
+    Returns 0.0 when fewer than two samples are available.
+    """
+    if len(rearfoot_angles_deg) < 2:
+        return 0.0
+    return max(rearfoot_angles_deg) - min(rearfoot_angles_deg)
 
 
 # ── Arch assessment ────────────────────────────────────────────────────────────

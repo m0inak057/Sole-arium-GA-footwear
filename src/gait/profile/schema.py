@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 
 
 class FootStrikePattern(str, Enum):
@@ -133,6 +133,12 @@ class Spatiotemporal(BaseModel):
     swing_pct: Optional[LRPair] = Field(
         None, description="Swing phase as % of cycle per foot"
     )
+    step_length_m: Optional[LRPair] = Field(
+        None, description="Step length in meters per foot"
+    )
+    foot_progression_angle_deg: Optional[LRPair] = Field(
+        None, description="Foot progression angle in degrees per foot (positive = toe-out, negative = toe-in)"
+    )
 
     class Config:
         json_schema_extra = {
@@ -144,6 +150,8 @@ class Spatiotemporal(BaseModel):
                 "stance_pct": {"L": 61.2, "R": 60.4},
                 "double_support_pct": 22.1,
                 "swing_pct": {"L": 38.8, "R": 39.6},
+                "step_length_m": {"L": 0.68, "R": 0.67},
+                "foot_progression_angle_deg": {"L": 7.2, "R": 6.8},
             }
         }
 
@@ -185,6 +193,9 @@ class Pronation(BaseModel):
     time_to_peak_eversion_pct_stance: LRPair = Field(
         ..., description="Time to peak eversion as % of stance phase"
     )
+    frontal_plane_excursion_deg: Optional[LRPair] = Field(
+        None, description="Total frontal-plane rearfoot excursion during stance in degrees (mobility metric)"
+    )
 
     @validator("classification")
     def validate_lr_classification(cls, v):
@@ -198,6 +209,7 @@ class Pronation(BaseModel):
                 "rearfoot_angle_at_midstance_deg": {"L": 11.4, "R": 9.8},
                 "classification": {"L": "overpronation", "R": "overpronation"},
                 "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42},
+                "frontal_plane_excursion_deg": {"L": 12.3, "R": 11.8},
             }
         }
 
@@ -264,6 +276,12 @@ class GaitPatientProfile(BaseModel):
     schema_version: str = Field(default="profile/v1", description="Schema version")
     patient_id: str = Field(..., description="Pseudonymous patient identifier")
     session_timestamp: datetime = Field(..., description="Session capture timestamp (UTC)")
+    trial_condition: Optional[str] = Field(
+        None, description="Footwear condition: 'barefoot' or 'shod'"
+    )
+    linked_session_id: Optional[str] = Field(
+        None, description="Session ID of the paired barefoot/shod trial for comparison"
+    )
     anthropometrics: Anthropometrics = Field(..., description="Patient measurements")
     spatiotemporal: Spatiotemporal = Field(
         ..., description="Spatiotemporal gait parameters"
@@ -294,6 +312,12 @@ class GaitPatientProfile(BaseModel):
         None, description="Pipeline metadata (timestamps, model versions, etc.)"
     )
 
+    @validator("trial_condition")
+    def validate_trial_condition(cls, v):
+        if v is not None and v not in {"barefoot", "shod"}:
+            raise ValueError("trial_condition must be 'barefoot' or 'shod'")
+        return v
+
     @validator("confidence_scores")
     def validate_confidence_scores(cls, v):
         for key, score in v.items():
@@ -313,6 +337,8 @@ class GaitPatientProfile(BaseModel):
                 "schema_version": "profile/v1",
                 "patient_id": "P0042",
                 "session_timestamp": "2026-05-15T11:23:00Z",
+                "trial_condition": "barefoot",
+                "linked_session_id": None,
                 "anthropometrics": {
                     "height_cm": 172,
                     "mass_kg": 68,
@@ -326,6 +352,8 @@ class GaitPatientProfile(BaseModel):
                     "step_width_m": 0.09,
                     "stance_pct": {"L": 61.2, "R": 60.4},
                     "double_support_pct": 22.1,
+                    "step_length_m": {"L": 0.68, "R": 0.67},
+                    "foot_progression_angle_deg": {"L": 7.2, "R": 6.8},
                 },
                 "foot_strike": {
                     "pattern": {"L": "rearfoot", "R": "rearfoot"},
@@ -335,6 +363,7 @@ class GaitPatientProfile(BaseModel):
                     "rearfoot_angle_at_midstance_deg": {"L": 11.4, "R": 9.8},
                     "classification": {"L": "overpronation", "R": "overpronation"},
                     "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42},
+                    "frontal_plane_excursion_deg": {"L": 12.3, "R": 11.8},
                 },
                 "arch": {
                     "type": {"L": "low", "R": "low"},

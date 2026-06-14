@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import statistics
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -11,9 +11,12 @@ from src.gait.analysis.parameters import (
     classify_foot_strike,
     classify_pronation,
     compute_arch_height_index,
+    compute_foot_progression_angle,
     compute_foot_strike_angle,
+    compute_frontal_plane_excursion,
     compute_rearfoot_angle,
     compute_spatiotemporal,
+    compute_step_length,
     compute_symmetry_index,
 )
 from src.gait.common.interfaces import BiomechanicalAnalyzer, GaitCycle
@@ -30,9 +33,15 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
     `aggregate_parameters(cycles, foot)` — mean/std over a session, + quality flag.
     """
 
-    def __init__(self, config: AnalysisConfig, fps: float = 120.0) -> None:
+    def __init__(
+        self,
+        config: AnalysisConfig,
+        fps: float = 120.0,
+        joint_angle_offsets: Optional[Dict[str, float]] = None,
+    ) -> None:
         self._cfg = config
         self._fps = fps
+        self._offsets: Dict[str, float] = joint_angle_offsets or {}
 
     # ── BiomechanicalAnalyzer ABC ──────────────────────────────────────────
 
@@ -60,10 +69,14 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
         toe_hs = hs_kps.get(f"{side}_foot_index")
         ankle_hs = hs_kps.get(f"{side}_ankle")
 
+        if heel_hs:
+            params["heel_strike_x_px"] = heel_hs.x
+
         if heel_hs and toe_hs:
             fsa = compute_foot_strike_angle(heel_hs, toe_hs)
             params["foot_strike_angle_deg"] = fsa
             params["foot_strike_type"] = classify_foot_strike(fsa, self._cfg)
+            params["foot_progression_angle_deg"] = compute_foot_progression_angle(heel_hs, toe_hs)
 
         if heel_hs and toe_hs and ankle_hs:
             ahi = compute_arch_height_index(heel_hs, toe_hs, ankle_hs)
@@ -84,8 +97,27 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
             # Right foot eversion = heel tilts left (−x) → raw angle is negative → negate.
             if cycle.foot == "R":
                 rfa = -rfa
+            # Subtract anatomical zero from static calibration trial so the
+            # dynamic angle is relative to the subject's own neutral posture.
+            rfa -= self._offsets.get(f"{side}_ankle_deg", 0.0)
             params["rearfoot_angle_deg"] = rfa
             params["pronation_type"] = classify_pronation(rfa, self._cfg)
+
+        # ── Frontal-plane excursion across all stance frames ───────────────
+        stance_angles: List[float] = []
+        for frame, kps in cycle.keypoints.items():
+            if not (cycle.frame_start <= frame <= cycle.frame_end):
+                continue
+            k = kps.get(f"{side}_knee")
+            a = kps.get(f"{side}_ankle")
+            h = kps.get(f"{side}_heel")
+            if k and a and h:
+                rfa_frame = compute_rearfoot_angle(k, a, h)
+                if cycle.foot == "R":
+                    rfa_frame = -rfa_frame
+                stance_angles.append(rfa_frame)
+        if stance_angles:
+            params["frontal_plane_excursion_deg"] = compute_frontal_plane_excursion(stance_angles)
 
         return params
 
@@ -127,6 +159,43 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
         agg["quality_flag"] = _quality_flag(len(cycles), self._cfg)
         return agg
 
+    def compute_step_lengths(
+        self,
+        l_cycles: List[GaitCycle],
+        r_cycles: List[GaitCycle],
+        scale_m_per_px: float,
+    ) -> Dict[str, float]:
+        """Compute mean step length (metres) for each foot across a session.
+
+        Step length = distance between this foot's heel-strike x and the
+        contralateral foot's mean heel-strike x, scaled by camera calibration.
+
+        Returns:
+            {"L": <step_length_m>, "R": <step_length_m>}
+            Missing values default to 0.0 when heel keypoints are unavailable.
+        """
+        def _mean_heel_x(cycles: List[GaitCycle]) -> Optional[float]:
+            xs = []
+            for c in cycles:
+                side = "left" if c.foot == "L" else "right"
+                hs_kps = c.keypoints.get(c.frame_start, {})
+                heel = hs_kps.get(f"{side}_heel")
+                if heel is not None:
+                    xs.append(heel.x)
+            return float(np.mean(xs)) if xs else None
+
+        l_x = _mean_heel_x(l_cycles)
+        r_x = _mean_heel_x(r_cycles)
+
+        result: Dict[str, float] = {}
+        if l_x is not None and r_x is not None:
+            result["L"] = compute_step_length(l_x, r_x, scale_m_per_px)
+            result["R"] = compute_step_length(r_x, l_x, scale_m_per_px)
+        else:
+            result["L"] = 0.0
+            result["R"] = 0.0
+        return result
+
     # ── helpers ────────────────────────────────────────────────────────────
 
     def _nearest_keypoints(self, cycle: GaitCycle, target_frame: int) -> Dict:
@@ -146,7 +215,9 @@ def _quality_flag(n_cycles: int, cfg: AnalysisConfig) -> str:
 
 
 def create_biomechanical_analyzer(
-    config: AnalysisConfig, fps: float = 120.0
+    config: AnalysisConfig,
+    fps: float = 120.0,
+    joint_angle_offsets: Optional[Dict[str, float]] = None,
 ) -> StandardBiomechanicalAnalyzer:
     """Factory: return the standard biomechanical analyzer."""
-    return StandardBiomechanicalAnalyzer(config, fps=fps)
+    return StandardBiomechanicalAnalyzer(config, fps=fps, joint_angle_offsets=joint_angle_offsets)

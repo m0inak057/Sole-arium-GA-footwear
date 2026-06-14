@@ -5,9 +5,11 @@ import numpy as np
 import pytest
 
 from src.gait.validation.metrics import (
+    ICC_THRESHOLD,
     ValidationMetrics,
     ErrorMetrics,
     PerformanceValidator,
+    intraclass_correlation,
 )
 from src.gait.validation.anomaly_detector import (
     AnomalyFlag,
@@ -333,6 +335,79 @@ class TestClinicalValidator:
         assert "CLINICAL VALIDATION REPORT" in report_text
         assert report.report_id in report_text
         assert "Accuracy" in report_text
+
+
+class TestIntraclassCorrelation:
+    """Tests for ICC(2,1) implementation."""
+
+    def test_icc_high_correlation_exceeds_threshold(self):
+        """ICC > 0.85 on a synthetic dataset where predicted and reference
+        values are highly correlated (r > 0.95)."""
+        rng = np.random.default_rng(42)
+        reference = rng.uniform(80.0, 140.0, size=30)   # cadence-range values
+        noise = rng.normal(0.0, 1.5, size=30)            # small measurement noise
+        predicted = reference + noise
+
+        pearson_r = np.corrcoef(predicted, reference)[0, 1]
+        assert pearson_r > 0.95, f"Synthetic dataset correlation too low: {pearson_r:.3f}"
+
+        icc = intraclass_correlation(predicted, reference)
+        assert icc > ICC_THRESHOLD, (
+            f"Expected ICC > {ICC_THRESHOLD}, got {icc:.4f} "
+            f"(Pearson r = {pearson_r:.4f})"
+        )
+
+    def test_icc_perfect_agreement_is_one(self):
+        """Perfect agreement (identical arrays) must return ICC = 1.0."""
+        values = np.array([100.0, 105.0, 110.0, 108.0, 103.0])
+        icc = intraclass_correlation(values, values.copy())
+        assert icc == pytest.approx(1.0, abs=1e-6)
+
+    def test_icc_low_correlation_below_threshold(self):
+        """Uncorrelated (random) raters should produce ICC well below threshold."""
+        rng = np.random.default_rng(99)
+        rater_a = rng.uniform(0.0, 100.0, size=50)
+        rater_b = rng.uniform(0.0, 100.0, size=50)
+        icc = intraclass_correlation(rater_a, rater_b)
+        assert icc < ICC_THRESHOLD
+
+    def test_icc_mismatched_lengths_raises(self):
+        """Mismatched array lengths must raise ValueError."""
+        with pytest.raises(ValueError, match="same length"):
+            intraclass_correlation(np.array([1.0, 2.0]), np.array([1.0]))
+
+    def test_icc_too_few_subjects_raises(self):
+        """Fewer than 2 subjects must raise ValueError."""
+        with pytest.raises(ValueError, match="at least 2"):
+            intraclass_correlation(np.array([1.0]), np.array([1.0]))
+
+    def test_icc_propagates_into_validation_result(self):
+        """GoldStandardComparator._compare_parameter must populate icc and
+        passes_icc_threshold on ValidationResult."""
+        rng = np.random.default_rng(7)
+        reference = rng.uniform(90.0, 130.0, size=20)
+        predicted = reference + rng.normal(0.0, 0.5, size=20)
+
+        comparator = GoldStandardComparator()
+        result = comparator.compare_cadence(predicted, reference)
+
+        assert result.icc > ICC_THRESHOLD
+        assert result.passes_icc_threshold is True
+
+    def test_icc_summary_fields_in_report(self):
+        """GoldStandardReport must include parameters_passing_icc and icc_pass_rate."""
+        rng = np.random.default_rng(13)
+        reference = rng.uniform(90.0, 130.0, size=20)
+        predicted = reference + rng.normal(0.0, 0.5, size=20)
+
+        comparator = GoldStandardComparator()
+        report = comparator.compare_all_parameters(
+            {"cadence_spm": predicted, "speed_ms": predicted / 100.0},
+            {"cadence_spm": reference, "speed_ms": reference / 100.0},
+        )
+
+        assert report.parameters_passing_icc >= 1
+        assert 0.0 <= report.icc_pass_rate <= 1.0
 
 
 class TestValidationIntegration:

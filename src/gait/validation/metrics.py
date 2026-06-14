@@ -34,6 +34,74 @@ class ErrorMetrics:
     correlation: float  # Pearson correlation with gold standard
 
 
+ICC_THRESHOLD = 0.85  # Minimum acceptable ICC for clinical use
+
+
+def intraclass_correlation(rater_a: np.ndarray, rater_b: np.ndarray) -> float:
+    """Two-way mixed-effects ICC for absolute agreement between a single pair of raters.
+
+    Implements ICC(2,1) per Shrout & Fleiss (1979) / McGraw & Wong (1996).
+
+    For n subjects each measured once by two raters:
+
+        data  : n×2 matrix  (rows = subjects, columns = raters)
+        MSB   : between-subjects mean square
+        MSC   : between-raters (columns) mean square
+        MSE   : residual error mean square
+        k = 2 : number of raters
+
+        ICC(2,1) = (MSB − MSE) / (MSB + (k−1)·MSE + k·(MSC − MSE)/n)
+
+    Returns a value in [−1, 1]; negative values indicate worse-than-chance
+    agreement and are clipped to 0.0 before returning so callers can always
+    compare against ICC_THRESHOLD without special-casing negatives.
+
+    Args:
+        rater_a: Measurements from rater / system A (length n).
+        rater_b: Measurements from rater / system B (length n).
+
+    Returns:
+        ICC value in [0, 1].
+
+    Raises:
+        ValueError: If the arrays have different lengths or fewer than 2 subjects.
+    """
+    rater_a = np.asarray(rater_a, dtype=float)
+    rater_b = np.asarray(rater_b, dtype=float)
+
+    if rater_a.shape != rater_b.shape:
+        raise ValueError(
+            f"rater_a and rater_b must have the same length; "
+            f"got {len(rater_a)} vs {len(rater_b)}"
+        )
+    n = len(rater_a)
+    if n < 2:
+        raise ValueError(f"ICC requires at least 2 subjects; got {n}")
+
+    k = 2  # fixed: one measurement per rater
+    data = np.column_stack([rater_a, rater_b])   # shape (n, 2)
+
+    grand_mean = data.mean()
+    row_means = data.mean(axis=1)   # shape (n,)  — subject means
+    col_means = data.mean(axis=0)   # shape (2,)  — rater means
+
+    ss_b = k * np.sum((row_means - grand_mean) ** 2)          # between subjects
+    ss_c = n * np.sum((col_means - grand_mean) ** 2)          # between raters
+    ss_t = np.sum((data - grand_mean) ** 2)                    # total
+    ss_e = ss_t - ss_b - ss_c                                  # residual error
+
+    ms_b = ss_b / (n - 1)
+    ms_c = ss_c / (k - 1)
+    ms_e = ss_e / ((n - 1) * (k - 1))
+
+    denominator = ms_b + (k - 1) * ms_e + k * (ms_c - ms_e) / n
+    if abs(denominator) < 1e-12:
+        return 0.0
+
+    icc = (ms_b - ms_e) / denominator
+    return float(np.clip(icc, 0.0, 1.0))
+
+
 class PerformanceValidator:
     """Validates performance against gold standard measurements."""
 

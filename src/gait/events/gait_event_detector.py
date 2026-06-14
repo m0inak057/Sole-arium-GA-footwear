@@ -1,12 +1,14 @@
 """Gait event detection (heel strike, toe off)."""
 from __future__ import annotations
 
+import statistics
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from scipy import signal
 
+from src.gait.common.interfaces import GaitCycle
 from src.gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -175,3 +177,53 @@ class GaitEventDetector:
         except Exception as e:
             logger.warning("gait_event.filter_failed", extra={"error": str(e)})
             return signal_data
+
+
+def assign_pass_ids(
+    cycles: List[GaitCycle],
+    pass_gap_multiplier: float = 3.0,
+) -> List[GaitCycle]:
+    """Group cycles into walking passes and stamp each with a pass_id.
+
+    A new walking pass begins when the gap between the end of one cycle and
+    the start of the next exceeds ``pass_gap_multiplier × median_cycle_duration``
+    in frames — a signature of the subject stopping, turning around, and
+    resuming.  Cycles are sorted by frame_start before comparison so the
+    function is order-independent.
+
+    Args:
+        cycles:               All segmented GaitCycle objects for one foot.
+        pass_gap_multiplier:  Multiple of the median cycle duration that
+                              constitutes a between-pass gap (default 3.0).
+
+    Returns:
+        The same cycle objects (mutated in-place) sorted by frame_start,
+        each with ``pass_id`` set.
+    """
+    if not cycles:
+        return cycles
+
+    sorted_cycles = sorted(cycles, key=lambda c: c.frame_start)
+
+    durations = [c.frame_end - c.frame_start for c in sorted_cycles]
+    median_dur = statistics.median(durations)
+    gap_threshold = pass_gap_multiplier * median_dur
+
+    current_pass = 0
+    sorted_cycles[0].pass_id = current_pass
+    for i in range(1, len(sorted_cycles)):
+        gap = sorted_cycles[i].frame_start - sorted_cycles[i - 1].frame_end
+        if gap > gap_threshold:
+            current_pass += 1
+        sorted_cycles[i].pass_id = current_pass
+
+    logger.info(
+        "pass_ids.assigned",
+        extra={
+            "n_cycles": len(sorted_cycles),
+            "n_passes": current_pass + 1,
+            "median_cycle_frames": median_dur,
+            "gap_threshold_frames": gap_threshold,
+        },
+    )
+    return sorted_cycles

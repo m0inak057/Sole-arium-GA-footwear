@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.gait.api.models import SessionStatus
+from src.gait.api.models import SessionStatus, TrialConditionEnum
 
 
 @dataclass
@@ -26,6 +26,8 @@ class SessionState:
     status: SessionStatus
     anthropometrics: Dict[str, Any]
     created_at: datetime
+    trial_condition: TrialConditionEnum = TrialConditionEnum.BAREFOOT
+    linked_session_id: Optional[str] = None
     task_id: Optional[str] = None
     error_message: Optional[str] = None
     profile: Optional[Dict[str, Any]] = None
@@ -51,6 +53,8 @@ class SessionStore:
         self,
         patient_id: str,
         anthropometrics: Dict[str, Any],
+        trial_condition: TrialConditionEnum = TrialConditionEnum.BAREFOOT,
+        linked_session_id: Optional[str] = None,
     ) -> SessionState:
         """Create a new session and return its initial state."""
         session_id = str(uuid.uuid4())
@@ -60,6 +64,8 @@ class SessionStore:
             status=SessionStatus.CREATED,
             anthropometrics=anthropometrics,
             created_at=datetime.utcnow(),
+            trial_condition=trial_condition,
+            linked_session_id=linked_session_id,
         )
         with self._lock:
             self._sessions[session_id] = state

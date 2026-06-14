@@ -120,6 +120,24 @@ class EventDetectionConfig(BaseModel):
     event_confidence_min: float = Field(0.5, description="Drop events whose keypoint confidence < this")
     min_frames_between_events: int = Field(15, description="Minimum frames between two HS (or two TO) events")
     smoothing_window_frames: int = Field(5, description="Moving-average window before peak detection")
+    pass_gap_multiplier: float = Field(
+        3.0,
+        description=(
+            "A gap between consecutive cycles larger than this multiple of the median "
+            "cycle duration is treated as a between-pass turnaround"
+        ),
+    )
+
+
+class StaticTrialConfig(BaseModel):
+    """Parameters for the static calibration trial."""
+
+    duration_sec: float = Field(
+        3.0, description="Duration of quiet-standing capture used for calibration (seconds)"
+    )
+    required_keypoint_confidence: float = Field(
+        0.7, description="Minimum per-keypoint confidence to include a frame in the standing average"
+    )
 
 
 class AnalysisConfig(BaseModel):
@@ -155,6 +173,7 @@ class PipelineConfig(BaseModel):
     pose: PoseConfig = Field(default_factory=PoseConfig)
     events: EventDetectionConfig = Field(default_factory=EventDetectionConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
+    static_trial: StaticTrialConfig = Field(default_factory=StaticTrialConfig)
 
     class Config:
         extra = "allow"  # Allow additional configs

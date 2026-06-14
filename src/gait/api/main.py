@@ -24,6 +24,8 @@ from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.gait.api.models import (
+    ComparisonResponse,
+    ConditionMetrics,
     HealthResponse,
     ProcessRequest,
     ProfileResponse,
@@ -31,6 +33,7 @@ from src.gait.api.models import (
     SessionResponse,
     SessionStatus,
     StatusResponse,
+    TrialConditionEnum,
     UploadResponse,
 )
 from src.gait.api.session_store import SessionState, SessionStore, get_session_store
@@ -147,6 +150,52 @@ def _sync_task_status(state: SessionState, store: SessionStore) -> SessionState:
     return state
 
 
+# ── comparison helpers ────────────────────────────────────────────────────────
+
+
+def _extract_condition_metrics(
+    session_id: str,
+    condition: TrialConditionEnum,
+    profile: Dict[str, Any],
+) -> ConditionMetrics:
+    st = profile.get("spatiotemporal", {})
+    pron = profile.get("pronation", {})
+    fs = profile.get("foot_strike", {})
+    arch = profile.get("arch", {})
+    return ConditionMetrics(
+        session_id=session_id,
+        trial_condition=condition,
+        cadence_spm=st.get("cadence_spm"),
+        pronation_classification=pron.get("classification"),
+        foot_strike_pattern=fs.get("pattern"),
+        arch_type=arch.get("type"),
+    )
+
+
+def _build_delta(barefoot: ConditionMetrics, shod: ConditionMetrics) -> Dict[str, Any]:
+    """Compute numeric deltas (shod − barefoot) and changed flags for classifications."""
+    delta: Dict[str, Any] = {}
+
+    # Cadence: numeric delta
+    if barefoot.cadence_spm is not None and shod.cadence_spm is not None:
+        delta["cadence_spm"] = round(shod.cadence_spm - barefoot.cadence_spm, 3)
+
+    # L/R classification fields: flag which sides changed
+    for attr in ("pronation_classification", "foot_strike_pattern", "arch_type"):
+        bf_val: Dict[str, Any] = getattr(barefoot, attr) or {}
+        sh_val: Dict[str, Any] = getattr(shod, attr) or {}
+        delta[attr] = {
+            side: {
+                "barefoot": bf_val.get(side),
+                "shod": sh_val.get(side),
+                "changed": bf_val.get(side) != sh_val.get(side),
+            }
+            for side in ("L", "R")
+        }
+
+    return delta
+
+
 # ── endpoints ─────────────────────────────────────────────────────────────────
 
 
@@ -186,10 +235,17 @@ async def create_session(
     state = store.create(
         patient_id=body.patient_id,
         anthropometrics=body.anthropometrics.model_dump(),
+        trial_condition=body.trial_condition,
+        linked_session_id=body.linked_session_id,
     )
     logger.info(
         "session.created",
-        extra={"session_id": state.session_id, "patient_id": body.patient_id},
+        extra={
+            "session_id": state.session_id,
+            "patient_id": body.patient_id,
+            "trial_condition": body.trial_condition,
+            "linked_session_id": body.linked_session_id,
+        },
     )
     return SessionResponse(
         session_id=state.session_id,
@@ -402,3 +458,76 @@ async def delete_session(
 
     store.delete(session_id)
     logger.info("session.deleted", extra={"session_id": session_id})
+
+
+@app.get(
+    "/api/v1/sessions/{session_id}/comparison",
+    response_model=ComparisonResponse,
+    tags=["Sessions"],
+)
+async def get_comparison(
+    session_id: str,
+    store: SessionStore = Depends(get_session_store),
+) -> ComparisonResponse:
+    """Return a side-by-side comparison of key gait metrics between the barefoot
+    and shod trials linked to this session.
+
+    Requires:
+    - The requested session must have ``linked_session_id`` set.
+    - Both sessions must be in COMPLETED state with profiles available.
+    """
+    state = _require_session(session_id, store)
+    state = _sync_task_status(state, store)
+
+    if not state.linked_session_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Session has no linked_session_id; pair a barefoot and shod session first.",
+        )
+
+    linked_state = store.get(state.linked_session_id)
+    if linked_state is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Linked session {state.linked_session_id!r} not found.",
+        )
+    linked_state = _sync_task_status(linked_state, store)
+
+    for s in (state, linked_state):
+        if s.status != SessionStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Session {s.session_id!r} is not yet COMPLETED (status: {s.status}).",
+            )
+        if s.profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Session {s.session_id!r} has no profile data.",
+            )
+
+    metrics_a = _extract_condition_metrics(
+        session_id, state.trial_condition, state.profile  # type: ignore[arg-type]
+    )
+    metrics_b = _extract_condition_metrics(
+        state.linked_session_id,
+        linked_state.trial_condition,
+        linked_state.profile,  # type: ignore[arg-type]
+    )
+
+    # Assign barefoot / shod roles regardless of which session was requested
+    if state.trial_condition == TrialConditionEnum.BAREFOOT:
+        barefoot, shod = metrics_a, metrics_b
+    else:
+        barefoot, shod = metrics_b, metrics_a
+
+    logger.info(
+        "comparison.served",
+        extra={"session_id": session_id, "linked_session_id": state.linked_session_id},
+    )
+    return ComparisonResponse(
+        session_id=session_id,
+        linked_session_id=state.linked_session_id,
+        barefoot=barefoot,
+        shod=shod,
+        delta=_build_delta(barefoot, shod),
+    )

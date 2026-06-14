@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 from src.gait.analysis.analyzer import create_biomechanical_analyzer
 from src.gait.common.interfaces import GaitCycle, KeypointFrame
 from src.gait.common.logging_utils import get_logger
+from src.gait.events.gait_event_detector import assign_pass_ids
 from src.gait.events.velocity_detector import create_event_detector
 from src.gait.pipeline.config import (
     PipelineConfig,
@@ -26,6 +27,7 @@ from src.gait.pipeline.config import (
     load_recommendation_rules,
 )
 from src.gait.profile.builder import create_profile_builder
+from src.gait.profile.gating import discard_boundary_cycles
 
 logger = get_logger(__name__)
 
@@ -34,10 +36,13 @@ class GaitPipeline:
     """End-to-end gait analysis pipeline.
 
     Construct once per analysis session; never reuse across sessions.
+    Call ``process_static_trial()`` before ``run()`` to capture per-subject
+    joint-angle offsets; if omitted, all offsets default to zero.
     """
 
     def __init__(self, config: Optional[PipelineConfig] = None) -> None:
         self._cfg = config or load_pipeline_config()
+        self._static_trial_offsets: Dict[str, float] = {}
 
     def run(
         self,
@@ -89,6 +94,47 @@ class GaitPipeline:
         logger.info("pipeline.complete", extra={"patient_id": patient_id})
         return profile
 
+    # ── static calibration ─────────────────────────────────────────────────────
+
+    def process_static_trial(
+        self,
+        session_id: str,
+        keypoint_frames: List[KeypointFrame],
+    ) -> "StaticTrial":
+        """Run the static calibration trial and store per-subject joint-angle offsets.
+
+        Must be called before ``run()`` if anatomical offset correction is desired.
+        The resulting offsets are automatically forwarded to the biomechanical
+        analyzer so that dynamic joint angles are expressed relative to the
+        subject's own neutral standing posture.
+
+        Args:
+            session_id:       Identifier for this session (stored on the result).
+            keypoint_frames:  Pose-estimated frames from the quiet-standing
+                              capture (~3 s at the configured fps).
+
+        Returns:
+            StaticTrial containing averaged keypoints and joint_angle_offsets.
+        """
+        from src.gait.common.types import StaticTrial  # noqa: F401 (type re-export)
+        from src.gait.ingestion.static_trial import StaticTrialProcessor
+
+        processor = StaticTrialProcessor(
+            self._cfg.static_trial,
+            fps=float(self._cfg.ingestion.fps),
+        )
+        trial = processor.process(session_id, keypoint_frames)
+        self._static_trial_offsets = trial.joint_angle_offsets
+        logger.info(
+            "pipeline.static_trial_captured",
+            extra={
+                "session_id": session_id,
+                "duration_frames": trial.duration_frames,
+                "offsets": trial.joint_angle_offsets,
+            },
+        )
+        return trial
+
     # ── helpers ────────────────────────────────────────────────────────────────
 
     def _run_ingestion_and_pose(
@@ -114,7 +160,11 @@ class GaitPipeline:
             self._cfg.events.heel_strike_model,
             self._cfg.events,
         )
-        analyzer = create_biomechanical_analyzer(self._cfg.analysis, fps=fps)
+        analyzer = create_biomechanical_analyzer(
+            self._cfg.analysis,
+            fps=fps,
+            joint_angle_offsets=self._static_trial_offsets,
+        )
 
         result: Dict[str, Dict[str, Any]] = {}
         for foot in ("L", "R"):
@@ -123,6 +173,8 @@ class GaitPipeline:
             cycles: List[GaitCycle] = detector.segment_gait_cycles(
                 keypoint_frames, hs, to, foot
             )
+            cycles = assign_pass_ids(cycles, self._cfg.events.pass_gap_multiplier)
+            cycles = discard_boundary_cycles(cycles)
             result[foot] = analyzer.aggregate_parameters(cycles, foot)
 
         return result

@@ -17,6 +17,11 @@ class SessionStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class TrialConditionEnum(str, Enum):
+    BAREFOOT = "barefoot"
+    SHOD = "shod"
+
+
 # ── Anthropometrics sub-model ──────────────────────────────────────────────────
 
 
@@ -44,6 +49,12 @@ class SessionCreate(BaseModel):
 
     patient_id: str = Field(..., min_length=1, description="Pseudonymous patient identifier")
     anthropometrics: AnthropometricsIn = Field(..., description="Patient measurements")
+    trial_condition: TrialConditionEnum = Field(
+        ..., description="Footwear condition for this trial: 'barefoot' or 'shod'"
+    )
+    linked_session_id: Optional[str] = Field(
+        None, description="Session ID of the paired barefoot/shod trial (optional)"
+    )
 
 
 class ProcessRequest(BaseModel):
@@ -83,6 +94,9 @@ class StatusResponse(BaseModel):
     session_id: str
     patient_id: str
     status: SessionStatus
+    static_trial_captured: bool = Field(
+        False, description="Whether a static calibration trial has been processed for this session"
+    )
     task_id: Optional[str] = None
     error_message: Optional[str] = None
     progress_pct: Optional[float] = Field(
@@ -113,6 +127,29 @@ class ErrorResponse(BaseModel):
 
     detail: str
     error_code: Optional[str] = None
+
+
+class ConditionMetrics(BaseModel):
+    """Key metrics extracted from one session's profile."""
+
+    session_id: str
+    trial_condition: TrialConditionEnum
+    cadence_spm: Optional[float] = None
+    pronation_classification: Optional[Dict[str, Any]] = None
+    foot_strike_pattern: Optional[Dict[str, Any]] = None
+    arch_type: Optional[Dict[str, Any]] = None
+
+
+class ComparisonResponse(BaseModel):
+    """GET /api/v1/sessions/{id}/comparison — side-by-side barefoot vs. shod diff."""
+
+    session_id: str
+    linked_session_id: str
+    barefoot: ConditionMetrics
+    shod: ConditionMetrics
+    delta: Dict[str, Any] = Field(
+        description="Numeric deltas (shod − barefoot) and changed-flag for classifications"
+    )
 
 
 # ── Validation helpers ────────────────────────────────────────────────────────

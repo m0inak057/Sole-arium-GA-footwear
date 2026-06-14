@@ -7,7 +7,7 @@ from typing import Optional
 import numpy as np
 
 from src.gait.common.logging_utils import get_logger
-from src.gait.validation.metrics import PerformanceValidator, ErrorMetrics
+from src.gait.validation.metrics import ICC_THRESHOLD, PerformanceValidator, ErrorMetrics, intraclass_correlation
 
 logger = get_logger(__name__)
 
@@ -23,6 +23,8 @@ class ValidationResult:
     correlation: float
     passes_validation: bool  # Within acceptable tolerance
     confidence_level: float  # 0-1
+    icc: float = 0.0                 # ICC(2,1) absolute agreement
+    passes_icc_threshold: bool = False  # True if icc > ICC_THRESHOLD (0.85)
 
 
 @dataclass
@@ -33,6 +35,8 @@ class GoldStandardReport:
     validation_pass_rate: float
     results: list[ValidationResult]
     overall_confidence: float
+    parameters_passing_icc: int = 0   # count of results with icc > ICC_THRESHOLD
+    icc_pass_rate: float = 0.0        # parameters_passing_icc / total_parameters
 
 
 class GoldStandardComparator:
@@ -131,6 +135,8 @@ class GoldStandardComparator:
             passed = sum(1 for r in results if r.passes_validation)
             pass_rate = passed / total if total > 0 else 0.0
             mean_confidence = np.mean([r.confidence_level for r in results]) if results else 0.0
+            passing_icc = sum(1 for r in results if r.passes_icc_threshold)
+            icc_pass_rate = passing_icc / total if total > 0 else 0.0
 
             logger.info(
                 "validation.gold_standard_report",
@@ -139,6 +145,8 @@ class GoldStandardComparator:
                     "passed": passed,
                     "pass_rate": round(pass_rate, 3),
                     "overall_confidence": round(mean_confidence, 3),
+                    "parameters_passing_icc": passing_icc,
+                    "icc_pass_rate": round(icc_pass_rate, 3),
                 },
             )
 
@@ -148,6 +156,8 @@ class GoldStandardComparator:
                 validation_pass_rate=pass_rate,
                 results=results,
                 overall_confidence=mean_confidence,
+                parameters_passing_icc=passing_icc,
+                icc_pass_rate=icc_pass_rate,
             )
 
         except Exception as e:
@@ -184,6 +194,10 @@ class GoldStandardComparator:
             # Compute error metrics
             error_metrics = self.validator.compute_error_metrics(predicted, reference)
 
+            # Compute ICC(2,1) — requires at least 2 subjects
+            icc_val = intraclass_correlation(predicted, reference) if len(predicted) >= 2 else 0.0
+            passes_icc = icc_val > ICC_THRESHOLD
+
             # Check against tolerance
             tolerance = self.tolerances.get(parameter_name, float("inf"))
             passes = error_metrics.mae <= tolerance
@@ -199,6 +213,8 @@ class GoldStandardComparator:
                     "tolerance": tolerance,
                     "passes": passes,
                     "confidence": round(confidence, 3),
+                    "icc": round(icc_val, 3),
+                    "passes_icc": passes_icc,
                 },
             )
 
@@ -211,6 +227,8 @@ class GoldStandardComparator:
                 correlation=error_metrics.correlation,
                 passes_validation=passes,
                 confidence_level=float(np.clip(confidence, 0.0, 1.0)),
+                icc=icc_val,
+                passes_icc_threshold=passes_icc,
             )
 
         except Exception as e:

@@ -70,6 +70,7 @@ class GaitCycle:
     confidence: float  # Minimum confidence in cycle
     stance_duration_ms: Optional[float] = None
     swing_duration_ms: Optional[float] = None
+    pass_id: int = 0  # Walking-pass index assigned by assign_pass_ids()
 
 
 class VideoSource(ABC):

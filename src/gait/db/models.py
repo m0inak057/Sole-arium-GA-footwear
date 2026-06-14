@@ -86,6 +86,8 @@ class Session(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     patient_id = Column(String(255), nullable=False, index=True)
     status = Column(String(50), nullable=False, default="CREATED")  # CREATED, UPLOADING, QUEUED, PROCESSING, COMPLETED, FAILED
+    trial_condition = Column(String(20), nullable=False, default="barefoot")  # "barefoot" or "shod"
+    linked_session_id = Column(String(36), nullable=True, index=True)  # paired barefoot/shod session
     task_id = Column(String(255), nullable=True, index=True)  # Celery task ID
     error_message = Column(Text, nullable=True)
     progress_pct = Column(Integer, nullable=True)

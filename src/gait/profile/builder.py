@@ -214,6 +214,8 @@ class StandardProfileBuilder(ProfileBuilder):
         }
 
         # ── pronation ──────────────────────────────────────────────────────
+        fpe_l = params_l.get("frontal_plane_excursion_deg_mean")
+        fpe_r = params_r.get("frontal_plane_excursion_deg_mean")
         pronation = {
             "rearfoot_angle_at_midstance_deg": {
                 "L": params_l.get("rearfoot_angle_deg_mean", 0.0),
@@ -228,6 +230,8 @@ class StandardProfileBuilder(ProfileBuilder):
                 "L": parameters.get("time_to_peak_eversion_pct_L", 40.0),
                 "R": parameters.get("time_to_peak_eversion_pct_R", 40.0),
             },
+            **({"frontal_plane_excursion_deg": {"L": fpe_l, "R": fpe_r}}
+               if fpe_l is not None and fpe_r is not None else {}),
         }
 
         # ── arch ───────────────────────────────────────────────────────────

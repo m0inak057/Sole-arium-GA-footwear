@@ -8,12 +8,20 @@ catch at the right granularity.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from src.gait.common.interfaces import Frame
+    from src.gait.common.interfaces import Frame, Keypoint
+
+
+class TrialCondition(str, Enum):
+    """Footwear condition under which a gait trial was captured."""
+
+    BAREFOOT = "barefoot"
+    SHOD = "shod"
 
 
 # ── DTOs ──────────────────────────────────────────────────────────────────────
@@ -86,6 +94,23 @@ class IngestionResult:
     dropped_frames: int
     processing_time_sec: float
     camera_views: List[str]           # which cameras contributed frames
+
+
+@dataclass
+class StaticTrial:
+    """Calibration artefact produced from a ~3-second quiet-standing capture.
+
+    `keypoints` holds the time-averaged position of every detected keypoint
+    during the standing trial.  `joint_angle_offsets` maps anatomical joint
+    labels (e.g. ``"left_ankle_deg"``) to the baseline angle measured in that
+    posture; these offsets are subtracted from dynamic measurements so that
+    joint angles are expressed relative to the subject's own anatomical zero.
+    """
+
+    session_id: str
+    duration_frames: int
+    keypoints: Dict[str, "Keypoint"]       # averaged standing posture
+    joint_angle_offsets: Dict[str, float]  # anatomical zero references
 
 
 # ── Typed exception hierarchy ─────────────────────────────────────────────────
