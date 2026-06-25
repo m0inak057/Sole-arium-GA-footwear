@@ -190,25 +190,26 @@ class TestGenerateRecommendations:
     def test_no_rules_returns_defaults(self):
         engine = minimal_engine()
         result = engine.generate_recommendations({"pronation_type": "neutral"})
-        assert result["medial_post"] == "none"
-        assert result["arch_support"] == "medium"
-        assert result["heel_counter"] == "semi_rigid"
-        assert result["heel_drop_mm"] == 8.0
-        assert result["last_shape"] == "semi_curved"
+        assert result["defects_found"] == []
+        assert result["improvements"] == []
+        assert result["what_went_right"] == []
+        assert result["needs_human_review"] is False
 
-    def test_matching_rule_patches_field(self):
+    def test_matching_rule_adds_defect(self):
         engine = RuleBasedRecommendationEngine(
             make_rules_config(
                 make_rule(
                     "test_rule",
                     when={"pronation": "overpronation"},
-                    then={"medial_post": "required", "post_density": "firm"},
+                    then={
+                        "defects_found": [{"name": "Test Defect", "severity": "moderate", "affected_side": "bilateral", "biomechanical_cause": "Test", "gait_cycle_phase": "Test"}],
+                    },
                 )
             )
         )
         result = engine.generate_recommendations({"pronation_type": "overpronation"})
-        assert result["medial_post"] == "required"
-        assert result["post_density"] == "firm"
+        assert len(result["defects_found"]) == 1
+        assert result["defects_found"][0]["name"] == "Test Defect"
 
     def test_non_matching_rule_leaves_defaults(self):
         engine = RuleBasedRecommendationEngine(
@@ -216,12 +217,12 @@ class TestGenerateRecommendations:
                 make_rule(
                     "test_rule",
                     when={"pronation": "overpronation"},
-                    then={"medial_post": "required"},
+                    then={"defects_found": [{"name": "Test", "severity": "mild", "affected_side": "left", "biomechanical_cause": "test", "gait_cycle_phase": "test"}]},
                 )
             )
         )
         result = engine.generate_recommendations({"pronation_type": "neutral"})
-        assert result["medial_post"] == "none"
+        assert result["defects_found"] == []
 
     def test_higher_priority_overrides_lower(self):
         engine = RuleBasedRecommendationEngine(
@@ -304,38 +305,42 @@ class TestWithRealRulesConfig:
         cfg = load_recommendation_rules()
         return create_recommendation_engine(cfg)
 
-    def test_overpronation_low_arch_sets_medial_post_required(self):
+    def test_overpronation_low_arch_creates_defect(self):
         engine = self._full_engine()
         result = engine.generate_recommendations(
             {"pronation_type": "overpronation", "arch_type": "low"}
         )
-        assert result["medial_post"] == "required"
+        assert len(result["defects_found"]) > 0
+        assert any("Overpronation" in d.get("name", "") for d in result["defects_found"])
 
-    def test_overpronation_low_arch_sets_rigid_heel_counter(self):
+    def test_overpronation_low_arch_has_improvement_plan(self):
         engine = self._full_engine()
         result = engine.generate_recommendations(
             {"pronation_type": "overpronation", "arch_type": "low"}
         )
-        assert result["heel_counter"] == "rigid"
+        assert len(result["improvements"]) > 0
 
-    def test_neutral_pronation_sets_medial_post_none(self):
+    def test_neutral_pronation_positive_finding(self):
         engine = self._full_engine()
         result = engine.generate_recommendations(
             {"pronation_type": "neutral", "arch_type": "normal"}
         )
-        assert result["medial_post"] == "none"
+        assert len(result["defects_found"]) == 0
+        assert len(result["what_went_right"]) > 0
 
-    def test_oversupination_high_arch_sets_curved_last(self):
+    def test_oversupination_high_arch_creates_defect(self):
         engine = self._full_engine()
         result = engine.generate_recommendations(
             {"pronation_type": "oversupination", "arch_type": "high"}
         )
-        assert result["last_shape"] == "curved"
+        assert len(result["defects_found"]) > 0
+        assert any("Oversupination" in d.get("name", "") or "Supination" in d.get("name", "") for d in result["defects_found"])
 
-    def test_forefoot_striker_reduces_heel_drop(self):
+    def test_forefoot_striker_creates_defect(self):
         engine = self._full_engine()
         result = engine.generate_recommendations({"foot_strike_type": "forefoot"})
-        assert result["heel_drop_mm"] <= 6
+        assert len(result["defects_found"]) > 0
+        assert any("Forefoot" in d.get("name", "") for d in result["defects_found"])
 
     def test_high_asymmetry_flag_triggers_review(self):
         engine = self._full_engine()
@@ -347,17 +352,17 @@ class TestWithRealRulesConfig:
         result = engine.generate_recommendations({"flags": ["pathological_gait"]})
         assert result["needs_human_review"] is True
 
-    def test_pediatric_overrides_heel_counter(self):
+    def test_pediatric_adjustment_noted(self):
         engine = self._full_engine()
         result = engine.generate_recommendations(
             {
-                "pronation_type": "overpronation",
-                "arch_type": "low",
+                "pronation_type": "neutral",
+                "arch_type": "normal",
                 "age_years": 10,
             }
         )
-        # Rule 10 (priority 95) fires last; heel_counter should be semi_rigid
-        assert result["heel_counter"] == "semi_rigid"
+        # Pediatric rule should add positive finding about monitoring
+        assert len(result["what_went_right"]) > 0
 
 
 # ── factory ───────────────────────────────────────────────────────────────────

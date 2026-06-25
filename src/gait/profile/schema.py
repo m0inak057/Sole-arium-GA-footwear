@@ -119,6 +119,14 @@ class Anthropometrics(BaseModel):
         }
 
 
+class FootProgressionClassification(str, Enum):
+    """Foot progression angle classification."""
+
+    TOE_IN = "toe_in"
+    NEUTRAL = "neutral"
+    TOE_OUT = "toe_out"
+
+
 class Spatiotemporal(BaseModel):
     """Spatiotemporal gait parameters."""
 
@@ -133,11 +141,23 @@ class Spatiotemporal(BaseModel):
     swing_pct: Optional[LRPair] = Field(
         None, description="Swing phase as % of cycle per foot"
     )
-    step_length_m: Optional[LRPair] = Field(
-        None, description="Step length in meters per foot"
+    step_length_left_m: float = Field(
+        ..., description="Step length for left foot in meters"
     )
-    foot_progression_angle_deg: Optional[LRPair] = Field(
-        None, description="Foot progression angle in degrees per foot (positive = toe-out, negative = toe-in)"
+    step_length_right_m: float = Field(
+        ..., description="Step length for right foot in meters"
+    )
+    foot_progression_angle_left_deg: float = Field(
+        ..., description="Foot progression angle (left foot) in degrees (positive = toe-out, negative = toe-in)"
+    )
+    foot_progression_angle_right_deg: float = Field(
+        ..., description="Foot progression angle (right foot) in degrees (positive = toe-out, negative = toe-in)"
+    )
+    foot_progression_classification_left: FootProgressionClassification = Field(
+        ..., description="Foot progression classification for left foot (toe-in/neutral/toe-out)"
+    )
+    foot_progression_classification_right: FootProgressionClassification = Field(
+        ..., description="Foot progression classification for right foot (toe-in/neutral/toe-out)"
     )
 
     class Config:
@@ -150,8 +170,12 @@ class Spatiotemporal(BaseModel):
                 "stance_pct": {"L": 61.2, "R": 60.4},
                 "double_support_pct": 22.1,
                 "swing_pct": {"L": 38.8, "R": 39.6},
-                "step_length_m": {"L": 0.68, "R": 0.67},
-                "foot_progression_angle_deg": {"L": 7.2, "R": 6.8},
+                "step_length_left_m": 0.68,
+                "step_length_right_m": 0.67,
+                "foot_progression_angle_left_deg": 7.2,
+                "foot_progression_angle_right_deg": 6.8,
+                "foot_progression_classification_left": "toe_out",
+                "foot_progression_classification_right": "toe_out",
             }
         }
 
@@ -193,8 +217,11 @@ class Pronation(BaseModel):
     time_to_peak_eversion_pct_stance: LRPair = Field(
         ..., description="Time to peak eversion as % of stance phase"
     )
-    frontal_plane_excursion_deg: Optional[LRPair] = Field(
-        None, description="Total frontal-plane rearfoot excursion during stance in degrees (mobility metric)"
+    frontal_plane_excursion_left_deg: float = Field(
+        ..., description="Total frontal-plane rearfoot excursion during stance (left foot) in degrees (mobility metric)"
+    )
+    frontal_plane_excursion_right_deg: float = Field(
+        ..., description="Total frontal-plane rearfoot excursion during stance (right foot) in degrees (mobility metric)"
     )
 
     @validator("classification")
@@ -209,7 +236,8 @@ class Pronation(BaseModel):
                 "rearfoot_angle_at_midstance_deg": {"L": 11.4, "R": 9.8},
                 "classification": {"L": "overpronation", "R": "overpronation"},
                 "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42},
-                "frontal_plane_excursion_deg": {"L": 12.3, "R": 11.8},
+                "frontal_plane_excursion_left_deg": 12.3,
+                "frontal_plane_excursion_right_deg": 11.8,
             }
         }
 
@@ -235,33 +263,232 @@ class Arch(BaseModel):
         }
 
 
-class ShoeDesignRecommendations(BaseModel):
-    """Shoe design recommendations (rule-derived)."""
+class DefectDetail(BaseModel):
+    """Details about a gait defect or biomechanical issue found in the patient."""
 
-    medial_post: MedialPostType = Field(..., description="Medial post recommendation")
-    post_density: Optional[PostDensityType] = Field(
-        None, description="Post density if post is required"
+    name: str = Field(
+        ..., description="Name of the defect (e.g. 'Severe Overpronation - Left Foot')"
     )
-    arch_support: ArchSupportType = Field(..., description="Arch support level")
-    heel_counter: HeelCounterType = Field(..., description="Heel counter rigidity")
-    heel_drop_mm: float = Field(..., description="Heel drop in millimeters")
-    last_shape: LastShapeType = Field(..., description="Last shape recommendation")
-    cushioning_zone_priority: Optional[list[str]] = Field(
-        None, description="Priority zones for cushioning (e.g. heel, midfoot, forefoot)"
+    severity: str = Field(
+        ..., description="Severity level (mild / moderate / severe)"
     )
-    notes: Optional[str] = Field(None, description="Orthotist notes on recommendations")
+    affected_side: str = Field(
+        ..., description="Affected side (left / right / bilateral)"
+    )
+    biomechanical_cause: str = Field(
+        ..., description="Plain-English explanation of what the data shows"
+    )
+    gait_cycle_phase: str = Field(
+        ..., description="Which phase this occurs in (e.g. 'Loading Response', 'Mid-Stance')"
+    )
 
     class Config:
         json_schema_extra = {
             "example": {
-                "medial_post": "required",
-                "post_density": "firm",
-                "arch_support": "high",
-                "heel_counter": "rigid",
-                "heel_drop_mm": 10,
-                "last_shape": "straight",
-                "cushioning_zone_priority": ["heel", "medial_forefoot"],
-                "notes": "High overpronation with low arch; prioritize medial support",
+                "name": "Severe Overpronation - Left Foot",
+                "severity": "severe",
+                "affected_side": "left",
+                "biomechanical_cause": "Rearfoot eversion angle of 11.4° at midstance exceeds normal range (0-4°), indicating excessive foot inversion and stress on medial structures",
+                "gait_cycle_phase": "Loading Response to Mid-Stance",
+            }
+        }
+
+
+class ImprovementAction(BaseModel):
+    """Specific exercise or intervention to address a gait defect."""
+
+    exercise_name: str = Field(..., description="Name of the exercise")
+    target_area: str = Field(..., description="Body area targeted (e.g. 'Intrinsic foot muscles')")
+    frequency: str = Field(
+        ..., description="Recommended frequency (e.g. '3 sets of 12 reps, daily')"
+    )
+    instructions: str = Field(..., description="Step-by-step exercise instructions")
+    addresses_defect: str = Field(
+        ..., description="Links back to DefectDetail.name — which defect this action addresses"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "exercise_name": "Short Foot Exercise",
+                "target_area": "Intrinsic foot muscles",
+                "frequency": "3 sets of 12 reps, daily",
+                "instructions": "Sit or stand with feet flat. Without curling toes, shorten the foot by drawing the ball of the foot toward the heel, creating a dome under the arch.",
+                "addresses_defect": "Severe Overpronation - Left Foot",
+            }
+        }
+
+
+class HealthAssessment(BaseModel):
+    """Patient-facing health assessment and personalized improvement plan."""
+
+    what_went_right: list[str] = Field(
+        default_factory=list,
+        description="Positive findings (e.g. 'Good symmetry in step length')"
+    )
+    defects_found: list[DefectDetail] = Field(
+        default_factory=list,
+        description="Biomechanical defects or issues identified"
+    )
+    improvement_plan: list[ImprovementAction] = Field(
+        default_factory=list,
+        description="Targeted exercises and interventions to address defects"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "what_went_right": [
+                    "Good symmetry in cadence (112 steps/min on both feet)",
+                    "Healthy foot progression angle (neutral, 6-7°)",
+                ],
+                "defects_found": [
+                    {
+                        "name": "Severe Overpronation - Left Foot",
+                        "severity": "severe",
+                        "affected_side": "left",
+                        "biomechanical_cause": "Rearfoot eversion angle of 11.4° at midstance exceeds normal range",
+                        "gait_cycle_phase": "Loading Response to Mid-Stance",
+                    }
+                ],
+                "improvement_plan": [
+                    {
+                        "exercise_name": "Short Foot Exercise",
+                        "target_area": "Intrinsic foot muscles",
+                        "frequency": "3 sets of 12 reps, daily",
+                        "instructions": "Sit or stand with feet flat. Without curling toes, shorten the foot by drawing the ball of the foot toward the heel.",
+                        "addresses_defect": "Severe Overpronation - Left Foot",
+                    }
+                ],
+            }
+        }
+
+
+# ── Prescription spec (orthotist / shoe-designer facing) ─────────────────────
+
+
+class MidsoleSpec(BaseModel):
+    """Midsole material and geometry specification."""
+
+    medial_shore_c: float = Field(..., description="Medial midsole firmness (Shore C, typical 45–75)")
+    lateral_shore_c: float = Field(..., description="Lateral midsole firmness (Shore C, typical 45–65)")
+    heel_drop_mm: float = Field(..., description="Height difference heel-to-forefoot in mm (0–12 mm)")
+    cushioning_priority: str = Field(
+        ..., description="Zone requiring primary cushioning: heel / forefoot / full_length / lateral"
+    )
+
+
+class ArchSupportSpec(BaseModel):
+    """Arch support insert specification."""
+
+    height_mm: float = Field(..., description="Arch support peak height in mm (typical 15–35 mm)")
+    type: str = Field(..., description="Support geometry: contoured / flat / accommodative")
+    medial_post: bool = Field(..., description="Whether a firmer medial density post is needed")
+    medial_post_shore_c: Optional[float] = Field(
+        None, description="Shore C of medial post — only populated when medial_post is True"
+    )
+
+
+class LastSpec(BaseModel):
+    """Last shape and structural envelope specification."""
+
+    shape: str = Field(..., description="Last shape: straight / semi_curved / curved")
+    toe_box: str = Field(..., description="Toe-box width: standard / wide / extra_wide / deep")
+    heel_counter: str = Field(..., description="Heel counter rigidity: rigid / semi_rigid / flexible")
+
+
+class FootLiftSpec(BaseModel):
+    """Heel-lift compensation for leg-length discrepancy or step asymmetry."""
+
+    heel_lift_left_mm: float = Field(
+        ..., description="Heel lift added to left shoe in mm (0 if symmetric)"
+    )
+    heel_lift_right_mm: float = Field(
+        ..., description="Heel lift added to right shoe in mm (0 if symmetric)"
+    )
+
+
+class OutsoleSpec(BaseModel):
+    """Outsole geometry and reinforcement specification."""
+
+    base: str = Field(..., description="Outsole profile: standard / flared / rocker")
+    rocker_apex_position: Optional[str] = Field(
+        None, description="Rocker apex location (metatarsal / midfoot) — only if base is rocker"
+    )
+    lateral_reinforcement: bool = Field(
+        ..., description="Whether extra rubber on the lateral wear zone is required"
+    )
+
+
+class UpperSpec(BaseModel):
+    """Upper construction specification."""
+
+    construction: str = Field(..., description="Upper build: standard / seamless / minimal_seam")
+    material: str = Field(..., description="Primary upper material: leather / neoprene / mesh")
+    closure: str = Field(..., description="Fastening method: lace / velcro / slip_on")
+    extra_depth: bool = Field(..., description="Whether extra vertical depth is required")
+
+
+class PrescriptionSpec(BaseModel):
+    """Orthotist / shoe-designer-facing manufacturing specification.
+
+    This block answers 'what kind of shoe should be manufactured for this patient'
+    — not exercises, but physical design parameters derived from the same
+    biomechanical data that feeds health_assessment.
+
+    **Audience:** orthotists and shoe designers only.  Do NOT surface this block
+    directly to patients — it contains technical manufacturing language.
+    """
+
+    last_spec: LastSpec = Field(..., description="Last shape and structural envelope")
+    arch_support: ArchSupportSpec = Field(..., description="Arch support insert specification")
+    midsole: MidsoleSpec = Field(..., description="Midsole material and geometry")
+    outsole: OutsoleSpec = Field(..., description="Outsole profile and reinforcement")
+    upper: UpperSpec = Field(..., description="Upper construction and material")
+    foot_lift: FootLiftSpec = Field(..., description="Heel-lift compensation per side")
+    primary_condition_addressed: str = Field(
+        ...,
+        description="Plain-English summary of the primary biomechanical condition driving the prescription",
+    )
+    clinician_referral_notes: list[str] = Field(
+        default_factory=list,
+        description="Flags requiring clinician or specialist review before fabrication",
+    )
+    confidence: str = Field(
+        ..., description="How the prescription was generated: rule_based / agent_override"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "last_spec": {"shape": "straight", "toe_box": "standard", "heel_counter": "rigid"},
+                "arch_support": {
+                    "height_mm": 30.0,
+                    "type": "contoured",
+                    "medial_post": True,
+                    "medial_post_shore_c": 75.0,
+                },
+                "midsole": {
+                    "medial_shore_c": 75.0,
+                    "lateral_shore_c": 45.0,
+                    "heel_drop_mm": 10.0,
+                    "cushioning_priority": "heel",
+                },
+                "outsole": {
+                    "base": "standard",
+                    "rocker_apex_position": None,
+                    "lateral_reinforcement": False,
+                },
+                "upper": {
+                    "construction": "standard",
+                    "material": "leather",
+                    "closure": "lace",
+                    "extra_depth": False,
+                },
+                "foot_lift": {"heel_lift_left_mm": 0.0, "heel_lift_right_mm": 0.0},
+                "primary_condition_addressed": "Severe bilateral overpronation with flat arch",
+                "clinician_referral_notes": [],
+                "confidence": "rule_based",
             }
         }
 
@@ -296,8 +523,8 @@ class GaitPatientProfile(BaseModel):
         default_factory=list,
         description="List of asymmetries flagged (e.g. step_length_asymmetric_12pct)",
     )
-    shoe_design_recommendations: ShoeDesignRecommendations = Field(
-        ..., description="Rule-derived shoe design recommendations"
+    health_assessment: HealthAssessment = Field(
+        ..., description="Patient-facing health assessment and personalized improvement plan"
     )
     confidence_scores: Dict[str, float] = Field(
         ..., description="Confidence scores (0-1) for each classification"
@@ -310,6 +537,21 @@ class GaitPatientProfile(BaseModel):
     )
     processing_metadata: Optional[Dict[str, Any]] = Field(
         None, description="Pipeline metadata (timestamps, model versions, etc.)"
+    )
+    agent_decisions: Optional[Dict[str, Any]] = Field(
+        None, description="Agent decision log: timestamp, method_used (agent|static_rules), confidence_score or fallback_reason, raw_llm_response if rejected"
+    )
+    face_blur_applied: bool = Field(
+        False,
+        description="True if at least one face was detected and blurred across the session videos (DPDP Act 2023 compliance)"
+    )
+    prescription_spec: Optional[PrescriptionSpec] = Field(
+        None,
+        description=(
+            "Orthotist/shoe-designer-facing manufacturing specification. "
+            "Populated for every session with a valid health_assessment. "
+            "Audience: orthotists and shoe designers only — do not surface directly to patients."
+        ),
     )
 
     @validator("trial_condition")
@@ -352,8 +594,12 @@ class GaitPatientProfile(BaseModel):
                     "step_width_m": 0.09,
                     "stance_pct": {"L": 61.2, "R": 60.4},
                     "double_support_pct": 22.1,
-                    "step_length_m": {"L": 0.68, "R": 0.67},
-                    "foot_progression_angle_deg": {"L": 7.2, "R": 6.8},
+                    "step_length_left_m": 0.68,
+                    "step_length_right_m": 0.67,
+                    "foot_progression_angle_left_deg": 7.2,
+                    "foot_progression_angle_right_deg": 6.8,
+                    "foot_progression_classification_left": "toe_out",
+                    "foot_progression_classification_right": "toe_out",
                 },
                 "foot_strike": {
                     "pattern": {"L": "rearfoot", "R": "rearfoot"},
@@ -363,21 +609,37 @@ class GaitPatientProfile(BaseModel):
                     "rearfoot_angle_at_midstance_deg": {"L": 11.4, "R": 9.8},
                     "classification": {"L": "overpronation", "R": "overpronation"},
                     "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42},
-                    "frontal_plane_excursion_deg": {"L": 12.3, "R": 11.8},
+                    "frontal_plane_excursion_left_deg": 12.3,
+                    "frontal_plane_excursion_right_deg": 11.8,
                 },
                 "arch": {
                     "type": {"L": "low", "R": "low"},
                     "arch_height_index": {"L": 0.21, "R": 0.22},
                 },
                 "symmetry_flags": ["step_length_asymmetric_12pct"],
-                "shoe_design_recommendations": {
-                    "medial_post": "required",
-                    "post_density": "firm",
-                    "arch_support": "high",
-                    "heel_counter": "rigid",
-                    "heel_drop_mm": 10,
-                    "last_shape": "straight",
-                    "cushioning_zone_priority": ["heel", "medial_forefoot"],
+                "health_assessment": {
+                    "what_went_right": [
+                        "Good symmetry in cadence (112 steps/min)",
+                        "Healthy foot progression angle (neutral, 6-7°)"
+                    ],
+                    "defects_found": [
+                        {
+                            "name": "Severe Overpronation - Left Foot",
+                            "severity": "severe",
+                            "affected_side": "left",
+                            "biomechanical_cause": "Rearfoot eversion angle of 11.4° at midstance exceeds normal range (0-4°), indicating excessive foot inversion",
+                            "gait_cycle_phase": "Loading Response to Mid-Stance"
+                        }
+                    ],
+                    "improvement_plan": [
+                        {
+                            "exercise_name": "Short Foot Exercise",
+                            "target_area": "Intrinsic foot muscles",
+                            "frequency": "3 sets of 12 reps, daily",
+                            "instructions": "Sit or stand with feet flat. Without curling toes, shorten the foot by drawing the ball of the foot toward the heel.",
+                            "addresses_defect": "Severe Overpronation - Left Foot"
+                        }
+                    ]
                 },
                 "confidence_scores": {
                     "pronation_classification": 0.91,

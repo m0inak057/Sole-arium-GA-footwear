@@ -56,15 +56,10 @@ SAMPLE_PROFILE = {
         "arch_height_index": {"L": 0.25, "R": 0.25},
     },
     "symmetry_flags": [],
-    "shoe_design_recommendations": {
-        "medial_post": "none",
-        "post_density": None,
-        "arch_support": "medium",
-        "heel_counter": "semi_rigid",
-        "heel_drop_mm": 8.0,
-        "last_shape": "semi_curved",
-        "cushioning_zone_priority": ["heel", "forefoot"],
-        "notes": None,
+    "health_assessment": {
+        "what_went_right": ["Neutral pronation pattern"],
+        "defects_found": [],
+        "improvement_plan": [],
     },
     "confidence_scores": {"pipeline": 0.80},
     "needs_human_review": False,
@@ -124,7 +119,11 @@ def session_id(client: TestClient) -> str:
     """Create a session and return its ID."""
     r = client.post(
         "/api/v1/sessions",
-        json={"patient_id": "P001", "anthropometrics": ANTHRO},
+        json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
     )
     assert r.status_code == 201
     return r.json()["session_id"]
@@ -170,14 +169,22 @@ class TestCreateSession:
     def test_returns_201(self, client: TestClient):
         r = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P001", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         assert r.status_code == 201
 
     def test_session_id_in_response(self, client: TestClient):
         r = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P001", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         assert "session_id" in r.json()
         assert len(r.json()["session_id"]) == 36  # UUID format
@@ -185,14 +192,22 @@ class TestCreateSession:
     def test_status_is_created(self, client: TestClient):
         r = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P001", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         assert r.json()["status"] == "CREATED"
 
     def test_patient_id_echoed(self, client: TestClient):
         r = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P-ABC", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P-ABC",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         assert r.json()["patient_id"] == "P-ABC"
 
@@ -221,11 +236,19 @@ class TestCreateSession:
     def test_two_sessions_have_different_ids(self, client: TestClient):
         r1 = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P001", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         r2 = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P002", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P002",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "shod",
+            },
         )
         assert r1.json()["session_id"] != r2.json()["session_id"]
 
@@ -428,7 +451,7 @@ class TestProfile:
         client.post(f"/api/v1/sessions/{session_id}/process", json={})
         r = client.get(f"/api/v1/sessions/{session_id}/profile")
         profile = r.json()["profile"]
-        assert "shoe_design_recommendations" in profile
+        assert "health_assessment" in profile
 
     def test_profile_schema_version(self, client: TestClient, session_id: str):
         client.post(f"/api/v1/sessions/{session_id}/process", json={})
@@ -492,7 +515,7 @@ class TestFullLifecycle:
         # 1. Create
         r = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P999", "anthropometrics": ANTHRO},
+            json={"patient_id": "P999", "anthropometrics": ANTHRO, "trial_condition": "barefoot"},
         )
         assert r.status_code == 201
         sid = r.json()["session_id"]
@@ -535,11 +558,19 @@ class TestFullLifecycle:
         """Two concurrent sessions should not interfere."""
         r1 = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P001", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P001",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "barefoot",
+            },
         )
         r2 = client.post(
             "/api/v1/sessions",
-            json={"patient_id": "P002", "anthropometrics": ANTHRO},
+            json={
+                "patient_id": "P002",
+                "anthropometrics": ANTHRO,
+                "trial_condition": "shod",
+            },
         )
         sid1, sid2 = r1.json()["session_id"], r2.json()["session_id"]
         assert sid1 != sid2

@@ -1,11 +1,9 @@
 """Multi-camera frame alignment — produces time-synchronized SyncedFrameSet objects.
 
-align_frames() pairs frames from multiple cameras by timestamp within a
-configurable tolerance. The first camera (alphabetically) is the anchor;
-frames from all other cameras are advanced to match it.
-
-Single-camera sessions work unchanged — the output SyncedFrameSet contains
-one entry per frame with no alignment logic needed.
+align_frames() expects exactly three cameras: "anterior", "sagittal", "posterior".
+Pairs frames from all cameras by timestamp within a configurable tolerance.
+The first camera (alphabetically: "anterior") is the anchor;
+frames from other cameras are advanced to match it.
 """
 
 from __future__ import annotations
@@ -24,19 +22,29 @@ def align_frames(
     frame_streams: Dict[str, Iterable[Frame]],
     config: IngestionConfig,
 ) -> Generator[SyncedFrameSet, None, None]:
-    """Align frames from multiple cameras into time-synchronized sets.
+    """Align frames from three cameras (anterior, sagittal, posterior) into time-synchronized sets.
 
-    For each anchor frame from the first camera (alphabetically), finds the
-    closest frame from every other camera within sync_tolerance_ms. Frames
-    that cannot be aligned are dropped with a WARNING.
+    Validates that exactly three cameras are present: "anterior", "sagittal", "posterior".
+    For each anchor frame (anterior), finds the closest frame from sagittal and posterior
+    within sync_tolerance_ms. Frames that cannot be aligned are dropped with a WARNING.
 
     Raises FrameSyncError after max_unsync_frames_before_error consecutive
     windows where at least one camera is out of sync.
-
-    Single-camera: yields one SyncedFrameSet per frame (no alignment needed).
     """
+    required_cameras = {"anterior", "sagittal", "posterior"}
     if not frame_streams:
-        return
+        raise FrameSyncError("frame_streams cannot be empty")
+
+    provided_cameras = set(frame_streams.keys())
+    if provided_cameras != required_cameras:
+        missing = required_cameras - provided_cameras
+        extra = provided_cameras - required_cameras
+        error_msg = f"Expected cameras {required_cameras}, got {provided_cameras}"
+        if missing:
+            error_msg += f"; missing: {missing}"
+        if extra:
+            error_msg += f"; unexpected: {extra}"
+        raise FrameSyncError(error_msg)
 
     camera_names = sorted(frame_streams.keys())
     anchor_cam = camera_names[0]

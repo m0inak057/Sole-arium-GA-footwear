@@ -1,6 +1,7 @@
 """Integration tests for the full ingestion pipeline (IngestionPreprocessor).
 
 Uses cv2.VideoWriter to create synthetic videos. No hardware cameras required.
+The system now requires exactly 3 cameras: anterior, sagittal, posterior.
 The synthetic video design:
   - N_BG static-background frames → MOG2 learns background before warmup ends
   - N_FG frames with a white rectangle (the simulated "person")
@@ -50,19 +51,15 @@ def module_tmp(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def video_path(module_tmp):
-    p = module_tmp / "sagittal.avi"
-    write_synthetic_video(p)
-    return p
-
-
-@pytest.fixture(scope="module")
-def dual_video_paths(module_tmp):
-    sag = module_tmp / "sagittal_dual.avi"
-    pos = module_tmp / "posterior_dual.avi"
+def triple_video_paths(module_tmp):
+    """Create all three required camera videos: anterior, sagittal, posterior."""
+    ant = module_tmp / "anterior.avi"
+    sag = module_tmp / "sagittal.avi"
+    pos = module_tmp / "posterior.avi"
+    write_synthetic_video(ant)
     write_synthetic_video(sag)
     write_synthetic_video(pos)
-    return {"sagittal": sag, "posterior": pos}
+    return {"anterior": ant, "sagittal": sag, "posterior": pos}
 
 
 @pytest.fixture
@@ -80,71 +77,71 @@ def cfg(tmp_path):
     )
 
 
-# ── single-camera tests ───────────────────────────────────────────────────────
+# ── triple-camera tests (required: anterior, sagittal, posterior) ───────────────
 
 
 @pytest.mark.integration
-class TestSingleCamera:
-    def test_runs_without_error(self, video_path, cfg, tmp_path):
+class TestTripleCamera:
+    def test_runs_without_error(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert result is not None
 
-    def test_output_frames_are_frame_objects(self, video_path, cfg, tmp_path):
+    def test_output_frames_are_frame_objects(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert all(isinstance(f, Frame) for f in result.frames)
 
-    def test_output_frames_are_uint8(self, video_path, cfg, tmp_path):
+    def test_output_frames_are_uint8(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert all(f.image.dtype == np.uint8 for f in result.frames)
 
-    def test_output_frames_are_3_channel(self, video_path, cfg, tmp_path):
+    def test_output_frames_are_3_channel(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert all(f.image.ndim == 3 for f in result.frames)
 
-    def test_output_frames_are_cropped(self, video_path, cfg, tmp_path):
+    def test_output_frames_are_cropped(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert all(
             f.image.shape[0] < H and f.image.shape[1] < W
             for f in result.frames
         )
 
-    def test_frame_accounting(self, video_path, cfg, tmp_path):
+    def test_frame_accounting(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
-        assert result.total_input_frames == N_TOTAL
+        result = pp.run(triple_video_paths)
+        assert result.total_input_frames == 3 * N_TOTAL  # 3 cameras
         assert result.total_input_frames == len(result.frames) + result.dropped_frames
 
-    def test_produces_at_least_one_frame(self, video_path, cfg, tmp_path):
+    def test_produces_at_least_one_frame(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert len(result.frames) > 0
 
-    def test_camera_views_field(self, video_path, cfg, tmp_path):
+    def test_camera_views_field(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
-        assert result.camera_views == ["sagittal"]
+        result = pp.run(triple_video_paths)
+        assert sorted(result.camera_views) == ["anterior", "posterior", "sagittal"]
 
-    def test_frames_do_not_share_memory(self, video_path, cfg, tmp_path):
+    def test_frames_do_not_share_memory(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         for a, b in zip(result.frames, result.frames[1:]):
             assert not np.shares_memory(a.image, b.image)
 
-    def test_processing_time_is_positive(self, video_path, cfg, tmp_path):
+    def test_processing_time_is_positive(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert result.processing_time_sec > 0.0
 
-    def test_deterministic_frame_count(self, video_path, cfg, tmp_path):
-        """Same video processed twice yields the same frame count."""
+    def test_deterministic_frame_count(self, triple_video_paths, cfg, tmp_path):
+        """Same videos processed twice yield the same frame count."""
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        r1 = pp.run({"sagittal": video_path})
-        r2 = pp.run({"sagittal": video_path})
+        r1 = pp.run(triple_video_paths)
+        r2 = pp.run(triple_video_paths)
         assert len(r1.frames) == len(r2.frames)
         assert r1.total_input_frames == r2.total_input_frames
 
@@ -154,15 +151,49 @@ class TestSingleCamera:
 
 @pytest.mark.integration
 class TestErrorCases:
-    def test_missing_video_raises_video_decode_error(self, cfg, tmp_path):
+    def test_missing_video_raises_video_decode_error(self, triple_video_paths, cfg, tmp_path):
+        """Test that missing video file raises error."""
+        bad_paths = triple_video_paths.copy()
+        bad_paths["anterior"] = tmp_path / "nonexistent.avi"
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
         with pytest.raises(VideoDecodeError):
-            pp.run({"sagittal": tmp_path / "nonexistent.avi"})
+            pp.run(bad_paths)
 
-    def test_empty_video_paths_raises_value_error(self, cfg, tmp_path):
+    def test_empty_video_paths_raises_error(self, cfg, tmp_path):
+        """Test that empty video dict raises error."""
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        with pytest.raises(ValueError, match="at least one"):
+        with pytest.raises(ValueError):
             pp.run({})
+
+    def test_missing_anterior_camera_raises_error(self, cfg, tmp_path, module_tmp):
+        """Test that missing anterior camera raises FrameSyncError."""
+        sag = module_tmp / "sagittal_err.avi"
+        pos = module_tmp / "posterior_err.avi"
+        write_synthetic_video(sag)
+        write_synthetic_video(pos)
+        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
+        with pytest.raises(Exception):  # FrameSyncError
+            pp.run({"sagittal": sag, "posterior": pos})
+
+    def test_missing_sagittal_camera_raises_error(self, cfg, tmp_path, module_tmp):
+        """Test that missing sagittal camera raises FrameSyncError."""
+        ant = module_tmp / "anterior_err.avi"
+        pos = module_tmp / "posterior_err.avi"
+        write_synthetic_video(ant)
+        write_synthetic_video(pos)
+        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
+        with pytest.raises(Exception):  # FrameSyncError
+            pp.run({"anterior": ant, "posterior": pos})
+
+    def test_missing_posterior_camera_raises_error(self, cfg, tmp_path, module_tmp):
+        """Test that missing posterior camera raises FrameSyncError."""
+        ant = module_tmp / "anterior_err.avi"
+        sag = module_tmp / "sagittal_err.avi"
+        write_synthetic_video(ant)
+        write_synthetic_video(sag)
+        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
+        with pytest.raises(Exception):  # FrameSyncError
+            pp.run({"anterior": ant, "sagittal": sag})
 
 
 # ── uncalibrated passthrough ──────────────────────────────────────────────────
@@ -170,51 +201,18 @@ class TestErrorCases:
 
 @pytest.mark.integration
 class TestUncalibratedPassthrough:
-    def test_no_calibration_files_does_not_raise(self, video_path, cfg, tmp_path):
+    def test_no_calibration_files_does_not_raise(self, triple_video_paths, cfg, tmp_path):
         # tmp_path has no YAML files → passthrough mode
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert result is not None
 
-    def test_uncalibrated_frame_dimensions_still_cropped(self, video_path, cfg, tmp_path):
+    def test_uncalibrated_frame_dimensions_still_cropped(self, triple_video_paths, cfg, tmp_path):
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run({"sagittal": video_path})
+        result = pp.run(triple_video_paths)
         assert all(
             f.image.shape[0] < H and f.image.shape[1] < W
             for f in result.frames
         )
 
 
-# ── dual-camera tests ─────────────────────────────────────────────────────────
-
-
-@pytest.mark.integration
-class TestDualCamera:
-    def test_dual_camera_runs_without_error(self, dual_video_paths, cfg, tmp_path):
-        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run(dual_video_paths)
-        assert result is not None
-
-    def test_dual_camera_total_input_is_doubled(self, dual_video_paths, cfg, tmp_path):
-        # With 2 cameras and perfect sync, total_input_frames = 2 × N_TOTAL
-        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run(dual_video_paths)
-        assert result.total_input_frames == 2 * N_TOTAL
-
-    def test_dual_camera_accounting(self, dual_video_paths, cfg, tmp_path):
-        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run(dual_video_paths)
-        assert result.total_input_frames == len(result.frames) + result.dropped_frames
-
-    def test_dual_camera_both_views_in_result(self, dual_video_paths, cfg, tmp_path):
-        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run(dual_video_paths)
-        assert set(result.camera_views) == {"sagittal", "posterior"}
-
-    def test_dual_camera_output_frames_cropped(self, dual_video_paths, cfg, tmp_path):
-        pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
-        result = pp.run(dual_video_paths)
-        assert all(
-            f.image.shape[0] < H and f.image.shape[1] < W
-            for f in result.frames
-        )

@@ -159,14 +159,14 @@ class UploadQueryParams(BaseModel):
     """Query parameters accepted by the upload endpoint."""
 
     camera_view: str = Field(
-        "sagittal",
-        description="Which camera this file is from (sagittal, posterior, plantar, etc.)",
+        "anterior",
+        description="Which camera this file is from: anterior, sagittal, or posterior",
     )
 
     @field_validator("camera_view")
     @classmethod
     def validate_camera_view(cls, v: str) -> str:
-        allowed = {"sagittal", "posterior", "plantar", "lateral", "anterior"}
+        allowed = {"anterior", "sagittal", "posterior"}
         if v not in allowed:
             raise ValueError(f"camera_view must be one of {sorted(allowed)}, got {v!r}")
         return v

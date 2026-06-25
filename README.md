@@ -179,9 +179,9 @@ gait-analysis/
 │       └── middleware.py        # Auth, logging, CORS
 ├── configs/                     # Editable YAML configs
 │   ├── cameras/
-│   │   ├── sagittal.yaml        # Intrinsics/extrinsics (post-calibration)
-│   │   ├── posterior.yaml
-│   │   └── plantar.yaml
+│   │   ├── anterior.yaml        # Intrinsics/extrinsics (post-calibration)
+│   │   ├── sagittal.yaml
+│   │   └── posterior.yaml
 │   ├── thresholds.yaml          # ALL tunable parameters
 │   ├── rules.yaml               # Shoe-design recommendations
 │   └── pipeline.yaml            # Model choice, fps, smoothing

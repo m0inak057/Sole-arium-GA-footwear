@@ -38,8 +38,10 @@ class TestThresholdsLoading:
 
     def test_load_thresholds_custom_path(self):
         """Load thresholds from custom path."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 foot_strike:
   rearfoot_min_deg: 5.0
   forefoot_max_deg: -5.0
@@ -55,15 +57,16 @@ quality_gating:
   min_clean_cycles_per_foot: 4
   target_clean_cycles_per_foot: 8
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                thresholds = load_thresholds(f.name)
-                assert thresholds.foot_strike.rearfoot_min_deg == 5.0
-                assert thresholds.pronation.overpronation_min_deg == 8.0
-                assert thresholds.symmetry.flag_threshold_pct == 10.0
-            finally:
-                os.unlink(f.name)
+            thresholds = load_thresholds(temp_path)
+            assert thresholds.foot_strike.rearfoot_min_deg == 5.0
+            assert thresholds.pronation.overpronation_min_deg == 8.0
+            assert thresholds.symmetry.flag_threshold_pct == 10.0
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
     def test_load_thresholds_missing_file(self):
         """Raise FileNotFoundError for missing config."""
@@ -84,8 +87,10 @@ class TestPipelineConfigLoading:
 
     def test_load_pipeline_config_custom(self):
         """Load pipeline config from custom path."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 ingestion:
   fps: 60
   resolution: [1280, 720]
@@ -94,33 +99,37 @@ pose:
   model: openpose
   confidence_threshold: 0.6
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                config = load_pipeline_config(f.name)
-                assert config.ingestion.fps == 60
-                assert config.ingestion.resolution == [1280, 720]
-                assert config.pose.model == "openpose"
-            finally:
-                os.unlink(f.name)
+            config = load_pipeline_config(temp_path)
+            assert config.ingestion.fps == 60
+            assert config.ingestion.resolution == [1280, 720]
+            assert config.pose.model == "openpose"
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
     def test_pipeline_config_partial_override(self):
         """Pipeline config merges defaults with custom values."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 ingestion:
   fps: 60
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                config = load_pipeline_config(f.name)
-                # Custom value
-                assert config.ingestion.fps == 60
-                # Default value (not overridden)
-                assert config.pose.model == "mediapipe"
-            finally:
-                os.unlink(f.name)
+            config = load_pipeline_config(temp_path)
+            # Custom value
+            assert config.ingestion.fps == 60
+            # Default value (not overridden)
+            assert config.pose.model == "mediapipe"
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
 
 @pytest.mark.unit
@@ -136,8 +145,10 @@ class TestRecommendationRulesLoading:
 
     def test_load_rules_custom(self):
         """Load rules from custom path."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 version: 1
 rules:
   - id: test_rule_1
@@ -154,30 +165,34 @@ rules:
     then:
       heel_drop_mm: 6
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                rules = load_recommendation_rules(f.name)
-                assert rules.version == 1
-                assert len(rules.rules) == 2
-                assert rules.rules[0].id == "test_rule_1"
-                assert rules.rules[0].then["medial_post"] == "required"
-                assert rules.rules[1].id == "test_rule_2"
-            finally:
-                os.unlink(f.name)
+            rules = load_recommendation_rules(temp_path)
+            assert rules.version == 1
+            assert len(rules.rules) == 2
+            assert rules.rules[0].id == "test_rule_1"
+            assert rules.rules[0].then["medial_post"] == "required"
+            assert rules.rules[1].id == "test_rule_2"
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
     def test_load_rules_empty_file(self):
         """Load rules from empty YAML file."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("")
-            f.flush()
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("")
+                f.flush()
+                temp_path = f.name
 
-            try:
-                rules = load_recommendation_rules(f.name)
-                assert isinstance(rules, RecommendationRulesConfig)
-                assert len(rules.rules) == 0
-            finally:
-                os.unlink(f.name)
+            rules = load_recommendation_rules(temp_path)
+            assert isinstance(rules, RecommendationRulesConfig)
+            assert len(rules.rules) == 0
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
 
 @pytest.mark.unit
@@ -186,8 +201,10 @@ class TestConfigValidation:
 
     def test_thresholds_config_validation(self):
         """ThresholdsConfig validates pydantic constraints."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 foot_strike:
   rearfoot_min_deg: 5.0
   forefoot_max_deg: -5.0
@@ -203,30 +220,34 @@ quality_gating:
   min_clean_cycles_per_foot: 4
   target_clean_cycles_per_foot: 8
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                thresholds = load_thresholds(f.name)
-                # Verify loaded values
-                assert 0 <= thresholds.quality_gating.min_keypoint_confidence <= 1
-                assert thresholds.quality_gating.min_clean_cycles_per_foot > 0
-            finally:
-                os.unlink(f.name)
+            thresholds = load_thresholds(temp_path)
+            # Verify loaded values
+            assert 0 <= thresholds.quality_gating.min_keypoint_confidence <= 1
+            assert thresholds.quality_gating.min_clean_cycles_per_foot > 0
+        finally:
+            if temp_path:
+                os.unlink(temp_path)
 
     def test_pipeline_config_extra_fields_allowed(self):
         """PipelineConfig allows extra fields (flexible for future additions)."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("""
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                f.write("""
 ingestion:
   fps: 60
 future_feature:
   some_param: value
 """)
-            f.flush()
+                f.flush()
+                temp_path = f.name
 
-            try:
-                config = load_pipeline_config(f.name)
-                # Should not raise, extra fields are allowed
-                assert config.ingestion.fps == 60
-            finally:
-                os.unlink(f.name)
+            config = load_pipeline_config(temp_path)
+            # Should not raise, extra fields are allowed
+            assert config.ingestion.fps == 60
+        finally:
+            if temp_path:
+                os.unlink(temp_path)

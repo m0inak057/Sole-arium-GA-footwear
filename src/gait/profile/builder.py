@@ -4,7 +4,7 @@ The builder:
   1. Extracts L/R aggregated parameters from the parameters dict.
   2. Computes symmetry flags.
   3. Derives a combined classification for rule-engine condition matching.
-  4. Runs the RuleBasedRecommendationEngine to produce shoe recommendations.
+  4. Runs the RuleBasedRecommendationEngine to produce health assessment.
   5. Assembles and validates the GaitPatientProfile dict.
 
 Expected structure for `parameters` arg to `build()`:
@@ -25,6 +25,7 @@ Expected structure for `parameters` arg to `build()`:
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import ValidationError
@@ -136,9 +137,128 @@ class StandardProfileBuilder(ProfileBuilder):
         self,
         rules_engine: RecommendationEngine,
         analysis_config: AnalysisConfig,
+        health_coach: Optional[Any] = None,
+        rules_config: Optional[RecommendationRulesConfig] = None,
     ) -> None:
         self._rules_engine = rules_engine
         self._cfg = analysis_config
+        self._health_coach = health_coach
+        self._rules_config = rules_config
+
+    # ── agent integration ──────────────────────────────────────────────────
+
+    def _generate_health_assessment(
+        self,
+        rule_params: Dict[str, Any],
+        patient_id: str,
+        params_l: Dict[str, Any],
+        params_r: Dict[str, Any],
+        parameters: Dict[str, Any],
+    ) -> tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+        """Generate health assessment via agent (with fallback) and log the decision.
+
+        Returns:
+            (health_data_dict, agent_decisions_log)
+        """
+        agent_decisions = None
+
+        if self._health_coach is None:
+            # No agent configured; use static rules only
+            health_data = self._rules_engine.generate_recommendations(rule_params, patient_id)
+            return health_data, None
+
+        # Build agent parameters from biomechanical metrics
+        agent_params = self._build_agent_parameters(params_l, params_r, parameters)
+
+        # Try the agent
+        assessment, confidence, reasoning = self._health_coach.predict(agent_params)
+
+        # Log decision
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        if assessment is None:
+            # Agent failed validation; use static rules and log failure
+            health_data = self._rules_engine.generate_recommendations(rule_params, patient_id)
+            agent_decisions = {
+                "timestamp": timestamp,
+                "method_used": "static_rules",
+                "fallback_reason": reasoning,
+                "confidence_score": confidence,
+                "raw_llm_response": agent_params.get("_raw_llm_response"),
+            }
+            logger.info(
+                "health_assessment.agent_failed_fallback",
+                extra={
+                    "patient_id": patient_id,
+                    "fallback_reason": reasoning,
+                },
+            )
+        else:
+            # Agent succeeded; use its output
+            health_data = {
+                "what_went_right": assessment.what_went_right,
+                "defects_found": [d.dict() for d in assessment.defects_found],
+                "improvements": [i.dict() for i in assessment.improvement_plan],
+                "needs_human_review": False,
+            }
+            agent_decisions = {
+                "timestamp": timestamp,
+                "method_used": "agent",
+                "confidence_score": confidence,
+                "reasoning": reasoning,
+            }
+            logger.info(
+                "health_assessment.agent_success",
+                extra={
+                    "patient_id": patient_id,
+                    "confidence": confidence,
+                    "n_defects": len(assessment.defects_found),
+                },
+            )
+
+        return health_data, agent_decisions
+
+    def _build_agent_parameters(
+        self,
+        params_l: Dict[str, Any],
+        params_r: Dict[str, Any],
+        parameters: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Build agent input parameters from biomechanical metrics."""
+        return {
+            # Spatiotemporal
+            "step_length_left_m": params_l.get("step_length_left_m", 0.0),
+            "step_length_right_m": params_l.get("step_length_right_m", 0.0),
+            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg", 0.0),
+            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg", 0.0),
+            # Pronation (left)
+            "rearfoot_angle_deg_mean_L": params_l.get("rearfoot_angle_deg_mean", 0.0),
+            "frontal_plane_excursion_deg_mean_L": params_l.get("frontal_plane_excursion_deg_mean", 0.0),
+            "pronation_type_L": params_l.get("pronation_type", "neutral"),
+            # Pronation (right)
+            "rearfoot_angle_deg_mean_R": params_r.get("rearfoot_angle_deg_mean", 0.0),
+            "frontal_plane_excursion_deg_mean_R": params_r.get("frontal_plane_excursion_deg_mean", 0.0),
+            "pronation_type_R": params_r.get("pronation_type", "neutral"),
+            # Arch
+            "arch_type_L": params_l.get("arch_type", "normal"),
+            "arch_type_R": params_r.get("arch_type", "normal"),
+            # Foot strike
+            "foot_strike_type_L": params_l.get("foot_strike_type", "rearfoot"),
+            "foot_strike_type_R": params_r.get("foot_strike_type", "rearfoot"),
+            # Per-foot metrics for validation
+            "left_metrics": {
+                "pronation_type": params_l.get("pronation_type", "neutral"),
+                "arch_type": params_l.get("arch_type", "normal"),
+                "rearfoot_angle_deg_mean": params_l.get("rearfoot_angle_deg_mean", 0.0),
+                "frontal_plane_excursion_deg_mean": params_l.get("frontal_plane_excursion_deg_mean", 0.0),
+            },
+            "right_metrics": {
+                "pronation_type": params_r.get("pronation_type", "neutral"),
+                "arch_type": params_r.get("arch_type", "normal"),
+                "rearfoot_angle_deg_mean": params_r.get("rearfoot_angle_deg_mean", 0.0),
+                "frontal_plane_excursion_deg_mean": params_r.get("frontal_plane_excursion_deg_mean", 0.0),
+            },
+        }
 
     # ── ProfileBuilder ABC ─────────────────────────────────────────────────
 
@@ -149,6 +269,7 @@ class StandardProfileBuilder(ProfileBuilder):
         parameters: Dict[str, Any],
         anthropometrics: Dict[str, Any],
         confidence_scores: Dict[str, float],
+        face_blur_applied: bool = False,
     ) -> Dict[str, Any]:
         """Assemble and return a profile dict matching GaitPatientProfile schema.
 
@@ -176,9 +297,11 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         )
 
-        # ── shoe recommendations (rules engine) ────────────────────────────
-        recs = self._rules_engine.generate_recommendations(rule_params, patient_id)
-        needs_human_review = bool(recs.pop("needs_human_review", False))
+        # ── health assessment (agent → fallback to rules) ─────────────────────
+        health_data, agent_decisions = self._generate_health_assessment(
+            rule_params, patient_id, params_l, params_r, parameters
+        )
+        needs_human_review = bool(health_data.pop("needs_human_review", False))
 
         # ── spatiotemporal ─────────────────────────────────────────────────
         cadence = _mean_of(
@@ -199,6 +322,12 @@ class StandardProfileBuilder(ProfileBuilder):
                 "L": params_l.get("swing_pct_mean", 40.0),
                 "R": params_r.get("swing_pct_mean", 40.0),
             },
+            "step_length_left_m": params_l.get("step_length_left_m", 0.0),
+            "step_length_right_m": params_l.get("step_length_right_m", 0.0),
+            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg", 0.0),
+            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg", 0.0),
+            "foot_progression_classification_left": parameters.get("foot_progression_classification_left", "neutral"),
+            "foot_progression_classification_right": parameters.get("foot_progression_classification_right", "neutral"),
         }
 
         # ── foot strike ────────────────────────────────────────────────────
@@ -214,8 +343,8 @@ class StandardProfileBuilder(ProfileBuilder):
         }
 
         # ── pronation ──────────────────────────────────────────────────────
-        fpe_l = params_l.get("frontal_plane_excursion_deg_mean")
-        fpe_r = params_r.get("frontal_plane_excursion_deg_mean")
+        fpe_l = params_l.get("frontal_plane_excursion_deg_mean", 0.0)
+        fpe_r = params_r.get("frontal_plane_excursion_deg_mean", 0.0)
         pronation = {
             "rearfoot_angle_at_midstance_deg": {
                 "L": params_l.get("rearfoot_angle_deg_mean", 0.0),
@@ -230,8 +359,8 @@ class StandardProfileBuilder(ProfileBuilder):
                 "L": parameters.get("time_to_peak_eversion_pct_L", 40.0),
                 "R": parameters.get("time_to_peak_eversion_pct_R", 40.0),
             },
-            **({"frontal_plane_excursion_deg": {"L": fpe_l, "R": fpe_r}}
-               if fpe_l is not None and fpe_r is not None else {}),
+            "frontal_plane_excursion_left_deg": fpe_l,
+            "frontal_plane_excursion_right_deg": fpe_r,
         }
 
         # ── arch ───────────────────────────────────────────────────────────
@@ -266,17 +395,37 @@ class StandardProfileBuilder(ProfileBuilder):
             ],
         }
 
-        # ── shoe recommendations ───────────────────────────────────────────
-        shoe_design = {
-            "medial_post": recs.get("medial_post", "none"),
-            "post_density": recs.get("post_density"),
-            "arch_support": recs.get("arch_support", "medium"),
-            "heel_counter": recs.get("heel_counter", "semi_rigid"),
-            "heel_drop_mm": recs.get("heel_drop_mm", 8.0),
-            "last_shape": recs.get("last_shape", "semi_curved"),
-            "cushioning_zone_priority": recs.get("cushioning_zone_priority"),
-            "notes": recs.get("notes"),
+        # ── health assessment ─────────────────────────────────────────────────
+        health_assessment = {
+            "what_went_right": health_data.get("what_went_right", []),
+            "defects_found": health_data.get("defects_found", []),
+            "improvement_plan": health_data.get("improvements", []),
         }
+
+        # ── prescription spec ─────────────────────────────────────────────────
+        from src.gait.profile.prescription_engine import PrescriptionEngine
+        from src.gait.pipeline.config import load_recommendation_rules
+
+        prx_rules_config = (
+            self._rules_config
+            if self._rules_config is not None
+            else load_recommendation_rules()
+        )
+        prx_engine = PrescriptionEngine(
+            prescription_rules=[
+                r.model_dump() for r in prx_rules_config.prescription_rules
+            ]
+        )
+        body_mass_kg: float = float(anthropometrics.get("mass_kg", 70.0))
+        step_len_l: float = float(params_l.get("step_length_left_m", 0.0))
+        step_len_r: float = float(params_l.get("step_length_right_m", 0.0))
+        prescription_spec = prx_engine.generate_prescription(
+            rule_params=rule_params,
+            body_mass_kg=body_mass_kg,
+            step_length_left_m=step_len_l,
+            step_length_right_m=step_len_r,
+            patient_id=patient_id,
+        )
 
         profile: Dict[str, Any] = {
             "schema_version": "profile/v1",
@@ -288,10 +437,13 @@ class StandardProfileBuilder(ProfileBuilder):
             "pronation": pronation,
             "arch": arch,
             "symmetry_flags": symmetry_flags,
-            "shoe_design_recommendations": shoe_design,
+            "health_assessment": health_assessment,
             "confidence_scores": confidence_scores,
             "needs_human_review": needs_human_review,
             "quality_metrics": quality_metrics,
+            "agent_decisions": agent_decisions,
+            "face_blur_applied": face_blur_applied,
+            "prescription_spec": prescription_spec.model_dump(),
         }
 
         logger.info(
@@ -332,4 +484,4 @@ def create_profile_builder(
 ) -> StandardProfileBuilder:
     """Factory: create a StandardProfileBuilder wired with a RuleBasedRecommendationEngine."""
     engine = create_recommendation_engine(rules_config)
-    return StandardProfileBuilder(engine, analysis_config)
+    return StandardProfileBuilder(engine, analysis_config, rules_config=rules_config)

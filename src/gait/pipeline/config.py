@@ -166,6 +166,19 @@ class AnalysisConfig(BaseModel):
     target_clean_cycles_per_foot: int = Field(8)
 
 
+class FeaturesConfig(BaseModel):
+    """Feature flags (enable/disable by phase)."""
+
+    multi_view_3d: bool = Field(False, description="Phase 3+")
+    pressure_mat_validation: bool = Field(False, description="Phase 3+")
+    custom_foot_model: bool = Field(False, description="Phase 2+")
+    face_blur_pipeline: bool = Field(True, description="DPDP Act 2023 compliance — blur faces before storage")
+    audit_logging: bool = Field(True, description="Privacy/compliance audit trail")
+
+    class Config:
+        extra = "allow"
+
+
 class PipelineConfig(BaseModel):
     """Overall pipeline processing configuration."""
 
@@ -174,6 +187,7 @@ class PipelineConfig(BaseModel):
     events: EventDetectionConfig = Field(default_factory=EventDetectionConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     static_trial: StaticTrialConfig = Field(default_factory=StaticTrialConfig)
+    features: FeaturesConfig = Field(default_factory=FeaturesConfig)
 
     class Config:
         extra = "allow"  # Allow additional configs
@@ -193,7 +207,10 @@ class RecommendationRulesConfig(BaseModel):
 
     version: int = Field(1, description="Rules version")
     rules: list[RecommendationRule] = Field(
-        default_factory=list, description="List of rules"
+        default_factory=list, description="List of health recommendation rules"
+    )
+    prescription_rules: list[RecommendationRule] = Field(
+        default_factory=list, description="List of shoe prescription rules"
     )
 
     class Config:

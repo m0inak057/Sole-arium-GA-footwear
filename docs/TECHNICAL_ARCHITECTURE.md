@@ -171,7 +171,7 @@ class GaitPatientProfile(BaseModel):
     pronation: PronationProfile
     arch: ArchProfile
     symmetry_flags: list[str]
-    shoe_design_recommendations: ShoeRecommendations
+    health_assessment: HealthAssessment
     confidence_scores: dict[str, float]
 
     class Config:

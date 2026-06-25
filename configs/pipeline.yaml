@@ -8,7 +8,7 @@
 ingestion:
   fps: 120                      # Target frames per second
   resolution: [1920, 1080]      # Target resolution [width, height]
-  sync_tolerance_ms: 10         # Camera sync tolerance in milliseconds
+  sync_tolerance_ms: 50         # Camera sync tolerance in milliseconds (50 for dev/30fps; 10 for production/120fps)
   background_subtraction_model: mog2  # 'mog2' (MVP); extend factory for others
   person_tracking_model: simple_iou   # 'simple_iou' (MVP) | 'bytetrack' (falls back with WARNING)
   roi_margin_px: 50             # Margin around detected person in pixels
@@ -17,18 +17,18 @@ ingestion:
   max_consecutive_decode_failure_pct: 10  # Raise VideoDecodeError when this % of frames fail
 
   # Multi-camera sync
-  max_unsync_frames_before_error: 30  # Raise FrameSyncError after N consecutive unsync windows
+  max_unsync_frames_before_error: 200  # Raise FrameSyncError after N consecutive unsync windows (200 for dev; 30 for production)
 
   # MOG2 background subtraction
-  mog2_history: 500             # Number of frames for background model warmup
+  mog2_history: 5               # Number of frames for background model warmup (5 for dev; 500 for production)
   mog2_var_threshold: 16.0      # Mahalanobis distance threshold for foreground
   mog2_detect_shadows: true     # Mark shadows as 127 (treated as background)
   mog2_morph_kernel_size_px: 5  # Ellipse kernel for morphological open/close cleanup
 
   # Person tracking (IoU)
   iou_threshold: 0.3            # Min IoU to accept blob as continuation of track
-  max_lost_frames: 15           # Raise TrackingLostError after this many consecutive misses
-  min_blob_area_px2: 5000       # Ignore foreground blobs smaller than this (px²)
+  max_lost_frames: 60           # Raise TrackingLostError after this many consecutive misses (60 for dev; 15 for production)
+  min_blob_area_px2: 500        # Ignore foreground blobs smaller than this (px²) (500 for dev; 5000 for production)
 
 # Pose estimation
 pose:
@@ -64,9 +64,9 @@ analysis:
   # Arch height index
   high_ahi_min: 0.30
   normal_ahi_min: 0.20
-  # Quality gating
-  min_clean_cycles_per_foot: 4
-  target_clean_cycles_per_foot: 8
+  # Quality gating (1/2 for dev with short test videos; 4/8 for production)
+  min_clean_cycles_per_foot: 1
+  target_clean_cycles_per_foot: 2
 
 # Profile generation
 profile:

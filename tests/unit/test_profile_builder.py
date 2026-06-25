@@ -293,12 +293,15 @@ class TestBuildProfile:
         arch_type = profile["arch"]["type"]
         assert "L" in arch_type and "R" in arch_type
 
-    def test_shoe_design_recommendations_present(self):
+    def test_health_assessment_present(self):
         builder = make_builder()
         profile = builder.build("P001", "2026-06-13T10:00:00Z", make_parameters(), ANTHRO, CONFIDENCE)
-        recs = profile["shoe_design_recommendations"]
-        for key in ("medial_post", "arch_support", "heel_counter", "heel_drop_mm", "last_shape"):
-            assert key in recs, f"Missing key: {key}"
+        assessment = profile["health_assessment"]
+        for key in ("what_went_right", "defects_found", "improvement_plan"):
+            assert key in assessment, f"Missing key: {key}"
+        assert isinstance(assessment["what_went_right"], list)
+        assert isinstance(assessment["defects_found"], list)
+        assert isinstance(assessment["improvement_plan"], list)
 
     def test_symmetry_flags_is_list(self):
         builder = make_builder()

@@ -222,3 +222,17 @@ celerybeat.pid
 # Keep directories (with .gitkeep)
 # ============================================================================
 !*/.gitkeep
+
+# ============================================================================
+# Dev/session artifacts (not part of the project)
+# ============================================================================
+commit_82411ab_full_diff.txt
+compare_tests.py
+test_fallback_output.py
+how*
+TESTING DATA/
+
+# ============================================================================
+# Frontend build artifacts
+# ============================================================================
+frontend/package-lock.json

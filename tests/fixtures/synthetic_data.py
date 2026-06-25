@@ -20,14 +20,13 @@ from src.gait.profile.schema import (
     FootStrike,
     Pronation,
     Arch,
-    ShoeDesignRecommendations,
+    HealthAssessment,
+    DefectDetail,
+    ImprovementAction,
     FootStrikePattern,
     PronationClassification,
     ArchType,
-    MedialPostType,
-    ArchSupportType,
-    HeelCounterType,
-    LastShapeType,
+    LRPair,
 )
 
 
@@ -279,16 +278,21 @@ class SyntheticGaitGenerator:
             ),
             arch=Arch(
                 type={"L": arch_class, "R": arch_class},
-                arch_height_index={"L": ahi, "R": ahi},
+                arch_height_index=LRPair(L=ahi, R=ahi),
             ),
             symmetry_flags=[],
-            shoe_design_recommendations=ShoeDesignRecommendations(
-                medial_post=MedialPostType.REQUIRED if pronation_type == "overpronation" else MedialPostType.OPTIONAL,
-                post_density="firm" if pronation_type == "overpronation" else "medium",
-                arch_support=ArchSupportType.HIGH if arch_type == "low" else ArchSupportType.MEDIUM,
-                heel_counter=HeelCounterType.RIGID if pronation_type == "overpronation" else HeelCounterType.FLEXIBLE,
-                heel_drop_mm=10.0 if foot_strike == "rearfoot" else 6.0,
-                last_shape=LastShapeType.STRAIGHT if pronation_type == "overpronation" else LastShapeType.SEMI_CURVED,
+            health_assessment=HealthAssessment(
+                what_went_right=["Gait cycle detected successfully"] if pronation_type == "neutral" else [],
+                defects_found=[
+                    DefectDetail(
+                        name="Overpronation" if pronation_type == "overpronation" else "Supination",
+                        severity="moderate",
+                        affected_side="bilateral",
+                        biomechanical_cause="Rearfoot eversion pattern detected",
+                        gait_cycle_phase="Loading Response to Mid-Stance",
+                    )
+                ] if pronation_type in ("overpronation", "oversupination") else [],
+                improvement_plan=[],
             ),
             confidence_scores={
                 "pronation_classification": 0.91,

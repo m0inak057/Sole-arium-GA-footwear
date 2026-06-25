@@ -77,6 +77,56 @@ def compute_step_length(
     return abs(ipsilateral_heel_x_px - contralateral_heel_x_px) * scale_m_per_px
 
 
+def compute_step_lengths_lr(
+    heel_strikes_l_x_px: List[float],
+    heel_strikes_r_x_px: List[float],
+    scale_m_per_px: float,
+) -> tuple[float, float]:
+    """Compute clinical step lengths for left and right feet.
+
+    Clinical step length = distance from one foot's heel strike to the NEXT
+    opposite foot's heel strike (requires chronological interleaving of L and R events).
+
+    step_length_left_m: mean distance from right heel strike to following left heel strike
+    step_length_right_m: mean distance from left heel strike to following right heel strike
+
+    Args:
+        heel_strikes_l_x_px: List of x-positions (px) for left foot heel strikes (in time order).
+        heel_strikes_r_x_px: List of x-positions (px) for right foot heel strikes (in time order).
+        scale_m_per_px: Camera calibration factor (metres per pixel).
+
+    Returns:
+        Tuple of (step_length_left_m, step_length_right_m).
+        Returns (0.0, 0.0) if insufficient data.
+    """
+    if len(heel_strikes_l_x_px) < 1 or len(heel_strikes_r_x_px) < 1:
+        return 0.0, 0.0
+
+    # Compute step_length_left: distance from each R heel strike to next L heel strike
+    steps_left = []
+    for r_x in heel_strikes_r_x_px:
+        # Find the first L heel strike that occurs after this R strike
+        next_l_strikes = [l_x for l_x in heel_strikes_l_x_px if l_x > r_x]
+        if next_l_strikes:
+            step = abs(next_l_strikes[0] - r_x)
+            steps_left.append(step)
+
+    # Compute step_length_right: distance from each L heel strike to next R heel strike
+    steps_right = []
+    for l_x in heel_strikes_l_x_px:
+        # Find the first R heel strike that occurs after this L strike
+        next_r_strikes = [r_x for r_x in heel_strikes_r_x_px if r_x > l_x]
+        if next_r_strikes:
+            step = abs(next_r_strikes[0] - l_x)
+            steps_right.append(step)
+
+    # Return means, or 0.0 if no valid steps computed
+    step_length_left_m = (sum(steps_left) / len(steps_left) if steps_left else 0.0) * scale_m_per_px
+    step_length_right_m = (sum(steps_right) / len(steps_right) if steps_right else 0.0) * scale_m_per_px
+
+    return step_length_left_m, step_length_right_m
+
+
 # ── Foot-strike classification ─────────────────────────────────────────────────
 
 
@@ -89,10 +139,29 @@ def compute_foot_progression_angle(heel: Keypoint, foot_index: Keypoint) -> floa
 
     Positive FPA: toe points above the direction of travel (toe-out / external rotation).
     Negative FPA: toe points below the direction of travel (toe-in / internal rotation).
+
+    Returns:
+        Angle in degrees. Range typically -30 to +30.
     """
     dx = foot_index.x - heel.x
     dy = foot_index.y - heel.y  # image space: positive = downward
     return math.degrees(math.atan2(-dy, dx if abs(dx) > 1e-9 else 1e-9))
+
+
+def classify_foot_progression_angle(angle_deg: float) -> str:
+    """Classify foot progression angle into toe-in, neutral, or toe-out.
+
+    Args:
+        angle_deg: Foot progression angle in degrees.
+
+    Returns:
+        Classification: "toe_in", "neutral", or "toe_out".
+    """
+    if angle_deg < -5.0:
+        return "toe_in"
+    if angle_deg > 10.0:
+        return "toe_out"
+    return "neutral"
 
 
 def compute_foot_strike_angle(heel: Keypoint, foot_index: Keypoint) -> float:
@@ -153,15 +222,26 @@ def classify_pronation(angle_deg: float, cfg: AnalysisConfig) -> str:
 
 
 def compute_frontal_plane_excursion(rearfoot_angles_deg: List[float]) -> float:
-    """Total frontal-plane rearfoot excursion during stance.
+    """Total frontal-plane rearfoot excursion during stance phase.
 
-    Returns max - min of the rearfoot angle series (degrees), which represents
-    the full range of calcaneal motion from initial contact through toe-off.
-    Returns 0.0 when fewer than two samples are available.
+    Excursion = (maximum rearfoot eversion angle) - (rearfoot angle at initial contact).
+
+    In typical gait, at heel strike (initial contact), the foot is relatively
+    inverted (negative angle), and then everts (positive angle) during loading
+    response and mid-stance. Excursion measures the total range of eversion motion.
+
+    Args:
+        rearfoot_angles_deg: Time series of rearfoot angles (degrees) during stance,
+                             ordered chronologically from initial contact to toe-off.
+
+    Returns:
+        Excursion in degrees (max minus initial). Returns 0.0 if fewer than 2 samples.
     """
     if len(rearfoot_angles_deg) < 2:
         return 0.0
-    return max(rearfoot_angles_deg) - min(rearfoot_angles_deg)
+    initial_angle = rearfoot_angles_deg[0]
+    max_angle = max(rearfoot_angles_deg)
+    return max_angle - initial_angle
 
 
 # ── Arch assessment ────────────────────────────────────────────────────────────

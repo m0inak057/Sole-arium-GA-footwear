@@ -4,13 +4,15 @@
 | Field | Value |
 |---|---|
 | Document | API & Schema |
-| Version | 1.0 |
+| Version | 2.0 |
 | Schema version | profile/v1 |
 | Related | [ARCHITECTURE.md](./ARCHITECTURE.md), [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) |
 
 This document defines the two contracts that matter most:
-1. The **REST API** the clinician UI and integrators talk to.
-2. The **patient-profile JSON** — the single artifact the downstream shoe-design module consumes.
+1. The **REST API** that clinicians, patients, and integrators use to submit gait videos and receive personalized health assessments.
+2. The **patient-profile JSON** — the canonical output that contains biomechanical analysis results and a personalized health improvement plan for the patient.
+
+**Important:** The primary end-user of this system is the **patient receiving health feedback**, not a shoe designer. The health assessment block provides patient-facing language explaining what was found in their gait and what exercises they should do to improve. Clinical staff and researchers may extract additional data for shoe design or further analysis, but the default output is designed for patient comprehension and engagement.
 
 > **Stability rule:** the patient-profile schema is versioned (`profile/v1`). Breaking changes require a new version and a migration note. Additive, optional fields are allowed within a version.
 
@@ -18,7 +20,9 @@ This document defines the two contracts that matter most:
 
 ## 1. REST API (FastAPI)
 
-Base path: `/api/v1`. All endpoints require authentication; access is role-scoped (clinician vs. shoe designer vs. admin) — see [PRIVACY_COMPLIANCE.md](./PRIVACY_COMPLIANCE.md).
+Base path: `/api/v1`. All endpoints require authentication; access is role-scoped (patient, clinician, researcher, admin) — see [PRIVACY_COMPLIANCE.md](./PRIVACY_COMPLIANCE.md).
+
+**Endpoint audience:** Patients interact with `/sessions/{session_id}/profile` to download their health assessment. Clinicians manage sessions and upload videos. Researchers and shoe designers can request the full biomechanical dataset if authorized.
 
 ### Sessions
 
@@ -34,9 +38,9 @@ Base path: `/api/v1`. All endpoints require authentication; access is role-scope
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/sessions/{session_id}/profile` | Fetch the `profile.json` for a completed session. |
-| `GET` | `/sessions/{session_id}/timeseries` | Fetch per-cycle time-series (Parquet/JSON) for plotting. |
-| `PATCH` | `/sessions/{session_id}/profile/recommendations` | Clinician override of the recommendation block. |
+| `GET` | `/sessions/{session_id}/profile` | Fetch the `profile.json` for a completed session — **patient-facing health assessment with biomechanical analysis and personalized exercises**. |
+| `GET` | `/sessions/{session_id}/timeseries` | Fetch per-cycle time-series (Parquet/JSON) for advanced analysis and visualization (researcher/clinician only). |
+| `PATCH` | `/sessions/{session_id}/profile/health-assessment` | Clinician update to the health assessment block (add context notes, update exercises). |
 | `GET` | `/profiles/schema` | Return the current JSON Schema for `profile/v1`. |
 
 ### Rules & admin
@@ -69,23 +73,32 @@ Base path: `/api/v1`. All endpoints require authentication; access is role-scope
 
 ## 2. Patient profile JSON — reference example
 
-This is the canonical output. The shoe-design module reads only this.
+This is the canonical output. It provides biomechanical analysis and a personalized health assessment for the patient.
 
 ```json
 {
+  "schema_version": "profile/v1",
   "patient_id": "P0042",
   "session_timestamp": "2026-05-15T11:23:00Z",
+  "trial_condition": "barefoot",
   "anthropometrics": {
     "height_cm": 172, "mass_kg": 68,
     "foot_length_mm": {"L": 258, "R": 260},
     "foot_width_mm": {"L": 98, "R": 99}
   },
   "spatiotemporal": {
-    "cadence_spm": 112, "speed_mps": 1.28,
+    "cadence_spm": 112,
+    "speed_mps": 1.28,
     "stride_length_m": 1.37,
     "step_width_m": 0.09,
     "stance_pct": {"L": 61.2, "R": 60.4},
-    "double_support_pct": 22.1
+    "double_support_pct": 22.1,
+    "step_length_left_m": 0.68,
+    "step_length_right_m": 0.67,
+    "foot_progression_angle_left_deg": 7.2,
+    "foot_progression_angle_right_deg": 6.8,
+    "foot_progression_classification_left": "toe_out",
+    "foot_progression_classification_right": "toe_out"
   },
   "foot_strike": {
     "pattern": {"L": "rearfoot", "R": "rearfoot"},
@@ -94,7 +107,9 @@ This is the canonical output. The shoe-design module reads only this.
   "pronation": {
     "rearfoot_angle_at_midstance_deg": {"L": 11.4, "R": 9.8},
     "classification": {"L": "overpronation", "R": "overpronation"},
-    "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42}
+    "time_to_peak_eversion_pct_stance": {"L": 38, "R": 42},
+    "frontal_plane_excursion_left_deg": 12.3,
+    "frontal_plane_excursion_right_deg": 11.8
   },
   "arch": {
     "type": {"L": "low", "R": "low"},
@@ -105,23 +120,35 @@ This is the canonical output. The shoe-design module reads only this.
     "hip_adduction_stance_deg": {"L": 9, "R": 7}
   },
   "symmetry_flags": ["step_length_asymmetric_12pct"],
-  "shoe_design_recommendations": {
-    "medial_post": "required",
-    "post_density": "firm",
-    "arch_support": "high",
-    "heel_counter": "rigid",
-    "heel_drop_mm": 10,
-    "cushioning_zone_priority": ["heel", "medial_forefoot"],
-    "last_shape": "straight"
+  "health_assessment": {
+    "what_went_right": [
+      "Good symmetry in cadence (112 steps/min on both sides)",
+      "Healthy foot progression angle (neutral, 6-7°)"
+    ],
+    "defects_found": [
+      {
+        "name": "Severe Overpronation - Left Foot",
+        "severity": "severe",
+        "affected_side": "left",
+        "biomechanical_cause": "Rearfoot eversion angle of 11.4° at midstance exceeds normal range (0-4°), indicating excessive inward rolling of the heel and stress on medial foot structures",
+        "gait_cycle_phase": "Loading Response to Mid-Stance"
+      }
+    ],
+    "improvement_plan": [
+      {
+        "exercise_name": "Short Foot Exercise",
+        "target_area": "Intrinsic foot muscles",
+        "frequency": "3 sets of 12 reps, daily",
+        "instructions": "Sit or stand with feet flat on the ground. Without curling your toes, shorten the foot by drawing the ball of the foot toward the heel, creating a dome under the arch. Hold for 5 seconds.",
+        "addresses_defect": "Severe Overpronation - Left Foot"
+      }
+    ]
   },
   "confidence_scores": {
     "pronation_classification": 0.91,
     "foot_strike_classification": 0.95
   },
-  "agent_decisions": {
-    "quality_assessment": {"source": "agent", "confidence": 0.88, "quality_score": 0.92},
-    "pronation_classification": {"source": "static_baseline", "confidence": null}
-  }
+  "needs_human_review": false
 }
 ```
 
@@ -143,19 +170,29 @@ This is the canonical output. The shoe-design module reads only this.
 | `spatiotemporal.step_width_m` | number | |
 | `spatiotemporal.stance_pct` | `{L, R}` numbers | % of cycle in stance |
 | `spatiotemporal.double_support_pct` | number | |
+| `spatiotemporal.step_length_left_m` | number | Step length for left foot (m) |
+| `spatiotemporal.step_length_right_m` | number | Step length for right foot (m) |
+| `spatiotemporal.foot_progression_angle_left_deg` | number | Left FPA (degrees; positive = toe-out) |
+| `spatiotemporal.foot_progression_angle_right_deg` | number | Right FPA (degrees; positive = toe-out) |
+| `spatiotemporal.foot_progression_classification_left` | enum | `toe_in` / `neutral` / `toe_out` |
+| `spatiotemporal.foot_progression_classification_right` | enum | `toe_in` / `neutral` / `toe_out` |
 | `foot_strike.pattern` | `{L, R}` enum | `rearfoot` / `midfoot` / `forefoot` |
 | `foot_strike.foot_strike_angle_deg` | `{L, R}` numbers | FSA at heel-strike |
 | `pronation.rearfoot_angle_at_midstance_deg` | `{L, R}` numbers | Headline metric |
 | `pronation.classification` | `{L, R}` enum | `overpronation` / `mild_pronation` / `neutral` / `mild_supination` / `oversupination` |
 | `pronation.time_to_peak_eversion_pct_stance` | `{L, R}` numbers | Early peak = poor shock absorption |
+| `pronation.frontal_plane_excursion_left_deg` | number | Total eversion range during stance (left) |
+| `pronation.frontal_plane_excursion_right_deg` | number | Total eversion range during stance (right) |
 | `arch.type` | `{L, R}` enum | `high` / `normal` / `low` |
 | `arch.arch_height_index` | `{L, R}` numbers | |
 | `kinematics_peaks.*` | `{L, R}` numbers | Peak joint angles during stance |
 | `symmetry_flags` | string[] | e.g. `step_length_asymmetric_12pct` |
-| `shoe_design_recommendations` | object | Rule-derived; see below |
+| `health_assessment` | object | **Patient-facing health assessment** with findings and improvement exercises |
+| `health_assessment.what_went_right` | string[] | Positive gait findings (patient-friendly) |
+| `health_assessment.defects_found` | object[] | List of biomechanical issues with severity and cause (plain language) |
+| `health_assessment.improvement_plan` | object[] | Targeted exercises addressing each defect |
 | `confidence_scores.*` | number 0–1 | Per classification |
-| `needs_human_review` | boolean (optional) | Set when pathological gait detected (by rule or Anomaly Detector agent) |
-| `agent_decisions` | object (optional) | Per-decision record: `source` = `"agent"` or `"static_baseline"`; `confidence` = agent confidence when agent was used, `null` otherwise (Phase 2+) |
+| `needs_human_review` | boolean (optional) | Set when pathological gait detected |
 
 ---
 
@@ -172,7 +209,7 @@ This is the canonical output. The shoe-design module reads only this.
   "required": [
     "patient_id", "session_timestamp", "anthropometrics",
     "spatiotemporal", "foot_strike", "pronation", "arch",
-    "symmetry_flags", "shoe_design_recommendations", "confidence_scores"
+    "symmetry_flags", "health_assessment", "confidence_scores"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -271,18 +308,46 @@ This is the canonical output. The shoe-design module reads only this.
       "type": "array",
       "items": { "type": "string" }
     },
-    "shoe_design_recommendations": {
+    "health_assessment": {
       "type": "object",
-      "required": ["medial_post", "arch_support", "heel_counter", "heel_drop_mm", "last_shape"],
-      "additionalProperties": true,
+      "required": ["what_went_right", "defects_found", "improvement_plan"],
+      "additionalProperties": false,
       "properties": {
-        "medial_post": { "enum": ["required", "optional", "none"] },
-        "post_density": { "enum": ["soft", "medium", "firm"] },
-        "arch_support": { "enum": ["low", "medium", "high"] },
-        "heel_counter": { "enum": ["flexible", "semi_rigid", "rigid"] },
-        "heel_drop_mm": { "type": "number" },
-        "cushioning_zone_priority": { "type": "array", "items": { "type": "string" } },
-        "last_shape": { "enum": ["straight", "semi_curved", "curved"] }
+        "what_went_right": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Positive findings in the patient's gait"
+        },
+        "defects_found": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "severity", "affected_side", "biomechanical_cause", "gait_cycle_phase"],
+            "properties": {
+              "name": { "type": "string", "description": "Name of the defect (e.g., 'Severe Overpronation - Left Foot')" },
+              "severity": { "enum": ["mild", "moderate", "severe"], "description": "Severity level" },
+              "affected_side": { "enum": ["left", "right", "bilateral"], "description": "Which side(s) affected" },
+              "biomechanical_cause": { "type": "string", "description": "Plain-English explanation of the data" },
+              "gait_cycle_phase": { "type": "string", "description": "Phase where defect occurs (e.g., 'Loading Response')" }
+            }
+          },
+          "description": "List of biomechanical defects found"
+        },
+        "improvement_plan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["exercise_name", "target_area", "frequency", "instructions", "addresses_defect"],
+            "properties": {
+              "exercise_name": { "type": "string" },
+              "target_area": { "type": "string", "description": "Body area targeted" },
+              "frequency": { "type": "string", "description": "Recommended frequency" },
+              "instructions": { "type": "string", "description": "Step-by-step instructions" },
+              "addresses_defect": { "type": "string", "description": "Links to DefectDetail.name" }
+            }
+          },
+          "description": "Targeted exercises to address defects"
+        }
       }
     },
     "confidence_scores": {
@@ -370,7 +435,96 @@ rules:
 
 ---
 
-## 7. Versioning policy
+## 7. Prescription spec (`prescription_spec`)
+
+This block is **orthotist/shoe-designer-facing only**. It is populated for every session that has a valid `health_assessment` and must **never** be surfaced directly to the patient.
+
+### Field reference
+
+| Field | Type | Notes |
+|---|---|---|
+| `prescription_spec.last_spec.shape` | enum | `straight` / `semi_curved` / `curved` |
+| `prescription_spec.last_spec.toe_box` | enum | `standard` / `wide` / `extra_wide` / `deep` |
+| `prescription_spec.last_spec.heel_counter` | enum | `rigid` / `semi_rigid` / `flexible` |
+| `prescription_spec.arch_support.height_mm` | number | Peak arch support height in mm (15–35) |
+| `prescription_spec.arch_support.type` | enum | `contoured` / `flat` / `accommodative` |
+| `prescription_spec.arch_support.medial_post` | boolean | Whether medial density post is required |
+| `prescription_spec.arch_support.medial_post_shore_c` | number\|null | Shore C of medial post (null when `medial_post` is false) |
+| `prescription_spec.midsole.medial_shore_c` | number | Medial midsole firmness (Shore C, 45–75) |
+| `prescription_spec.midsole.lateral_shore_c` | number | Lateral midsole firmness (Shore C, 45–65) |
+| `prescription_spec.midsole.heel_drop_mm` | number | Heel-to-forefoot height difference (0–12 mm) |
+| `prescription_spec.midsole.cushioning_priority` | enum | `heel` / `forefoot` / `full_length` / `lateral` |
+| `prescription_spec.outsole.base` | enum | `standard` / `flared` / `rocker` |
+| `prescription_spec.outsole.rocker_apex_position` | string\|null | `metatarsal` / `midfoot` — only when base is `rocker` |
+| `prescription_spec.outsole.lateral_reinforcement` | boolean | Extra rubber on lateral wear zone |
+| `prescription_spec.upper.construction` | enum | `standard` / `seamless` / `minimal_seam` |
+| `prescription_spec.upper.material` | enum | `leather` / `neoprene` / `mesh` |
+| `prescription_spec.upper.closure` | enum | `lace` / `velcro` / `slip_on` |
+| `prescription_spec.upper.extra_depth` | boolean | Extra vertical depth for orthotic accommodation |
+| `prescription_spec.foot_lift.heel_lift_left_mm` | number | mm of heel raise for left shoe (0 = symmetric) |
+| `prescription_spec.foot_lift.heel_lift_right_mm` | number | mm of heel raise for right shoe (0 = symmetric) |
+| `prescription_spec.primary_condition_addressed` | string | Plain-English dominant condition summary |
+| `prescription_spec.clinician_referral_notes` | string[] | Flags for specialist review before fabrication |
+| `prescription_spec.confidence` | string | `rule_based` / `agent_override` |
+
+### Shore-C body-mass modifiers (applied automatically)
+
+| Body mass | Shore-C delta |
+|---|---|
+| < 60 kg | −5 (softer midsole, lighter load) |
+| 60–80 kg | 0 (no change) |
+| 80–100 kg | +10 (firmer for higher impact) |
+| > 100 kg | +15 + PU midsole note |
+
+### Heel lift from step asymmetry
+
+When `step_length_asymmetric` is flagged (>10% asymmetry), 3 mm of heel lift is automatically added to the **shorter-stepping** shoe. The orthotist must confirm leg-length discrepancy before fabrication.
+
+### Worked example — severe overpronator (68 kg, rearfoot striker, left and right rearfoot eversion > 8°)
+
+```json
+"prescription_spec": {
+  "last_spec": {
+    "shape": "straight",
+    "toe_box": "standard",
+    "heel_counter": "rigid"
+  },
+  "arch_support": {
+    "height_mm": 30.0,
+    "type": "contoured",
+    "medial_post": true,
+    "medial_post_shore_c": 75.0
+  },
+  "midsole": {
+    "medial_shore_c": 75.0,
+    "lateral_shore_c": 45.0,
+    "heel_drop_mm": 10.0,
+    "cushioning_priority": "heel"
+  },
+  "outsole": {
+    "base": "standard",
+    "rocker_apex_position": null,
+    "lateral_reinforcement": false
+  },
+  "upper": {
+    "construction": "standard",
+    "material": "leather",
+    "closure": "lace",
+    "extra_depth": false
+  },
+  "foot_lift": {
+    "heel_lift_left_mm": 0.0,
+    "heel_lift_right_mm": 0.0
+  },
+  "primary_condition_addressed": "Severe bilateral overpronation",
+  "clinician_referral_notes": [],
+  "confidence": "rule_based"
+}
+```
+
+---
+
+## 8. Versioning policy
 
 - **Additive change** (new optional field) → same version (`profile/v1`).
 - **Breaking change** (rename, type change, removed field, changed enum) → new version (`profile/v2`) + a migration note in this doc.

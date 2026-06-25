@@ -1,21 +1,41 @@
 # Multi-stage build
-FROM python:3.11-slim as builder
-
-WORKDIR /build
+FROM ubuntu:22.04 as builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3-pip \
+    python3.11-dev \
     build-essential \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /build
+
 COPY pyproject.toml README.md ./
 COPY src/ src/
 
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip wheel --no-cache-dir --wheel-dir /wheels -e .
+RUN python3.11 -m pip install --upgrade pip setuptools wheel && \
+    python3.11 -m pip wheel --no-cache-dir --wheel-dir /wheels -e .
 
 # Production stage
-FROM python:3.11-slim
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3-pip \
+    # OpenCV and graphics dependencies
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1 \
+    libglib2.0-0 \
+    libgomp1 \
+    libopenblas0 \
+    # Database and utilities
+    postgresql-client \
+    redis-tools \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -24,25 +44,12 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libopenblas0 \
-    postgresql-client \
-    redis-tools \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy wheels from builder
 COPY --from=builder /wheels /wheels
 
 # Install gait-analysis and dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-index --find-links /wheels /wheels/* && \
+RUN python3.11 -m pip install --upgrade pip && \
+    python3.11 -m pip install --no-index --find-links /wheels /wheels/* && \
     rm -rf /wheels
 
 COPY . .
@@ -62,4 +69,4 @@ USER gaituser
 EXPOSE 8000
 
 # Default to API, can override with Celery worker
-CMD ["uvicorn", "src.gait.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3.11", "-m", "uvicorn", "src.gait.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,145 +1,526 @@
-# Gait Analysis — Shoe Design Recommendation Rules
-# Version: 1.0
-# Last updated: 2026-06-10
+# Gait Analysis — Health Assessment Rules
+# Version: 2.0
+# Last updated: 2026-06-17
 #
-# Rules are applied in order. Each rule has:
-# - id: unique identifier
-# - when: condition (pronation, arch, foot_strike, flags, etc.)
-# - then: recommendation patch (orthopedic guidance)
+# Rules generate patient-facing health assessments and improvement plans.
+# Each rule outputs:
+#   - defects: biomechanical issues found
+#   - improvements: targeted exercises to address defects
+#   - positive_findings: strengths to highlight
+#   - needs_human_review: flag for clinician review
 #
-# Rules are evaluated sequentially; later rules can refine earlier ones.
-# Set `needs_human_review: true` to flag for clinician review.
-#
-# NOTE: Only orthotists and admins should edit this file.
+# Rules are applied in priority order. Later rules can refine earlier ones.
 
-version: 1
+version: 2
 
 rules:
-  # Rule 1: Severe overpronation with low arch
-  - id: overpronation_low_arch
+  # Rule 1: Severe overpronation (high rearfoot eversion)
+  - id: severe_overpronation
     when:
       pronation: overpronation
-      arch: low
     then:
-      medial_post: required
-      post_density: firm
-      arch_support: high
-      heel_counter: rigid
-      heel_drop_mm: 10
-      last_shape: straight
-      cushioning_zone_priority: ["heel", "medial_midfoot", "medial_forefoot"]
-      notes: "High overpronation + low arch: prioritize medial support and rearfoot control"
+      defects:
+        - name: "Severe Overpronation"
+          severity: "severe"
+          affected_side: "bilateral"
+          biomechanical_cause: "Rearfoot eversion angle at midstance exceeds normal range (0-4°), indicating excessive foot inversion and stress on medial structures including the posterior tibial tendon and plantar fascia."
+          gait_cycle_phase: "Loading Response to Mid-Stance"
+      improvements:
+        - exercise_name: "Short Foot Exercise"
+          target_area: "Intrinsic foot muscles"
+          frequency: "3 sets of 12 reps, daily"
+          instructions: "Sit or stand with feet flat. Without curling toes, shorten the foot by drawing the ball of the foot toward the heel, creating an arch dome. Hold 5 seconds, relax. Repeat."
+          addresses_defect: "Severe Overpronation"
+        - exercise_name: "Calf Raises on Flat Surface"
+          target_area: "Gastrocnemius and soleus (calf muscles)"
+          frequency: "3 sets of 15 reps, 3x per week"
+          instructions: "Stand with feet hip-width apart. Rise up onto your toes, pause at the top for 2 seconds, then lower. Keep your weight on the inside (medial) edge of your foot to activate stabilizers."
+          addresses_defect: "Severe Overpronation"
 
-  # Rule 2: Mild pronation with normal arch
-  - id: mild_pronation_normal_arch
+  # Rule 2: Mild pronation
+  - id: mild_pronation
     priority: 50
     when:
       pronation: mild_pronation
-      arch: normal
     then:
-      medial_post: optional
-      arch_support: medium
-      heel_counter: semi_rigid
-      heel_drop_mm: 8
-      last_shape: semi_curved
-      notes: "Mild pronation: consider conservative support; monitor for progression"
+      positive_findings:
+        - "Mild pronation within acceptable range for your foot type"
+      defects: []
+      improvements: []
 
-  # Rule 3: Neutral pronation
+  # Rule 3: Neutral pronation (normal)
   - id: neutral_pronation
     priority: 50
     when:
       pronation: neutral
     then:
-      medial_post: none
-      arch_support: medium
-      heel_counter: flexible
-      heel_drop_mm: 8
-      last_shape: semi_curved
-      cushioning_zone_priority: ["heel", "forefoot"]
-      notes: "Neutral gait: standard supportive shoe recommended"
+      positive_findings:
+        - "Excellent pronation control — rearfoot eversion within healthy range"
+      defects: []
+      improvements: []
 
-  # Rule 4: Oversupination with high arch
-  - id: oversupination_high_arch
+  # Rule 4: Supination (inverted/curved foot)
+  - id: mild_supination
+    priority: 60
+    when:
+      pronation: mild_supination
+    then:
+      positive_findings:
+        - "Mild supination within acceptable range"
+      defects: []
+      improvements: []
+
+  # Rule 5: Oversupination (high arch, lateral stress)
+  - id: oversupination
     priority: 60
     when:
       pronation: oversupination
+    then:
+      defects:
+        - name: "Oversupination (High Arch)"
+          severity: "moderate"
+          affected_side: "bilateral"
+          biomechanical_cause: "Rearfoot stays inverted throughout stance phase, concentrating load on the lateral (outside) border of the foot and reducing shock absorption by the medial arch."
+          gait_cycle_phase: "Loading Response to Toe-Off"
+      improvements:
+        - exercise_name: "Lateral Band Walks"
+          target_area: "Hip abductors and lateral stabilizers"
+          frequency: "3 sets of 12 steps each direction, 3x per week"
+          instructions: "Place a resistance band around your thighs just above the knees. In a slight squat, step sideways keeping tension on the band. Maintains eversion control."
+          addresses_defect: "Oversupination (High Arch)"
+
+  # Rule 6: Low arch with high pronation
+  - id: low_arch_overpronation
+    priority: 70
+    when:
+      pronation: overpronation
+      arch: low
+    then:
+      defects:
+        - name: "Severe Overpronation with Flat Arch"
+          severity: "severe"
+          affected_side: "bilateral"
+          biomechanical_cause: "Combined excessive rearfoot eversion and collapsed medial arch creates cascading biomechanical stress through the entire kinetic chain, affecting the knee, hip, and lower back."
+          gait_cycle_phase: "Loading Response through Mid-Stance"
+      improvements:
+        - exercise_name: "Arch Doming with Towel Scrunches"
+          target_area: "Plantar fascia and intrinsic foot muscles"
+          frequency: "3 sets of 10 reps, daily"
+          instructions: "Place a small towel on the floor under your barefoot. Using your toes, scrunch the towel toward you, activating the entire arch. Rest, then repeat."
+          addresses_defect: "Severe Overpronation with Flat Arch"
+        - exercise_name: "Glute Bridges"
+          target_area: "Gluteus maximus and hip stabilizers"
+          frequency: "3 sets of 12 reps, 3x per week"
+          instructions: "Lie on your back with knees bent. Push through your heels to lift hips toward ceiling. Squeeze glutes at the top. This stabilizes the pelvis and reduces compensatory pronation."
+          addresses_defect: "Severe Overpronation with Flat Arch"
+
+  # Rule 7: High arch
+  - id: high_arch
+    priority: 70
+    when:
       arch: high
     then:
-      medial_post: none
-      arch_support: low
-      heel_counter: flexible
-      heel_drop_mm: 6
-      last_shape: curved
-      cushioning_zone_priority: ["lateral_heel", "lateral_midfoot"]
-      notes: "Oversupination + high arch: lateral cushioning critical; minimize medial post"
+      positive_findings:
+        - "Strong arch structure providing good load distribution"
+      defects: []
+      improvements: []
 
-  # Rule 5: Forefoot striker
+  # Rule 8: Forefoot striker (high-impact loading)
   - id: forefoot_striker
     priority: 40
     when:
       foot_strike: forefoot
     then:
-      heel_drop_mm: 4
-      cushioning_zone_priority: ["forefoot", "midfoot"]
-      notes: "Forefoot strike: reduced heel drop and extra forefoot cushioning"
+      defects:
+        - name: "Forefoot Strike Pattern"
+          severity: "mild"
+          affected_side: "bilateral"
+          biomechanical_cause: "Initial contact occurs at the ball of the foot rather than the heel, concentrating early loading on the forefoot and increasing demand on the calf muscles and Achilles tendon."
+          gait_cycle_phase: "Initial Contact and Loading Response"
+      improvements:
+        - exercise_name: "Heel-Walking Drills"
+          target_area: "Tibialis anterior and dorsiflexors"
+          frequency: "5 minutes, 2x per day"
+          instructions: "Walk on your heels with toes raised. This retrains the dorsiflexion pattern needed for rearfoot-first contact. Perform slowly and deliberately."
+          addresses_defect: "Forefoot Strike Pattern"
 
-  # Rule 6: Rearfoot striker (conservative default)
+  # Rule 9: Rearfoot striker (good pattern)
   - id: rearfoot_striker
     priority: 40
     when:
       foot_strike: rearfoot
     then:
-      heel_drop_mm: 10
-      cushioning_zone_priority: ["heel", "midfoot"]
-      notes: "Rearfoot strike: standard heel drop and rearfoot cushioning"
+      positive_findings:
+        - "Healthy rearfoot strike pattern with natural shock absorption"
+      defects: []
+      improvements: []
 
-  # Rule 7: High asymmetry between L and R (flag for review)
-  - id: high_asymmetry
+  # Rule 10: High step-length asymmetry (>10%)
+  - id: high_step_asymmetry
     priority: 80
+    when:
+      flag: "step_length_asymmetric"
+    then:
+      defects:
+        - name: "High Step Length Asymmetry"
+          severity: "moderate"
+          affected_side: "bilateral"
+          biomechanical_cause: "Step length differs by more than 10% between left and right feet, indicating unequal loading patterns and potential compensation for pain, weakness, or instability."
+          gait_cycle_phase: "Throughout gait cycle"
+      improvements:
+        - exercise_name: "Mirror Walk with Step Length Awareness"
+          target_area: "Proprioception and motor control"
+          frequency: "10 minutes, 3x per week"
+          instructions: "Walk in front of a mirror focusing on equal step length. Video analysis or gait trainer feedback is helpful. Correct any hesitation or favoring."
+          addresses_defect: "High Step Length Asymmetry"
+      needs_human_review: true
+
+  # Rule 11: Toe-in foot progression (internal rotation)
+  - id: toe_in_progression
+    priority: 50
+    when:
+      flag: "toe_in_progression"
+    then:
+      defects:
+        - name: "Toe-In Foot Progression"
+          severity: "mild"
+          affected_side: "bilateral"
+          biomechanical_cause: "Foot points inward during gait (negative foot progression angle <-5°), increasing stress on the medial knee joint and potentially contributing to knee pain."
+          gait_cycle_phase: "Initial Contact through Terminal Swing"
+      improvements:
+        - exercise_name: "Pigeon Pose (Hip External Rotator Stretch)"
+          target_area: "Hip external rotators (piriformis, gluteus medius)"
+          frequency: "Hold 30-60 seconds each side, 2x per day"
+          instructions: "In quadruped position, bring right knee forward toward right hand. Lower hips and lean forward gently. Tight hip rotators contribute to toe-in. This stretch releases them."
+          addresses_defect: "Toe-In Foot Progression"
+
+  # Rule 12: Toe-out foot progression (external rotation)
+  - id: toe_out_progression
+    priority: 50
+    when:
+      flag: "toe_out_progression"
+    then:
+      positive_findings:
+        - "Foot progression angle in healthy toe-out range, good for ground clearance and stability"
+      defects: []
+      improvements: []
+
+  # Rule 13: High frontal-plane excursion (>8°)
+  - id: high_frontal_excursion
+    priority: 65
+    when:
+      flag: "high_frontal_excursion"
+    then:
+      defects:
+        - name: "High Frontal-Plane Excursion"
+          severity: "moderate"
+          affected_side: "bilateral"
+          biomechanical_cause: "Rearfoot motion during stance exceeds normal range (>8°), indicating poor shock absorption and requiring increased muscular control to stabilize."
+          gait_cycle_phase: "Loading Response to Mid-Stance"
+      improvements:
+        - exercise_name: "Single-Leg Balance on Unstable Surface"
+          target_area: "Ankle stabilizers and proprioceptors"
+          frequency: "3 sets of 30 seconds, 3x per week"
+          instructions: "Stand on one leg on a foam pad or BOSU ball. Maintain balance without touching down. Engages intrinsic foot muscles and proprioceptive pathways."
+          addresses_defect: "High Frontal-Plane Excursion"
+
+  # Rule 14: High asymmetry (flag for clinician review)
+  - id: high_asymmetry_general
+    priority: 85
     when:
       flag: high_asymmetry
     then:
+      defects: []
+      improvements: []
       needs_human_review: true
-      notes: "High L/R asymmetry detected: clinician review recommended"
 
-  # Rule 8: Early peak eversion (poor shock absorption)
-  - id: early_peak_eversion
-    priority: 70
-    when:
-      eversion_peak_early: true
-    then:
-      medial_post: required
-      post_density: firm
-      heel_counter: rigid
-      notes: "Early peak eversion: poor shock absorption; recommend firm support"
-
-  # Rule 9: Pathological gait flags
+  # Rule 15: Pathological gait (requires clinical evaluation)
   - id: pathological_gait
     priority: 90
     when:
       flag: pathological_gait
     then:
+      defects:
+        - name: "Pathological Gait Pattern"
+          severity: "severe"
+          affected_side: "bilateral"
+          biomechanical_cause: "Gait pattern shows significant deviations from normal biomechanics, suggesting neurological, musculoskeletal, or systemic pathology."
+          gait_cycle_phase: "Multiple phases affected"
+      improvements: []
       needs_human_review: true
-      notes: "Pathological gait detected: requires clinician evaluation before shoe recommendation"
 
-  # Rule 10: Pediatric adjustments (age < 18)
+  # Rule 16: Pediatric adjustments (age < 18)
   - id: pediatric_adjustment
     priority: 95
     when:
       age_years_below: 18
     then:
-      heel_counter: semi_rigid  # Less rigid for developing feet
-      notes: "Pediatric feet still developing: moderate support recommended"
+      positive_findings:
+        - "Pediatric gait assessment — continued monitoring recommended as the foot develops"
+      defects: []
+      improvements: []
 
-# Rule application notes:
-# 1. Rules are evaluated in priority order (higher first)
-# 2. Earlier rules set initial recommendations
-# 3. Later rules can override or refine
-# 4. If ANY rule sets `needs_human_review: true`, the profile is flagged
-# 5. Orthopedic experts should review and approve new rules before merging
+# ── Prescription rules (orthotist / shoe-designer facing) ─────────────────────
+#
+# Each rule specifies physical manufacturing parameters for the orthopedic shoe.
+# Rules are applied in ascending priority order; later/higher-priority rules
+# override scalar fields and append to clinician_notes.
+#
+# Body-mass Shore-C modifiers are applied programmatically in PrescriptionEngine:
+#   < 60 kg  → subtract 5 from all Shore C values
+#   80-100 kg → add 10
+#   > 100 kg  → add 15 (and add PU midsole note)
 
-# Future rules to consider:
-# - BMI-based adjustments (obesity → more support)
-# - Activity level (athlete → different priorities)
-# - Pain location (if available from patient history)
-# - Diabetes/neuropathy flags (special shoe requirements)
+prescription_rules:
+
+  # Rearfoot striker — foundational heel-cushion setup
+  - id: prx_rearfoot_striker
+    priority: 30
+    when:
+      foot_strike: rearfoot
+    then:
+      heel_drop_mm: 10.0
+      cushioning_priority: heel
+      outsole_base: standard
+      rocker_apex: null
+      clinician_notes: []
+
+  # Forefoot striker — low drop, forefoot-priority cushioning
+  - id: prx_forefoot_striker
+    priority: 35
+    when:
+      foot_strike: forefoot
+    then:
+      heel_drop_mm: 4.0
+      cushioning_priority: forefoot
+      outsole_base: standard
+      lateral_reinforcement: false
+      clinician_notes:
+        - "Investigate underlying cause of forefoot strike pattern before fabricating"
+
+  # Mild supination — lateral cushion, flexible counter
+  - id: prx_mild_supination
+    priority: 40
+    when:
+      pronation: mild_supination
+    then:
+      last_shape: semi_curved
+      toe_box: standard
+      heel_counter: flexible
+      medial_post: false
+      medial_post_shore_c: null
+      medial_shore_c: 50.0
+      lateral_shore_c: 45.0
+      heel_drop_mm: 6.0
+      arch_support_height_mm: 16.0
+      arch_support_type: contoured
+      cushioning_priority: lateral
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: false
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Oversupination — full-length cushion, lateral reinforcement, curved last
+  - id: prx_oversupination
+    priority: 45
+    when:
+      pronation: oversupination
+    then:
+      last_shape: curved
+      toe_box: standard
+      heel_counter: flexible
+      medial_post: false
+      medial_post_shore_c: null
+      medial_shore_c: 45.0
+      lateral_shore_c: 45.0
+      heel_drop_mm: 6.0
+      arch_support_height_mm: 16.0
+      arch_support_type: contoured
+      cushioning_priority: full_length
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: true
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Neutral — balanced semi-curved spec
+  - id: prx_neutral
+    priority: 50
+    when:
+      pronation: neutral
+    then:
+      last_shape: semi_curved
+      toe_box: standard
+      heel_counter: semi_rigid
+      medial_post: false
+      medial_post_shore_c: null
+      medial_shore_c: 55.0
+      lateral_shore_c: 55.0
+      heel_drop_mm: 8.0
+      arch_support_height_mm: 18.0
+      arch_support_type: contoured
+      cushioning_priority: heel
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: false
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Mild pronation — semi-curved, firmer medial
+  - id: prx_mild_pronation
+    priority: 55
+    when:
+      pronation: mild_pronation
+    then:
+      last_shape: semi_curved
+      toe_box: standard
+      heel_counter: semi_rigid
+      medial_post: false
+      medial_post_shore_c: null
+      medial_shore_c: 60.0
+      lateral_shore_c: 50.0
+      heel_drop_mm: 8.0
+      arch_support_height_mm: 20.0
+      arch_support_type: contoured
+      cushioning_priority: heel
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: false
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Flat arch (rigid) — any low arch before overpronation override.
+  # Fires for rigid flat foot (low arch without overpronation) and as
+  # a base layer for flexible flat foot (overridden by prx_flat_arch_flexible).
+  - id: prx_flat_arch_rigid
+    priority: 60
+    when:
+      arch: low
+    then:
+      toe_box: wide
+      arch_support_type: accommodative
+      medial_post: false
+      medial_post_shore_c: null
+      extra_depth: true
+      clinician_notes:
+        - "Refer to podiatrist — rigid flat foot requires specialist assessment"
+
+  # Overpronation — straight last, rigid counter, 75 Shore C medial post
+  - id: prx_overpronation
+    priority: 65
+    when:
+      pronation: overpronation
+    then:
+      last_shape: straight
+      toe_box: standard
+      heel_counter: rigid
+      medial_post: true
+      medial_post_shore_c: 75.0
+      medial_shore_c: 75.0
+      lateral_shore_c: 45.0
+      heel_drop_mm: 10.0
+      arch_support_height_mm: 30.0
+      arch_support_type: contoured
+      cushioning_priority: heel
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: false
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Flexible flat arch (low arch + overpronation) — overrides both
+  # prx_flat_arch_rigid and prx_overpronation. Sets wide toe box back to
+  # standard (straight last controls width), adds rigid midfoot shank note.
+  - id: prx_flat_arch_flexible
+    priority: 70
+    when:
+      pronation: overpronation
+      arch: low
+    then:
+      last_shape: straight
+      toe_box: standard
+      heel_counter: rigid
+      medial_post: true
+      medial_post_shore_c: 75.0
+      medial_shore_c: 75.0
+      lateral_shore_c: 45.0
+      heel_drop_mm: 10.0
+      arch_support_height_mm: 30.0
+      arch_support_type: contoured
+      cushioning_priority: heel
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: false
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes:
+        - "Add rigid midfoot shank to control arch collapse under load"
+
+  # High arch (pes cavus) — curved last, bilateral full-length cushioning
+  - id: prx_high_arch
+    priority: 70
+    when:
+      arch: high
+    then:
+      last_shape: curved
+      toe_box: standard
+      heel_counter: flexible
+      medial_post: false
+      medial_post_shore_c: null
+      medial_shore_c: 45.0
+      lateral_shore_c: 45.0
+      heel_drop_mm: 6.0
+      arch_support_height_mm: 18.0
+      arch_support_type: contoured
+      cushioning_priority: full_length
+      outsole_base: standard
+      rocker_apex: null
+      lateral_reinforcement: true
+      upper_construction: standard
+      upper_material: leather
+      extra_depth: false
+      clinician_notes: []
+
+  # Toe-in foot progression — curved last, lateral flare outsole
+  - id: prx_toe_in_progression
+    priority: 75
+    when:
+      flag: toe_in_progression
+    then:
+      last_shape: curved
+      outsole_base: flared
+      lateral_reinforcement: true
+      clinician_notes:
+        - "Structural toe-in: refer to orthotist for custom last"
+
+  # Excessive toe-out — straight last, standard outsole
+  - id: prx_toe_out_progression
+    priority: 75
+    when:
+      flag: toe_out_progression
+    then:
+      last_shape: straight
+      outsole_base: standard
+      clinician_notes: []
+
+  # Step length asymmetry >10% — heel lift computed programmatically in engine
+  - id: prx_step_asymmetry
+    priority: 80
+    when:
+      flag: step_length_asymmetric
+    then:
+      clinician_notes:
+        - "Confirm leg length discrepancy before applying heel lift"
+

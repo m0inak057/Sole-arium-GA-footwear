@@ -15,13 +15,18 @@ UPLOAD_DIR defaults to "data/uploads" (relative to cwd).
 """
 from __future__ import annotations
 
+import mimetypes
 import os
 from datetime import datetime
+
+from dotenv import load_dotenv
+load_dotenv()
 from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from src.gait.api.models import (
     ComparisonResponse,
@@ -280,8 +285,8 @@ async def upload_video(
             detail=f"Cannot upload to session in {state.status} state.",
         )
 
-    # Save file to disk
-    dest_dir = UPLOAD_DIR / session_id
+    # Save file to disk under a per-camera subfolder so the view can be recovered later
+    dest_dir = UPLOAD_DIR / session_id / camera_view
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_path = dest_dir / (file.filename or "upload.mp4")
 
@@ -341,12 +346,11 @@ async def process_session(
             detail="Session is already COMPLETED. Create a new session to reprocess.",
         )
 
-    # Build video_paths dict from uploaded files
+    # Build video_paths dict from uploaded files; camera view is the parent folder name
     video_paths: Dict[str, str] = {}
     for fp in state.uploaded_files:
         path = Path(fp)
-        camera_view = path.parent.name if path.parent.name != session_id else "sagittal"
-        video_paths[camera_view] = fp
+        video_paths[path.parent.name] = fp
 
     # Submit task
     task_result = pipeline_task.delay(
@@ -435,6 +439,52 @@ async def get_profile(
         patient_id=state.patient_id,
         status=state.status,
         profile=state.profile,
+    )
+
+
+@app.get(
+    "/api/v1/sessions/{session_id}/videos/{camera_view}",
+    tags=["Sessions"],
+)
+async def get_video(
+    session_id: str,
+    camera_view: str,
+    store: SessionStore = Depends(get_session_store),
+) -> FileResponse:
+    """Serve an uploaded video file for synchronized browser playback.
+
+    Supports range requests so the browser can seek within the video.
+    """
+    _require_session(session_id, store)
+
+    allowed_views = {"anterior", "sagittal", "posterior"}
+    if camera_view not in allowed_views:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"camera_view must be one of {sorted(allowed_views)}, got {camera_view!r}",
+        )
+
+    video_dir = UPLOAD_DIR / session_id / camera_view
+    if not video_dir.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No video found for session {session_id!r}, view {camera_view!r}",
+        )
+
+    for pattern in ("*.mp4", "*.mov", "*.avi", "*.MP4", "*.MOV", "*.AVI"):
+        matches = list(video_dir.glob(pattern))
+        if matches:
+            video_path = matches[0]
+            media_type, _ = mimetypes.guess_type(str(video_path))
+            return FileResponse(
+                path=video_path,
+                media_type=media_type or "video/mp4",
+                headers={"Cache-Control": "no-cache"},
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"No video file found for view {camera_view!r} in session {session_id!r}",
     )
 
 

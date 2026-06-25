@@ -152,23 +152,23 @@ flowchart TD
 
 ---
 
-## 7. Recommendation rule mapping (YAML-driven)
+## 7. Health assessment rule mapping (YAML-driven)
 
 ```mermaid
 flowchart TD
-    AN[Analytical findings<br/>pronation, arch, foot-strike, symmetry] --> RULES[(rules.yaml<br/>editable by orthotist)]
+    AN[Analytical findings<br/>pronation, arch, foot-strike, symmetry] --> RULES[(rules.yaml<br/>editable by clinician)]
     RULES --> R1{Overpronation<br/>+ low arch?}
-    R1 -->|Yes| O1[Medial post: required<br/>Arch support: high<br/>Last: straight<br/>Heel counter: rigid]
+    R1 -->|Yes| O1["Defect: Overpronation + Flat Arch<br/>Exercises: Short foot, glute bridges<br/>What went right: —"]
     RULES --> R2{Oversupination<br/>+ high arch?}
-    R2 -->|Yes| O2[Cushioning: neutral<br/>Last: curved<br/>Lateral midsole: softer]
+    R2 -->|Yes| O2["Defect: Oversupination<br/>Exercises: Lateral band walks<br/>What went right: Strong arch"]
     RULES --> R3{Forefoot<br/>striker?}
-    R3 -->|Yes| O3[Heel drop: lower<br/>Forefoot cushioning: more]
-    O1 --> REC[shoe_design_recommendations block<br/>in profile.json]
+    R3 -->|Yes| O3["Defect: Forefoot strike pattern<br/>Exercises: Heel-walking drills<br/>What went right: —"]
+    O1 --> REC["health_assessment block<br/>in profile.json<br/>(what_went_right, defects_found,<br/>improvement_plan)"]
     O2 --> REC
     O3 --> REC
     REC --> HR{Pathological gait<br/>detected?}
-    HR -->|Yes| REVIEW[Flag for human review<br/>do not auto-finalize]
-    HR -->|No| FINAL[Finalize recommendations]
+    HR -->|Yes| REVIEW[Flag for human review]
+    HR -->|No| FINAL[Patient receives assessment<br/>and improvement plan]
 ```
 
 ---

@@ -295,7 +295,11 @@ class TestProfileModel:
         profile_data = {
             "schema_version": "profile/v1",
             "patient_id": "P001",
-            "shoe_design_recommendations": {"medial_post": "required"},
+            "health_assessment": {
+                "what_went_right": [],
+                "defects_found": [],
+                "improvement_plan": [],
+            },
         }
         profile = Profile(
             session_id=session_record.id,

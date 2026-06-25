@@ -1,8 +1,11 @@
-"""RuleBasedRecommendationEngine — applies rules.yaml conditions in priority order.
+"""RuleBasedRecommendationEngine — applies rules.yaml to generate health assessments.
 
-Rules are sorted by priority ascending (lower first).  Higher-priority rules
-come last and have the final say on any field they touch.  `needs_human_review`
-is OR'd across all matching rules: once set to True it is never overridden back.
+Rules are sorted by priority ascending (lower first). Higher-priority rules
+come last and can override earlier defects/improvements.  `needs_human_review`
+is OR'd across all matching rules: once set to True it is never reverted.
+
+Output: HealthAssessment-compatible dict with defects_found, improvements,
+what_went_right, and needs_human_review flag.
 """
 from __future__ import annotations
 
@@ -17,14 +20,9 @@ logger = get_logger(__name__)
 # ── sensible defaults (applied before any rule fires) ─────────────────────────
 
 _DEFAULTS: Dict[str, Any] = {
-    "medial_post": "none",
-    "post_density": None,
-    "arch_support": "medium",
-    "heel_counter": "semi_rigid",
-    "heel_drop_mm": 8.0,
-    "last_shape": "semi_curved",
-    "cushioning_zone_priority": ["heel", "forefoot"],
-    "notes": None,
+    "defects_found": [],
+    "improvements": [],
+    "what_went_right": [],
     "needs_human_review": False,
 }
 
@@ -115,15 +113,27 @@ class RuleBasedRecommendationEngine(RecommendationEngine):
         action: Dict[str, Any],
         current_recommendations: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Patch current_recommendations with the action dict.
+        """Patch current_recommendations with health assessment data.
 
-        needs_human_review is OR'd: once True it stays True regardless of later rules.
-        All other fields are overwritten by the action value.
+        For lists (defects_found, improvements, what_went_right): append values.
+        For needs_human_review: OR (once True, stays True).
+        Maps YAML key "defects" to "defects_found" for internal consistency.
         """
         updated = dict(current_recommendations)
         for key, value in action.items():
+            # Map YAML "defects" key to internal "defects_found" key
+            if key == "defects":
+                key = "defects_found"
+
             if key == "needs_human_review":
                 updated[key] = updated.get(key, False) or bool(value)
+            elif key in ("defects_found", "improvements", "what_went_right", "positive_findings"):
+                if isinstance(value, list):
+                    # Map "positive_findings" to "what_went_right" for consistency
+                    target_key = "what_went_right" if key == "positive_findings" else key
+                    updated[target_key] = updated.get(target_key, []) + value
+                else:
+                    updated[key] = updated.get(key, [])
             else:
                 updated[key] = value
         logger.debug("rules.rule_applied", extra={"rule_id": rule_id})

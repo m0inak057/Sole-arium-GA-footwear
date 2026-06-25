@@ -123,19 +123,31 @@ class TestSessionCreate:
         }
 
     def test_valid(self):
-        sc = SessionCreate(patient_id="P001", anthropometrics=self._anthro())
+        sc = SessionCreate(
+            patient_id="P001",
+            anthropometrics=self._anthro(),
+            trial_condition="barefoot",
+        )
         assert sc.patient_id == "P001"
 
     def test_empty_patient_id_raises(self):
         with pytest.raises(ValidationError):
-            SessionCreate(patient_id="", anthropometrics=self._anthro())
+            SessionCreate(
+                patient_id="",
+                anthropometrics=self._anthro(),
+                trial_condition="barefoot",
+            )
 
     def test_missing_anthropometrics_raises(self):
         with pytest.raises(ValidationError):
-            SessionCreate(patient_id="P001")
+            SessionCreate(patient_id="P001", trial_condition="barefoot")
 
     def test_patient_id_whitespace_accepted(self):
-        sc = SessionCreate(patient_id="P 001", anthropometrics=self._anthro())
+        sc = SessionCreate(
+            patient_id="P 001",
+            anthropometrics=self._anthro(),
+            trial_condition="shod",
+        )
         assert sc.patient_id == "P 001"
 
 
@@ -269,13 +281,13 @@ class TestProfileResponse:
 class TestUploadQueryParams:
     def test_default_camera_view(self):
         p = UploadQueryParams()
-        assert p.camera_view == "sagittal"
+        assert p.camera_view == "anterior"
 
     def test_valid_camera_view(self):
-        for view in ("sagittal", "posterior", "plantar", "lateral", "anterior"):
+        for view in ("anterior", "sagittal", "posterior"):
             p = UploadQueryParams(camera_view=view)
             assert p.camera_view == view
 
     def test_invalid_camera_view_raises(self):
         with pytest.raises(ValidationError):
-            UploadQueryParams(camera_view="front_left")
+            UploadQueryParams(camera_view="plantar")

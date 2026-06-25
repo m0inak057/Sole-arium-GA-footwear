@@ -18,7 +18,7 @@ class Frame:
 
     image: np.ndarray  # Shape: (H, W, 3) for RGB or (H, W, 1) for grayscale
     timestamp_ms: int  # Frame timestamp in milliseconds
-    camera_view: str  # 'sagittal', 'posterior', 'plantar', etc.
+    camera_view: str  # 'anterior', 'sagittal', or 'posterior'
     frame_index: int = 0  # Frame number in sequence
     confidence: Optional[float] = None  # Optional: frame quality confidence
 

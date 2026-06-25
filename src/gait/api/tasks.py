@@ -11,6 +11,9 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+
+from dotenv import load_dotenv
+load_dotenv()
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -18,6 +21,9 @@ from celery import Celery
 from celery.utils.log import get_task_logger
 
 from src.gait.common.logging_utils import get_logger
+from src.gait.pipeline.config import load_pipeline_config
+from src.gait.pipeline.orchestrator import GaitPipeline
+from src.gait.privacy.face_blur import blur_all_session_videos
 
 logger = get_logger(__name__)
 task_logger = get_task_logger(__name__)
@@ -80,9 +86,6 @@ def run_gait_pipeline(
             meta={"progress_pct": 5, "stage": "initialising"},
         )
 
-        from src.gait.pipeline.config import load_pipeline_config
-        from src.gait.pipeline.orchestrator import GaitPipeline
-
         config = load_pipeline_config()
 
         self.update_state(
@@ -97,6 +100,44 @@ def run_gait_pipeline(
             patient_id=patient_id,
             session_timestamp=session_timestamp,
         )
+
+        # ── Face blurring (DPDP Act 2023 compliance) ────────────────────────
+        # Runs AFTER profile.json is written, BEFORE videos are stored in MinIO.
+        # Controlled by features.face_blur_pipeline in pipeline.yaml.
+        face_blur_applied = False
+        if config.features.face_blur_pipeline:
+            self.update_state(
+                state="PROGRESS",
+                meta={"progress_pct": 90, "stage": "face_blur"},
+            )
+            try:
+                import tempfile
+
+                blur_output_dir = os.path.join(
+                    tempfile.gettempdir(), "gait_blurred", session_id
+                )
+                blur_results = blur_all_session_videos(
+                    session_video_paths=video_paths,
+                    output_dir=blur_output_dir,
+                )
+                face_blur_applied = any(blur_results.values())
+                task_logger.info(
+                    "task.face_blur_complete",
+                    extra={
+                        "session_id": session_id,
+                        "face_blur_applied": face_blur_applied,
+                        "per_camera": blur_results,
+                    },
+                )
+            except Exception as blur_exc:
+                # Blur failure is logged but does NOT fail the pipeline task.
+                task_logger.warning(
+                    "task.face_blur_failed",
+                    extra={"session_id": session_id, "error": str(blur_exc)},
+                )
+
+        # Stamp face_blur_applied into the profile so it reaches the consumer.
+        profile["face_blur_applied"] = face_blur_applied
 
         task_logger.info("task.complete", extra={"session_id": session_id})
         return {"status": "COMPLETED", "profile": profile}

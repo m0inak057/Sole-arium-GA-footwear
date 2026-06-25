@@ -17,14 +17,13 @@ from src.gait.profile.schema import (
     FootStrike,
     Pronation,
     Arch,
-    ShoeDesignRecommendations,
+    HealthAssessment,
+    DefectDetail,
+    ImprovementAction,
     FootStrikePattern,
     PronationClassification,
     ArchType,
-    MedialPostType,
-    ArchSupportType,
-    HeelCounterType,
-    LastShapeType,
+    FootProgressionClassification,
     LRPair,
 )
 
@@ -95,6 +94,8 @@ class TestPronationSchema:
             rearfoot_angle_at_midstance_deg=LRPair(L=2.5, R=1.8),
             classification={"L": PronationClassification.NEUTRAL, "R": PronationClassification.NEUTRAL},
             time_to_peak_eversion_pct_stance=LRPair(L=38.0, R=42.0),
+            frontal_plane_excursion_left_deg=3.2,
+            frontal_plane_excursion_right_deg=2.8,
         )
         assert p.classification["L"] == PronationClassification.NEUTRAL
 
@@ -112,6 +113,8 @@ class TestPronationSchema:
                 rearfoot_angle_at_midstance_deg=LRPair(L=0.0, R=0.0),
                 classification={"L": cls, "R": cls},
                 time_to_peak_eversion_pct_stance=LRPair(L=40.0, R=40.0),
+                frontal_plane_excursion_left_deg=5.0,
+                frontal_plane_excursion_right_deg=5.0,
             )
             assert p.classification["L"] == cls
 
@@ -121,6 +124,8 @@ class TestPronationSchema:
             rearfoot_angle_at_midstance_deg=LRPair(L=11.4, R=9.8),
             classification={"L": PronationClassification.OVERPRONATION, "R": PronationClassification.OVERPRONATION},
             time_to_peak_eversion_pct_stance=LRPair(L=38.0, R=42.0),
+            frontal_plane_excursion_left_deg=12.3,
+            frontal_plane_excursion_right_deg=11.8,
         )
         assert p.rearfoot_angle_at_midstance_deg.L > 8.0  # Over 8° is overpronation
 
@@ -149,34 +154,45 @@ class TestArchSchema:
 
 
 @pytest.mark.unit
-class TestShoeDesignRecommendations:
-    """Test shoe design recommendation schema."""
+class TestHealthAssessment:
+    """Test health assessment schema."""
 
-    def test_recommendations_valid(self):
-        """Recommendations accepts valid values."""
-        recs = ShoeDesignRecommendations(
-            medial_post=MedialPostType.REQUIRED,
-            post_density="firm",
-            arch_support=ArchSupportType.HIGH,
-            heel_counter=HeelCounterType.RIGID,
-            heel_drop_mm=10.0,
-            last_shape=LastShapeType.STRAIGHT,
+    def test_health_assessment_with_defects(self):
+        """HealthAssessment accepts defects and improvements."""
+        assessment = HealthAssessment(
+            what_went_right=["Good pronation control"],
+            defects_found=[
+                DefectDetail(
+                    name="Overpronation",
+                    severity="severe",
+                    affected_side="bilateral",
+                    biomechanical_cause="Excessive eversion angle",
+                    gait_cycle_phase="Loading Response",
+                )
+            ],
+            improvement_plan=[
+                ImprovementAction(
+                    exercise_name="Short Foot",
+                    target_area="Intrinsic foot muscles",
+                    frequency="3 sets daily",
+                    instructions="Draw foot shorter without curling toes",
+                    addresses_defect="Overpronation",
+                )
+            ],
         )
-        assert recs.medial_post == MedialPostType.REQUIRED
-        assert recs.arch_support == ArchSupportType.HIGH
+        assert len(assessment.defects_found) == 1
+        assert assessment.defects_found[0].name == "Overpronation"
+        assert len(assessment.improvement_plan) == 1
 
-    def test_recommendations_all_values(self):
-        """Recommendations accepts all enum values."""
-        posts = [MedialPostType.REQUIRED, MedialPostType.OPTIONAL, MedialPostType.NONE]
-        for post in posts:
-            recs = ShoeDesignRecommendations(
-                medial_post=post,
-                arch_support=ArchSupportType.MEDIUM,
-                heel_counter=HeelCounterType.SEMI_RIGID,
-                heel_drop_mm=8.0,
-                last_shape=LastShapeType.SEMI_CURVED,
-            )
-            assert recs.medial_post == post
+    def test_health_assessment_empty(self):
+        """HealthAssessment accepts empty lists (normal gait)."""
+        assessment = HealthAssessment(
+            what_went_right=["Normal gait pattern"],
+            defects_found=[],
+            improvement_plan=[],
+        )
+        assert len(assessment.defects_found) == 0
+        assert len(assessment.improvement_plan) == 0
 
 
 @pytest.mark.unit
@@ -201,6 +217,12 @@ class TestGaitPatientProfile:
                 step_width_m=0.09,
                 stance_pct=LRPair(L=61.2, R=60.4),
                 double_support_pct=22.1,
+                step_length_left_m=0.68,
+                step_length_right_m=0.67,
+                foot_progression_angle_left_deg=8.5,
+                foot_progression_angle_right_deg=7.2,
+                foot_progression_classification_left=FootProgressionClassification.NEUTRAL,
+                foot_progression_classification_right=FootProgressionClassification.NEUTRAL,
             ),
             foot_strike=FootStrike(
                 pattern={"L": FootStrikePattern.REARFOOT, "R": FootStrikePattern.REARFOOT},
@@ -210,18 +232,33 @@ class TestGaitPatientProfile:
                 rearfoot_angle_at_midstance_deg=LRPair(L=11.4, R=9.8),
                 classification={"L": PronationClassification.OVERPRONATION, "R": PronationClassification.OVERPRONATION},
                 time_to_peak_eversion_pct_stance=LRPair(L=38.0, R=42.0),
+                frontal_plane_excursion_left_deg=12.3,
+                frontal_plane_excursion_right_deg=11.8,
             ),
             arch=Arch(
                 type={"L": ArchType.LOW, "R": ArchType.LOW},
                 arch_height_index=LRPair(L=0.21, R=0.22),
             ),
-            shoe_design_recommendations=ShoeDesignRecommendations(
-                medial_post=MedialPostType.REQUIRED,
-                post_density="firm",
-                arch_support=ArchSupportType.HIGH,
-                heel_counter=HeelCounterType.RIGID,
-                heel_drop_mm=10.0,
-                last_shape=LastShapeType.STRAIGHT,
+            health_assessment=HealthAssessment(
+                what_went_right=[],
+                defects_found=[
+                    DefectDetail(
+                        name="Severe Overpronation with Low Arch",
+                        severity="severe",
+                        affected_side="bilateral",
+                        biomechanical_cause="Rearfoot eversion exceeds normal range, indicating excessive foot inversion",
+                        gait_cycle_phase="Loading Response to Mid-Stance",
+                    )
+                ],
+                improvement_plan=[
+                    ImprovementAction(
+                        exercise_name="Short Foot Exercise",
+                        target_area="Intrinsic foot muscles",
+                        frequency="3 sets of 12 reps, daily",
+                        instructions="Draw the ball of the foot toward the heel without curling toes",
+                        addresses_defect="Severe Overpronation with Low Arch",
+                    )
+                ],
             ),
             confidence_scores={
                 "pronation_classification": 0.91,
@@ -263,6 +300,12 @@ class TestGaitPatientProfile:
                     step_width_m=0.09,
                     stance_pct=LRPair(L=61.2, R=60.4),
                     double_support_pct=22.1,
+                    step_length_left_m=0.68,
+                    step_length_right_m=0.67,
+                    foot_progression_angle_left_deg=8.5,
+                    foot_progression_angle_right_deg=7.2,
+                    foot_progression_classification_left=FootProgressionClassification.NEUTRAL,
+                    foot_progression_classification_right=FootProgressionClassification.NEUTRAL,
                 ),
                 foot_strike=FootStrike(
                     pattern={"L": FootStrikePattern.REARFOOT, "R": FootStrikePattern.REARFOOT},
@@ -272,17 +315,17 @@ class TestGaitPatientProfile:
                     rearfoot_angle_at_midstance_deg=LRPair(L=2.5, R=2.5),
                     classification={"L": PronationClassification.NEUTRAL, "R": PronationClassification.NEUTRAL},
                     time_to_peak_eversion_pct_stance=LRPair(L=38.0, R=42.0),
+                    frontal_plane_excursion_left_deg=3.2,
+                    frontal_plane_excursion_right_deg=2.8,
                 ),
                 arch=Arch(
                     type={"L": ArchType.NORMAL, "R": ArchType.NORMAL},
                     arch_height_index=LRPair(L=0.25, R=0.25),
                 ),
-                shoe_design_recommendations=ShoeDesignRecommendations(
-                    medial_post=MedialPostType.OPTIONAL,
-                    arch_support=ArchSupportType.MEDIUM,
-                    heel_counter=HeelCounterType.FLEXIBLE,
-                    heel_drop_mm=8.0,
-                    last_shape=LastShapeType.SEMI_CURVED,
+                health_assessment=HealthAssessment(
+                    what_went_right=["Neutral pronation pattern"],
+                    defects_found=[],
+                    improvement_plan=[],
                 ),
                 confidence_scores={
                     "pronation_classification": 1.5,  # Invalid: > 1.0
@@ -307,6 +350,12 @@ class TestGaitPatientProfile:
                 step_width_m=0.09,
                 stance_pct=LRPair(L=61.2, R=60.4),
                 double_support_pct=22.1,
+                step_length_left_m=0.68,
+                step_length_right_m=0.67,
+                foot_progression_angle_left_deg=8.5,
+                foot_progression_angle_right_deg=7.2,
+                foot_progression_classification_left=FootProgressionClassification.NEUTRAL,
+                foot_progression_classification_right=FootProgressionClassification.NEUTRAL,
             ),
             foot_strike=FootStrike(
                 pattern={"L": FootStrikePattern.REARFOOT, "R": FootStrikePattern.REARFOOT},
@@ -316,17 +365,21 @@ class TestGaitPatientProfile:
                 rearfoot_angle_at_midstance_deg=LRPair(L=2.5, R=2.5),
                 classification={"L": PronationClassification.NEUTRAL, "R": PronationClassification.NEUTRAL},
                 time_to_peak_eversion_pct_stance=LRPair(L=38.0, R=42.0),
+                frontal_plane_excursion_left_deg=3.2,
+                frontal_plane_excursion_right_deg=2.8,
             ),
             arch=Arch(
                 type={"L": ArchType.NORMAL, "R": ArchType.NORMAL},
                 arch_height_index=LRPair(L=0.25, R=0.25),
             ),
-            shoe_design_recommendations=ShoeDesignRecommendations(
-                medial_post=MedialPostType.OPTIONAL,
-                arch_support=ArchSupportType.MEDIUM,
-                heel_counter=HeelCounterType.FLEXIBLE,
-                heel_drop_mm=8.0,
-                last_shape=LastShapeType.SEMI_CURVED,
+            health_assessment=HealthAssessment(
+                what_went_right=[
+                    "Neutral pronation pattern",
+                    "Good arch structure",
+                    "Healthy foot strike pattern",
+                ],
+                defects_found=[],
+                improvement_plan=[],
             ),
             confidence_scores={
                 "pronation_classification": 0.91,
@@ -335,5 +388,5 @@ class TestGaitPatientProfile:
         )
 
         json_str = profile.model_dump_json()
-        assert '"patient_id": "P0042"' in json_str
-        assert '"schema_version": "profile/v1"' in json_str
+        assert '"patient_id":"P0042"' in json_str or '"patient_id": "P0042"' in json_str
+        assert '"schema_version":"profile/v1"' in json_str or '"schema_version": "profile/v1"' in json_str

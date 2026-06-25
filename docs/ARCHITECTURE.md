@@ -16,8 +16,8 @@ The system is a **linear, staged pipeline**. Raw video enters at the top; a stru
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       CAPTURE LAYER (hardware)                       │
-│   Sagittal cam │ Posterior cam │ Plantar cam (glass treadmill)       │
-│   Calibration board │ Lighting │ Sync trigger                        │
+│   Anterior cam │ Sagittal cam │ Posterior cam                        │
+│   Calibration board │ Lighting │ Hardware/software sync trigger      │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ raw video streams
 ┌──────────────────────────────▼──────────────────────────────────────┐
@@ -70,11 +70,11 @@ A three-view setup gives full clinical coverage while staying affordable.
 
 | View | Purpose | Position |
 |------|---------|----------|
+| **Anterior (coronal/front)** | Full-body bilateral keypoints, hip drop, base of support, frontal-plane motion | Front of walkway, lens ≈ knee height, 3–4 m away |
 | **Sagittal (lateral)** | Stride length, foot-strike pattern, knee/hip flexion, swing phase | Side of walkway, lens ≈ knee height, 3–4 m away |
-| **Posterior (frontal)** | Rearfoot/calcaneal eversion → **pronation/supination**, hip drop, base of support | Behind walkway, lens ≈ mid-calf height, 3–4 m back |
-| **Plantar (optional v1, ideal v2)** | Foot contact pattern, arch silhouette | Below transparent treadmill, looking up |
+| **Posterior (dorsal/back)** | Rearfoot/calcaneal eversion → **pronation/supination**, hip asymmetry, pelvis rotation | Behind walkway, lens ≈ mid-calf height, 3–4 m back |
 
-**MVP path:** start with **sagittal + posterior only**, skip the plantar view; estimate arch type from a static side-view photo plus a wet-footprint method handled separately.
+**Required:** All three views must be captured simultaneously: **anterior, sagittal, and posterior**. Each video is uploaded independently and synced by timestamp during ingestion.
 
 ### 2.2 Camera specs (minimum)
 - **Resolution:** 1080p (1920×1080).
@@ -182,12 +182,13 @@ Symmetry Index (%) = |X_L − X_R| / (0.5 · (X_L + X_R)) · 100
 Flag asymmetry > 10% (asymmetric loading drives custom shoe lateralization).
 
 ### 3.5 Patient profile generator
-Aggregates everything into a structured JSON consumed by the shoe-design module, including a **rule-based** `shoe_design_recommendations` block. Full schema and example in **[API_AND_SCHEMA.md](./API_AND_SCHEMA.md)**.
+Aggregates everything into a structured JSON including a **rule-based** `health_assessment` block with patient-facing findings and personalized improvement plans. Full schema and example in **[API_AND_SCHEMA.md](./API_AND_SCHEMA.md)**.
 
-Recommendation rules live in an **editable YAML file** rather than hardcoded — the orthotist tunes them as more patients are seen. Examples:
-- Overpronation + low arch → medial post + high arch support + straight last + rigid heel counter.
-- Oversupination + high arch → neutral cushioning + curved last + softer lateral midsole.
-- Forefoot striker → lower heel drop, more forefoot cushioning.
+Assessment rules live in an **editable YAML file** rather than hardcoded — the clinician tunes them as more patients are seen. Examples:
+- Overpronation + low arch → defect flag with exercises (short foot, glute bridges).
+- Oversupination + high arch → lateral balance exercises, defect notification.
+- Forefoot striker → heel-walking drills, phase-specific guidance.
+- High step asymmetry → mirror walk exercises, human review flag.
 
 ---
 

@@ -95,7 +95,7 @@ if mode == "Create new session":
             "Select a video file (MP4)", type=["mp4", "avi", "mov"]
         )
         camera_view = st.selectbox(
-            "Camera view", ["sagittal", "posterior", "plantar", "lateral"]
+            "Camera view", ["anterior", "sagittal", "posterior"]
         )
 
         if st.button("Upload") and uploaded_file:
@@ -180,19 +180,38 @@ def _render_profile(profile: Dict[str, Any]) -> None:
     """Render the profile dict as a Streamlit dashboard."""
     st.header("Gait Profile")
 
-    # Shoe design recommendations card
-    recs = profile.get("shoe_design_recommendations", {})
-    if recs:
-        st.subheader("Shoe Design Recommendations")
-        cols = st.columns(3)
-        cols[0].metric("Medial Post", recs.get("medial_post", "—").replace("_", " ").title())
-        cols[1].metric("Arch Support", recs.get("arch_support", "—").replace("_", " ").title())
-        cols[2].metric("Heel Counter", recs.get("heel_counter", "—").replace("_", " ").title())
+    # Health assessment card
+    assessment = profile.get("health_assessment", {})
+    if assessment:
+        st.subheader("Health Assessment")
 
-        st.metric("Heel Drop (mm)", recs.get("heel_drop_mm", "—"))
-        st.metric("Last Shape", recs.get("last_shape", "—").replace("_", " ").title())
-        if recs.get("notes"):
-            st.info(recs["notes"])
+        # What went right
+        positives = assessment.get("what_went_right", [])
+        if positives:
+            st.success("✓ Strengths")
+            for item in positives:
+                st.write(f"• {item}")
+
+        # Defects found
+        defects = assessment.get("defects_found", [])
+        if defects:
+            st.warning("⚠ Areas for Improvement")
+            for defect in defects:
+                with st.expander(f"{defect.get('name', 'Unknown')} ({defect.get('severity', '?')})", expanded=False):
+                    st.write(f"**Affected side:** {defect.get('affected_side', '?')}")
+                    st.write(f"**Cause:** {defect.get('biomechanical_cause', '?')}")
+                    st.write(f"**Phase:** {defect.get('gait_cycle_phase', '?')}")
+
+        # Improvement plan
+        improvements = assessment.get("improvement_plan", [])
+        if improvements:
+            st.info("💡 Recommended Exercises")
+            for action in improvements:
+                with st.expander(f"{action.get('exercise_name', 'Unknown')}", expanded=False):
+                    st.write(f"**Target:** {action.get('target_area', '?')}")
+                    st.write(f"**Frequency:** {action.get('frequency', '?')}")
+                    st.write(f"**Instructions:** {action.get('instructions', '?')}")
+                    st.write(f"*Addresses: {action.get('addresses_defect', '?')}*")
 
     # Pronation
     pronation = profile.get("pronation", {})
