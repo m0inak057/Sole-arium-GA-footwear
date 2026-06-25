@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchProfile } from '../services/api.js'
 import KinematicCharts from '../components/KinematicCharts.jsx'
-import ShoeVisualization from '../components/ShoeVisualization.jsx'
+import Shoe3DVisualization from '../components/Shoe3DVisualization.jsx'
 
 // ── Severity badge ────────────────────────────────────────────────────────────
 function SeverityBadge({ severity }) {
@@ -548,7 +548,7 @@ function PrescriptionSpecSection({ spec }) {
             <p className="text-sm text-gray-500 mb-4">
               Colour zones show where your shoe differs from a standard shoe based on your gait analysis
             </p>
-            <ShoeVisualization prescription_spec={spec} />
+            <Shoe3DVisualization prescription_spec={spec} />
             <p className="mt-4 text-xs text-gray-400 italic text-center">
               This is a schematic representation. Actual shoe appearance will vary based on materials and manufacturing.
             </p>
@@ -556,6 +556,117 @@ function PrescriptionSpecSection({ spec }) {
         )}
       </div>
     </div>
+  )
+}
+
+// ── Glossary ──────────────────────────────────────────────────────────────────
+const GLOSSARY = [
+  {
+    group: 'How You Walk',
+    items: [
+      { term: 'Cadence (spm)', meaning: 'How many steps you take in one minute. A healthy walking pace is usually 100–120 steps per minute.' },
+      { term: 'Stride length', meaning: 'The distance covered in one full step cycle — from when your left foot hits the ground to the next time it hits the ground. Think of it as one "lap" of your walk.' },
+      { term: 'Step width', meaning: 'How far apart your two feet land side-by-side. Too narrow or too wide can signal balance issues.' },
+      { term: 'Speed (m/s)', meaning: 'How fast you are walking, measured in metres per second. Normal everyday walking is around 1.2–1.4 m/s.' },
+      { term: 'Gait cycle', meaning: 'One complete sequence of movements that happens every time you take a step — heel strike, mid-stance, push-off, and swing. Your whole walking pattern repeats this loop continuously.' },
+      { term: 'Asymmetry flag', meaning: 'A warning that your left and right sides are moving noticeably differently from each other. Some difference is normal, but large gaps can cause pain over time.' },
+      { term: 'Spatiotemporal', meaning: 'A fancy word for measurements that involve both space (distances) and time (speed, timing). Cadence, stride length, and speed all fall under this.' },
+      { term: 'Biomechanical cause', meaning: 'The physical reason behind a problem — for example, why your knee hurts may come down to how your ankle rotates when you land.' },
+    ],
+  },
+  {
+    group: 'Foot Movement Terms',
+    items: [
+      { term: 'Pronation', meaning: 'The natural inward roll of your foot when it lands. A small amount is healthy and acts as a shock absorber. Too much is called "overpronation" and can cause pain in your knees, hips, and back.' },
+      { term: 'Supination (Underpronation)', meaning: 'When your foot rolls outward instead of inward when landing. This puts extra stress on the outer edge of your foot.' },
+      { term: 'Medial', meaning: 'The inner side — the side closest to the centre of your body. Your big toe is on the medial side.' },
+      { term: 'Lateral', meaning: 'The outer side — the side away from the centre of your body. Your little toe is on the lateral side.' },
+    ],
+  },
+  {
+    group: 'Shoe Parts Explained',
+    items: [
+      { term: 'Midsole', meaning: 'The cushioning layer sandwiched between the bottom of your foot and the hard outer sole. This is where most of the shock absorption happens. Think of it as the foam padding inside the shoe.' },
+      { term: 'Outsole', meaning: 'The very bottom of the shoe — the part that touches the ground. Usually made of rubber for grip and durability.' },
+      { term: 'Upper', meaning: 'Everything above the sole — the fabric or leather part that wraps around your foot and keeps it inside the shoe.' },
+      { term: 'Heel counter', meaning: 'The stiff cup at the back of the shoe that wraps around your heel. It keeps your heel locked in place and stops it from rolling sideways.' },
+      { term: 'Toe box', meaning: 'The front section of the shoe where your toes sit. A wide toe box gives your toes room to spread naturally; a narrow one squeezes them together.' },
+      { term: 'Footbed / Insole', meaning: 'The inner layer your foot actually rests on inside the shoe. It can be flat or shaped to support your arch.' },
+      { term: 'Last shape', meaning: 'The 3D mould the shoe is built around. It determines the overall shape of the shoe — straight, curved, or semi-curved — and affects how the shoe fits your foot type.' },
+    ],
+  },
+  {
+    group: 'Shoe Specification Terms',
+    items: [
+      { term: 'Shore C (hardness)', meaning: 'A number that tells you how soft or firm the foam cushioning is. Lower Shore C = softer and more cushioning. Higher Shore C = firmer and more supportive. Most running shoes sit between 40–65 Shore C.' },
+      { term: 'Heel drop (mm)', meaning: 'The height difference between the heel and the toe of the shoe. A 10mm heel drop means your heel sits 10mm higher than your toes. Higher drop suits heel-strikers; lower drop is more natural/barefoot-like.' },
+      { term: 'Medial post', meaning: 'An extra firm section built into the inner (medial) side of the midsole. It stops your foot from rolling too far inward and is commonly recommended for flat feet or overpronation.' },
+      { term: 'Arch support', meaning: 'Built-in padding or a raised ridge under the arch of your foot (the curved part on the inside). It helps distribute your body weight evenly and reduces strain.' },
+      { term: 'Cushioning priority', meaning: 'The zone of the shoe where extra soft foam has been added. "Heel priority" means more cushion under your heel; "lateral priority" means more cushion on the outer edge.' },
+      { term: 'Rocker sole', meaning: 'A curved outsole that rocks forward like a rocking chair when you walk. It takes pressure off the ball of your foot and helps people with stiff ankles or forefoot pain.' },
+      { term: 'Lateral reinforcement', meaning: 'Extra material added to the outer edge of the outsole to prevent the shoe from wearing down unevenly on that side.' },
+      { term: 'Extra depth', meaning: 'A shoe that is built slightly taller inside than normal, giving more room for thick insoles, orthotics, or swollen feet.' },
+      { term: 'Heel lift', meaning: 'A wedge added inside the heel to raise it slightly. Often used when one leg is a little shorter than the other, to level out your hips while walking.' },
+    ],
+  },
+  {
+    group: 'People & Specialists',
+    items: [
+      { term: 'Orthotist', meaning: 'A healthcare professional who designs and fits custom shoe insoles, braces, and supports to correct how you walk or stand.' },
+      { term: 'Podiatrist', meaning: 'A foot doctor who diagnoses and treats foot and ankle problems, and can prescribe custom orthotics or footwear changes.' },
+    ],
+  },
+]
+
+function GlossarySection() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <section className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-sm overflow-hidden mt-6">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-800/40 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-amber-500/30">?</span>
+          <div>
+            <p className="text-base font-bold text-white">Glossary — What do these words mean?</p>
+            <p className="text-xs text-slate-400 mt-0.5">Plain-English explanations of every technical term used in this report</p>
+          </div>
+        </div>
+        <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-4 ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="px-6 pb-8 border-t border-slate-700/50">
+          <p className="text-sm text-slate-400 mt-5 mb-6">
+            This report uses medical and technical language. Here is what each term means in simple words.
+          </p>
+          <div className="space-y-8">
+            {GLOSSARY.map(({ group, items }) => (
+              <div key={group}>
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-700/60">
+                  {group}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {items.map(({ term, meaning }) => (
+                    <div key={term} className="flex gap-3 bg-slate-800/40 rounded-xl p-4 border border-slate-700/40">
+                      <div className="w-1.5 rounded-full bg-amber-500/60 flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="text-sm font-bold text-white mb-1">{term}</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{meaning}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -719,6 +830,9 @@ export default function ResultsPage() {
 
       {/* Section E — Summary Footer */}
       <SummaryFooter profile={profile} sessionId={sessionId} />
+
+      {/* Glossary */}
+      <GlossarySection />
     </div>
   )
 }
