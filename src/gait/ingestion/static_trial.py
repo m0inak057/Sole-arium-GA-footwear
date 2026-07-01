@@ -1,4 +1,4 @@
-"""StaticTrialProcessor — calibrates per-subject joint-angle offsets.
+﻿"""StaticTrialProcessor â€” calibrates per-subject joint-angle offsets.
 
 The processor accepts ~3 seconds of quiet-standing frames, averages keypoint
 positions across those frames (discarding low-confidence detections), and
@@ -12,10 +12,10 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional, Tuple
 
-from src.gait.common.interfaces import Keypoint, KeypointFrame
-from src.gait.common.logging_utils import get_logger
-from src.gait.common.types import StaticTrial
-from src.gait.pipeline.config import StaticTrialConfig
+from gait.common.interfaces import Keypoint, KeypointFrame
+from gait.common.logging_utils import get_logger
+from gait.common.types import StaticTrial
+from gait.pipeline.config import StaticTrialConfig
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,7 @@ class StaticTrialProcessor:
             joint_angle_offsets=offsets,
         )
 
-    # ── private helpers ────────────────────────────────────────────────────────
+    # â”€â”€ private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _average_keypoints(self, frames: List[KeypointFrame]) -> Dict[str, Keypoint]:
         """Return one Keypoint per name, averaged over all frames that meet the
@@ -101,7 +101,7 @@ class StaticTrialProcessor:
                     rfa = -rfa  # clinical sign: positive = eversion/pronation
                 offsets[f"{side}_ankle_deg"] = rfa
 
-            # Knee: interior angle at the joint (hip → knee ← ankle)
+            # Knee: interior angle at the joint (hip â†’ knee â† ankle)
             if hip and knee and ankle:
                 offsets[f"{side}_knee_deg"] = _joint_angle(hip, knee, ankle)
 
@@ -112,11 +112,11 @@ class StaticTrialProcessor:
         return offsets
 
 
-# ── geometry helpers ───────────────────────────────────────────────────────────
+# â”€â”€ geometry helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _rearfoot_angle(knee: Keypoint, ankle: Keypoint, heel: Keypoint) -> float:
-    """Signed angle from the downward vertical to the ankle→heel vector.
+    """Signed angle from the downward vertical to the ankleâ†’heel vector.
 
     Matches ``compute_rearfoot_angle`` in parameters.py without importing it
     here to keep ingestion free of an analysis-layer dependency.
@@ -127,7 +127,7 @@ def _rearfoot_angle(knee: Keypoint, ankle: Keypoint, heel: Keypoint) -> float:
 
 
 def _joint_angle(a: Keypoint, b: Keypoint, c: Keypoint) -> float:
-    """Interior angle at vertex b between segments a→b and b→c (degrees)."""
+    """Interior angle at vertex b between segments aâ†’b and bâ†’c (degrees)."""
     v1 = (a.x - b.x, a.y - b.y)
     v2 = (c.x - b.x, c.y - b.y)
     dot = v1[0] * v2[0] + v1[1] * v2[1]
@@ -138,11 +138,12 @@ def _joint_angle(a: Keypoint, b: Keypoint, c: Keypoint) -> float:
 
 
 def _segment_from_vertical(top: Keypoint, bottom: Keypoint) -> float:
-    """Angle of the top→bottom segment from the downward vertical (degrees).
+    """Angle of the topâ†’bottom segment from the downward vertical (degrees).
 
     In image space y increases downward, so a perfectly vertical segment has
-    dx=0 and dy>0 → angle=0°.  A segment tilted right has dx>0 → positive angle.
+    dx=0 and dy>0 â†’ angle=0Â°.  A segment tilted right has dx>0 â†’ positive angle.
     """
     dx = bottom.x - top.x
     dy = bottom.y - top.y
     return math.degrees(math.atan2(dx, dy if abs(dy) > 1e-9 else 1e-9))
+

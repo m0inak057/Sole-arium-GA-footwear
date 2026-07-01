@@ -1,11 +1,11 @@
-"""Unit tests for gait analysis (Phase B)."""
+﻿"""Unit tests for gait analysis (Phase B)."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from src.gait.events.gait_event_detector import GaitEvent, GaitEventDetector
-from src.gait.analysis.biomechanics import BiomechanicsAnalyzer
+from gait.events.gait_event_detector import GaitEvent, GaitEventDetector
+from gait.analysis.biomechanics import BiomechanicsAnalyzer
 
 
 class TestGaitEventDetector:
@@ -146,7 +146,7 @@ class TestGaitAnalysisIntegration:
     """Integration tests for gait analysis pipeline."""
 
     def test_event_detection_to_analysis(self):
-        """Test full pipeline: event detection → analysis."""
+        """Test full pipeline: event detection â†’ analysis."""
         detector = GaitEventDetector(fps=120.0)
         analyzer = BiomechanicsAnalyzer(fps=120.0, height_m=1.75)
 
@@ -186,3 +186,4 @@ class TestGaitAnalysisIntegration:
 
         events = detector.detect_heel_strikes(heel_y, timestamps)
         assert len(events) >= 2  # At least 2-3 cycles
+

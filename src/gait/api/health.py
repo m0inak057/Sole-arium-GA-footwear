@@ -1,9 +1,9 @@
-"""Health check endpoint for API."""
+﻿"""Health check endpoint for API."""
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
-from src.gait.monitoring import HealthChecker, HealthStatus
+from gait.monitoring import HealthChecker, HealthStatus
 
 router = APIRouter(prefix="/health", tags=["health"])
 health_checker: HealthChecker = None
@@ -90,3 +90,4 @@ async def live_check():
         Alive status
     """
     return {"alive": True}
+

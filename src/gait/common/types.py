@@ -1,4 +1,4 @@
-"""Ingestion-stage data transfer objects and typed exceptions.
+﻿"""Ingestion-stage data transfer objects and typed exceptions.
 
 DTOs crossing stage boundaries use these types so every handoff is
 statically verifiable. Exceptions form a typed hierarchy so callers can
@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import numpy as np
 
 if TYPE_CHECKING:
-    from src.gait.common.interfaces import Frame, Keypoint
+    from gait.common.interfaces import Frame, Keypoint
 
 
 class TrialCondition(str, Enum):
@@ -24,7 +24,7 @@ class TrialCondition(str, Enum):
     SHOD = "shod"
 
 
-# ── DTOs ──────────────────────────────────────────────────────────────────────
+# â”€â”€ DTOs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @dataclass
@@ -39,16 +39,16 @@ class CameraCalibration:
 
     camera_name: str
     camera_matrix: np.ndarray       # shape (3, 3), float64
-    dist_coeffs: np.ndarray         # shape (1, N) where N ∈ {4, 5, 8}, float64
+    dist_coeffs: np.ndarray         # shape (1, N) where N âˆˆ {4, 5, 8}, float64
     image_size: Tuple[int, int]     # (width, height) in pixels
 
-    # Precomputed — set by CameraCalibrator.__init__, None until then
+    # Precomputed â€” set by CameraCalibrator.__init__, None until then
     map1: Optional[np.ndarray] = field(default=None, repr=False)  # float32
     map2: Optional[np.ndarray] = field(default=None, repr=False)  # float32
 
     @property
     def is_calibrated(self) -> bool:
-        """True when remap maps are ready; False → passthrough mode."""
+        """True when remap maps are ready; False â†’ passthrough mode."""
         return self.map1 is not None and self.map2 is not None
 
 
@@ -62,7 +62,7 @@ class SyncedFrameSet:
     """
 
     anchor_timestamp_ms: int
-    frames: Dict[str, "Frame"]     # camera_name → Frame
+    frames: Dict[str, "Frame"]     # camera_name â†’ Frame
 
 
 @dataclass
@@ -70,13 +70,13 @@ class PersonTrack:
     """Subject bounding-box for a single frame from the tracker.
 
     confidence is reduced proportionally when the tracker returns a
-    last-known bbox after the subject was momentarily lost — stale tracks
+    last-known bbox after the subject was momentarily lost â€” stale tracks
     never carry full 1.0 confidence.
     """
 
     track_id: int
     bbox: Tuple[int, int, int, int]   # (x, y, w, h) in pixels
-    confidence: float                  # 0.0–1.0
+    confidence: float                  # 0.0â€“1.0
     frames_since_update: int = 0       # 0 = fresh detection
 
 
@@ -86,7 +86,7 @@ class IngestionResult:
 
     frames is the ordered sequence of preprocessed Frame objects passed to
     the pose estimation stage. Every Frame.image is a new ndarray
-    (np.copy was called) — safe to mutate downstream.
+    (np.copy was called) â€” safe to mutate downstream.
     """
 
     frames: List["Frame"]
@@ -113,7 +113,7 @@ class StaticTrial:
     joint_angle_offsets: Dict[str, float]  # anatomical zero references
 
 
-# ── Typed exception hierarchy ─────────────────────────────────────────────────
+# â”€â”€ Typed exception hierarchy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class IngestionError(RuntimeError):
@@ -141,7 +141,7 @@ class FrameSyncError(IngestionError):
 class CalibrationLoadError(IngestionError):
     """A calibration YAML file exists but is structurally malformed.
 
-    A *missing* calibration file is NOT this error — missing → WARNING and
+    A *missing* calibration file is NOT this error â€” missing â†’ WARNING and
     the pipeline continues in uncalibrated (passthrough) mode. Only raise
     this when the file is present but unreadable or structurally wrong.
     """
@@ -151,3 +151,4 @@ class TrackingLostError(IngestionError):
     """Subject tracker lost the person for more than
     IngestionConfig.max_lost_frames consecutive frames without recovery.
     """
+

@@ -1,10 +1,10 @@
-"""API key management and validation."""
+﻿"""API key management and validation."""
 from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timedelta, timezone
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -134,3 +134,4 @@ def _constant_time_compare(a: str, b: str) -> bool:
     for x, y in zip(a, b):
         result |= ord(x) ^ ord(y)
     return result == 0
+

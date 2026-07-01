@@ -1,19 +1,19 @@
-"""Unit tests for StandardBiomechanicalAnalyzer (src.gait.analysis.analyzer)."""
+﻿"""Unit tests for StandardBiomechanicalAnalyzer (src.gait.analysis.analyzer)."""
 from __future__ import annotations
 
 from typing import Dict
 
 import pytest
 
-from src.gait.analysis.analyzer import (
+from gait.analysis.analyzer import (
     StandardBiomechanicalAnalyzer,
     _quality_flag,
     create_biomechanical_analyzer,
 )
-from src.gait.common.interfaces import GaitCycle, Keypoint, KeypointFrame
-from src.gait.pipeline.config import AnalysisConfig
+from gait.common.interfaces import GaitCycle, Keypoint, KeypointFrame
+from gait.pipeline.config import AnalysisConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def default_cfg(**overrides) -> AnalysisConfig:
@@ -70,7 +70,7 @@ def make_cycle(
     )
 
 
-# ── _quality_flag ─────────────────────────────────────────────────────────────
+# â”€â”€ _quality_flag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestQualityFlag:
@@ -99,7 +99,7 @@ class TestQualityFlag:
         assert _quality_flag(0, cfg) == "RERECORD"
 
 
-# ── compute_parameters ────────────────────────────────────────────────────────
+# â”€â”€ compute_parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeParameters:
@@ -157,7 +157,7 @@ class TestComputeParameters:
     def test_arch_keys_when_keypoints_present(self):
         az = StandardBiomechanicalAnalyzer(default_cfg())
         result = az.compute_parameters(make_cycle(with_keypoints=True))
-        # AHI may or may not be present depending on geometry — just check type if present
+        # AHI may or may not be present depending on geometry â€” just check type if present
         if "arch_height_index" in result:
             assert isinstance(result["arch_height_index"], float)
             assert result["arch_type"] in ("high", "normal", "low")
@@ -173,7 +173,7 @@ class TestComputeParameters:
         assert result["cadence_steps_per_min"] == pytest.approx(120.0)
 
     def test_right_foot_rearfoot_angle_sign(self):
-        """Right-foot eversion = heel tilts right (+x) → raw angle negative → negated to positive."""
+        """Right-foot eversion = heel tilts right (+x) â†’ raw angle negative â†’ negated to positive."""
         az = StandardBiomechanicalAnalyzer(default_cfg())
         side = "right"
         # Right-foot pronation: heel to the RIGHT of ankle (outward/lateral for right foot)
@@ -190,11 +190,11 @@ class TestComputeParameters:
             confidence=0.9, stance_duration_ms=600.0, swing_duration_ms=400.0,
         )
         result = az.compute_parameters(cycle)
-        # Raw angle is negative (heel right); negated for right foot → positive (pronation)
+        # Raw angle is negative (heel right); negated for right foot â†’ positive (pronation)
         assert result["rearfoot_angle_deg"] > 0
 
 
-# ── aggregate_parameters ──────────────────────────────────────────────────────
+# â”€â”€ aggregate_parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAggregateParameters:
@@ -224,7 +224,7 @@ class TestAggregateParameters:
         assert "stance_time_ms_std" in result
 
     def test_cadence_mean_correct(self):
-        # All cycles identical: 1000ms → 120 steps/min
+        # All cycles identical: 1000ms â†’ 120 steps/min
         az = StandardBiomechanicalAnalyzer(default_cfg())
         cycles = [make_cycle(stance_ms=600.0, swing_ms=400.0, cycle_id=i) for i in range(4)]
         result = az.aggregate_parameters(cycles, "L")
@@ -271,7 +271,7 @@ class TestAggregateParameters:
             assert result["foot_strike_type"] in ("rearfoot", "midfoot", "forefoot")
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFactory:
@@ -286,3 +286,4 @@ class TestFactory:
     def test_default_fps(self):
         az = create_biomechanical_analyzer(default_cfg())
         assert az._fps == pytest.approx(120.0)
+

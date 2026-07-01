@@ -1,11 +1,11 @@
-"""Session-level gait analysis reporting and recommendations."""
+﻿"""Session-level gait analysis reporting and recommendations."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -242,3 +242,4 @@ class SessionReporter:
 
         except Exception:
             return 0.0
+

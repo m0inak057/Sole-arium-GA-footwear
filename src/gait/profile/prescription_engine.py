@@ -1,4 +1,4 @@
-"""PrescriptionEngine — rule-based orthotist/shoe-designer specification generator.
+﻿"""PrescriptionEngine â€” rule-based orthotist/shoe-designer specification generator.
 
 Reads the ``prescription_rules`` section from ``rules.yaml`` and applies them
 in ascending priority order to the same ``rule_params`` dict that drives the
@@ -6,9 +6,9 @@ health recommendation engine.  Later (higher-priority) rules override scalar
 fields; ``clinician_notes`` accumulates across all matching rules.
 
 Body-mass Shore-C modifiers are applied on top of all rule-derived values:
-  < 60 kg  → subtract 5 from all Shore C values
-  80–100 kg → add 10
-  > 100 kg  → add 15 (+ PU midsole note)
+  < 60 kg  â†’ subtract 5 from all Shore C values
+  80â€“100 kg â†’ add 10
+  > 100 kg  â†’ add 15 (+ PU midsole note)
 
 Heel lift for step-length asymmetry > 10 % is computed directly from the
 supplied ``step_length_left_m`` / ``step_length_right_m`` values.
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-# ── Sensible defaults — produced when no rule matches at all ───────────────────
+# â”€â”€ Sensible defaults â€” produced when no rule matches at all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _PRESCRIPTION_DEFAULTS: Dict[str, Any] = {
     "last_shape": "semi_curved",
@@ -40,7 +40,7 @@ _PRESCRIPTION_DEFAULTS: Dict[str, Any] = {
 }
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _match_condition(when: Dict[str, Any], params: Dict[str, Any]) -> bool:
@@ -119,7 +119,7 @@ def _compute_heel_lift(
         return 3.0, 0.0
     if step_length_right_m < step_length_left_m:
         return 0.0, 3.0
-    # Equal lengths but flag set — default to left
+    # Equal lengths but flag set â€” default to left
     return 3.0, 0.0
 
 
@@ -164,7 +164,7 @@ def _derive_primary_condition(rule_params: Dict[str, Any]) -> str:
     return ", ".join(parts).capitalize()
 
 
-# ── Engine ─────────────────────────────────────────────────────────────────────
+# â”€â”€ Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class PrescriptionEngine:
@@ -185,14 +185,14 @@ class PrescriptionEngine:
         step_length_left_m: float = 0.0,
         step_length_right_m: float = 0.0,
         patient_id: Optional[str] = None,
-    ) -> "PrescriptionSpec":  # noqa: F821 — forward ref resolved at call time
+    ) -> "PrescriptionSpec":  # noqa: F821 â€” forward ref resolved at call time
         """Apply prescription rules and return a fully populated PrescriptionSpec.
 
         Args:
             rule_params:          Same flat dict used by the health rules engine
                                   (pronation_type, arch_type, foot_strike_type,
                                   flags, ...).
-            body_mass_kg:         Patient body mass — used for Shore-C modifiers.
+            body_mass_kg:         Patient body mass â€” used for Shore-C modifiers.
             step_length_left_m:   Mean left step length in metres.
             step_length_right_m:  Mean right step length in metres.
             patient_id:           Optional, for logging only.
@@ -215,7 +215,7 @@ class PrescriptionEngine:
                     else:
                         spec[key] = value
 
-        # ── Body-mass Shore-C modifier ─────────────────────────────────────────
+        # â”€â”€ Body-mass Shore-C modifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         modifier = _shore_c_modifier(body_mass_kg)
         if modifier != 0:
             spec["medial_shore_c"] = _clamp_shore_c(spec["medial_shore_c"] + modifier)
@@ -229,13 +229,13 @@ class PrescriptionEngine:
                 if note not in clinician_notes:
                     clinician_notes.append(note)
 
-        # ── Heel lift from step asymmetry ──────────────────────────────────────
+        # â”€â”€ Heel lift from step asymmetry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         heel_lift_l, heel_lift_r = _compute_heel_lift(
             rule_params, step_length_left_m, step_length_right_m
         )
 
-        # ── Assemble Pydantic models ───────────────────────────────────────────
-        from src.gait.profile.schema import (  # local import avoids circular dep
+        # â”€â”€ Assemble Pydantic models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        from gait.profile.schema import (  # local import avoids circular dep
             ArchSupportSpec,
             FootLiftSpec,
             LastSpec,
@@ -284,3 +284,4 @@ class PrescriptionEngine:
             clinician_referral_notes=clinician_notes,
             confidence="rule_based",
         )
+

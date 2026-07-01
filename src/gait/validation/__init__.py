@@ -1,20 +1,20 @@
-"""Clinical validation and gold standard comparison modules."""
-from src.gait.validation.metrics import (
+﻿"""Clinical validation and gold standard comparison modules."""
+from gait.validation.metrics import (
     ValidationMetrics,
     ErrorMetrics,
     PerformanceValidator,
 )
-from src.gait.validation.anomaly_detector import (
+from gait.validation.anomaly_detector import (
     AnomalyFlag,
     AnomalyReport,
     AnomalyDetector,
 )
-from src.gait.validation.gold_standard import (
+from gait.validation.gold_standard import (
     ValidationResult,
     GoldStandardReport,
     GoldStandardComparator,
 )
-from src.gait.validation.clinical_report import (
+from gait.validation.clinical_report import (
     ClinicalValidationReport,
     ClinicalValidator,
 )
@@ -32,3 +32,4 @@ __all__ = [
     "ClinicalValidationReport",
     "ClinicalValidator",
 ]
+

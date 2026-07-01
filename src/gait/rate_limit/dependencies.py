@@ -1,12 +1,12 @@
-"""Rate limiting dependencies for FastAPI."""
+﻿"""Rate limiting dependencies for FastAPI."""
 from __future__ import annotations
 
 from typing import Optional
 
 import redis
 
-from src.gait.rate_limit.base import RateLimitConfig, RateLimiter, RateLimitStrategy
-from src.gait.rate_limit.token_bucket import TokenBucketLimiter
+from gait.rate_limit.base import RateLimitConfig, RateLimiter, RateLimitStrategy
+from gait.rate_limit.token_bucket import TokenBucketLimiter
 
 
 def create_token_bucket_limiter(
@@ -54,3 +54,4 @@ def create_token_bucket_limiter(
         raise redis.ConnectionError(f"Failed to connect to Redis: {e}")
 
     return TokenBucketLimiter(config=config, redis_client=redis_client, namespace=namespace)
+

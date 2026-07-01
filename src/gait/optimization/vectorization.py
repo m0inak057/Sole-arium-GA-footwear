@@ -1,4 +1,4 @@
-"""Vectorized operations for fast batch processing."""
+﻿"""Vectorized operations for fast batch processing."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -261,3 +261,4 @@ class VectorizedAnalyzer:
         except Exception as e:
             logger.error("vectorization.resampling_failed", extra={"error": str(e)})
             return data_batch
+

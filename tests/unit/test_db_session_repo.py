@@ -1,4 +1,4 @@
-"""Unit tests for SessionRepository (src.gait.db.session_repo)."""
+﻿"""Unit tests for SessionRepository (src.gait.db.session_repo)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -8,11 +8,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SQLSession
 from sqlalchemy.orm import sessionmaker
 
-from src.gait.api.models import SessionStatus
-from src.gait.db.models import Base, Session, User
-from src.gait.db.session_repo import SessionRepository
+from gait.api.models import SessionStatus
+from gait.db.models import Base, Session, User
+from gait.db.session_repo import SessionRepository
 
-# ── fixtures ──────────────────────────────────────────────────────────────
+# â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def user(in_memory_db: SQLSession) -> User:
     return user
 
 
-# ── Create Tests ──────────────────────────────────────────────────────────
+# â”€â”€ Create Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreate:
@@ -76,7 +76,7 @@ class TestCreate:
         assert session2.patient_id == "P002"
 
 
-# ── Read Tests ────────────────────────────────────────────────────────────
+# â”€â”€ Read Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestRead:
@@ -126,7 +126,7 @@ class TestRead:
         assert len(user_sessions) == 2
 
 
-# ── Update Tests ──────────────────────────────────────────────────────────
+# â”€â”€ Update Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUpdate:
@@ -188,7 +188,7 @@ class TestUpdate:
         assert updated.updated_at > created_at
 
 
-# ── Upload Tests ──────────────────────────────────────────────────────────
+# â”€â”€ Upload Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUpload:
@@ -238,7 +238,7 @@ class TestUpload:
         assert session.status == SessionStatus.UPLOADING.value
 
 
-# ── Delete Tests ──────────────────────────────────────────────────────────
+# â”€â”€ Delete Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDelete:
@@ -263,7 +263,7 @@ class TestDelete:
         assert len(uploads) == 0
 
 
-# ── Permission Tests ──────────────────────────────────────────────────────
+# â”€â”€ Permission Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestPermissions:
@@ -290,7 +290,7 @@ class TestPermissions:
         assert can_access is False
 
 
-# ── Integration Tests ─────────────────────────────────────────────────────
+# â”€â”€ Integration Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestIntegration:
@@ -324,3 +324,4 @@ class TestIntegration:
         assert final is not None
         assert final.status == SessionStatus.COMPLETED.value
         assert len(final.uploads) == 2
+

@@ -1,8 +1,8 @@
-"""Camera calibration — loads intrinsic parameters and undistorts frames.
+﻿"""Camera calibration â€” loads intrinsic parameters and undistorts frames.
 
 Two distinct outcomes for a missing vs. malformed calibration file:
-  - Missing file  → WARNING + returns None → pipeline runs in passthrough mode.
-  - Malformed YAML → CalibrationLoadError (operator must fix the file before proceeding).
+  - Missing file  â†’ WARNING + returns None â†’ pipeline runs in passthrough mode.
+  - Malformed YAML â†’ CalibrationLoadError (operator must fix the file before proceeding).
 
 CameraCalibrator precomputes cv2.remap maps once at construction so the
 per-frame cost is a single cv2.remap call (not initUndistortRectifyMap every frame).
@@ -17,9 +17,9 @@ import cv2
 import numpy as np
 import yaml
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.logging_utils import get_logger
-from src.gait.common.types import CalibrationLoadError, CameraCalibration
+from gait.common.interfaces import Frame
+from gait.common.logging_utils import get_logger
+from gait.common.types import CalibrationLoadError, CameraCalibration
 
 logger = get_logger(__name__)
 
@@ -97,11 +97,11 @@ def load_camera_calibration(
 class CameraCalibrator:
     """Holds precomputed cv2.remap maps and applies undistortion per frame.
 
-    Remap maps are computed once in __init__ via cv2.initUndistortRectifyMap —
+    Remap maps are computed once in __init__ via cv2.initUndistortRectifyMap â€”
     per-frame cost is a single cv2.remap call.
 
     When calibration is None, apply() is a passthrough that still returns a
-    new Frame with np.copy(image) — callers always receive an independent array.
+    new Frame with np.copy(image) â€” callers always receive an independent array.
     """
 
     def __init__(self, calibration: Optional[CameraCalibration]) -> None:
@@ -132,7 +132,7 @@ class CameraCalibrator:
     def apply(self, frame: Frame) -> Frame:
         """Undistort a frame and return a new Frame.
 
-        Always returns a new ndarray — never shares memory with the input.
+        Always returns a new ndarray â€” never shares memory with the input.
         """
         if not self.is_calibrated:
             return Frame(
@@ -157,3 +157,4 @@ class CameraCalibrator:
             frame_index=frame.frame_index,
             confidence=frame.confidence,
         )
+

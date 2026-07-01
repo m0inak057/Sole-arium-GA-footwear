@@ -1,6 +1,6 @@
-"""Background subtraction — isolates the subject from a static background.
+﻿"""Background subtraction â€” isolates the subject from a static background.
 
-Each camera must have its own BackgroundSubtractor instance — sagittal and
+Each camera must have its own BackgroundSubtractor instance â€” sagittal and
 posterior cameras see different backgrounds and sharing one MOG2 model across
 cameras causes correctness bugs.
 
@@ -16,9 +16,9 @@ from typing import Tuple
 import cv2
 import numpy as np
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
@@ -44,7 +44,7 @@ class BackgroundSubtractor(ABC):
 class MOG2BackgroundSubtractor(BackgroundSubtractor):
     """OpenCV MOG2 background subtractor.
 
-    All tuning parameters come from IngestionConfig — no hardcoded values.
+    All tuning parameters come from IngestionConfig â€” no hardcoded values.
     Shadows (marked 127 by MOG2 when detectShadows=True) are treated as
     background to avoid misclassifying shadow blobs as person pixels.
     """
@@ -67,7 +67,7 @@ class MOG2BackgroundSubtractor(BackgroundSubtractor):
         """Apply MOG2 + morphological cleanup and zero out the background."""
         raw_mask = self._subtractor.apply(frame.image)
 
-        # Shadow pixels are 127 — treat as background
+        # Shadow pixels are 127 â€” treat as background
         binary_mask = np.where(raw_mask == 255, np.uint8(255), np.uint8(0))
 
         # Close small holes, then remove small isolated blobs
@@ -107,7 +107,7 @@ def create_background_subtractor(
     model_name: str,
     config: IngestionConfig,
 ) -> BackgroundSubtractor:
-    """Factory — return the requested BackgroundSubtractor.
+    """Factory â€” return the requested BackgroundSubtractor.
 
     Supported: 'mog2'
     Raises ValueError for unknown model names.
@@ -117,3 +117,4 @@ def create_background_subtractor(
     raise ValueError(
         f"Unknown background_subtraction_model {model_name!r}. Supported: 'mog2'"
     )
+

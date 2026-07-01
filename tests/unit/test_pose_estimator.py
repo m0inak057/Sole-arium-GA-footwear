@@ -1,7 +1,7 @@
-"""Unit tests for PoseEstimator and create_pose_detector (src.gait.pose.estimator).
+﻿"""Unit tests for PoseEstimator and create_pose_detector (src.gait.pose.estimator).
 
 The MediaPipe detector is replaced with a FakeDetector so no model inference
-runs. The smoother is real — its behaviour is covered separately in
+runs. The smoother is real â€” its behaviour is covered separately in
 test_pose_smoother.py.
 """
 from __future__ import annotations
@@ -11,12 +11,12 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame, Keypoint, KeypointFrame, PoseDetector
-from src.gait.pipeline.config import PoseConfig
-from src.gait.pose.estimator import PoseEstimator, create_pose_detector
-from src.gait.pose.mediapipe_detector import MediaPipePoseDetector
+from gait.common.interfaces import Frame, Keypoint, KeypointFrame, PoseDetector
+from gait.pipeline.config import PoseConfig
+from gait.pose.estimator import PoseEstimator, create_pose_detector
+from gait.pose.mediapipe_detector import MediaPipePoseDetector
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 FPS = 120.0
 
@@ -76,7 +76,7 @@ def fake_factory(kf_list: list[KeypointFrame]):
     )
 
 
-# ── PoseEstimator.run ─────────────────────────────────────────────────────────
+# â”€â”€ PoseEstimator.run â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestRun:
@@ -154,20 +154,20 @@ class TestRun:
         assert [kf.frame_index for kf in result] == [0, 1, 2, 3]
 
 
-# ── create_pose_detector factory ─────────────────────────────────────────────
+# â”€â”€ create_pose_detector factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreatePoseDetector:
     def test_mediapipe_returns_correct_type(self):
         cfg = PoseConfig(model="mediapipe")
-        with patch("src.gait.pose.mediapipe_detector.mp") as mock_mp:
+        with patch("gait.pose.mediapipe_detector.mp") as mock_mp:
             mock_mp.solutions.pose.Pose.return_value = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
             det = create_pose_detector(cfg)
         assert isinstance(det, MediaPipePoseDetector)
 
     def test_mediapipe_case_insensitive(self):
         cfg = PoseConfig(model="MediaPipe")
-        with patch("src.gait.pose.mediapipe_detector.mp") as mock_mp:
+        with patch("gait.pose.mediapipe_detector.mp") as mock_mp:
             mock_mp.solutions.pose.Pose.return_value = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
             det = create_pose_detector(cfg)
         assert isinstance(det, MediaPipePoseDetector)
@@ -181,3 +181,5 @@ class TestCreatePoseDetector:
         cfg = PoseConfig(model="deep_lab")
         with pytest.raises(ValueError, match="deep_lab"):
             create_pose_detector(cfg)
+
+

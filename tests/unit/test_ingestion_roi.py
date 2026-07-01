@@ -1,13 +1,13 @@
-"""Unit tests for ROI crop (src.gait.ingestion.roi)."""
+﻿"""Unit tests for ROI crop (src.gait.ingestion.roi)."""
 
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.types import PersonTrack
-from src.gait.ingestion.roi import compute_roi_bbox, crop_roi
+from gait.common.interfaces import Frame
+from gait.common.types import PersonTrack
+from gait.ingestion.roi import compute_roi_bbox, crop_roi
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 IMG_H, IMG_W = 480, 640
 
@@ -26,7 +26,7 @@ def make_track(x: int, y: int, w: int, h: int) -> PersonTrack:
     return PersonTrack(track_id=1, bbox=(x, y, w, h), confidence=1.0, frames_since_update=0)
 
 
-# ── compute_roi_bbox ──────────────────────────────────────────────────────────
+# â”€â”€ compute_roi_bbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeRoiBbox:
@@ -63,7 +63,7 @@ class TestComputeRoiBbox:
         assert y + h <= IMG_H
 
 
-# ── crop_roi ──────────────────────────────────────────────────────────────────
+# â”€â”€ crop_roi â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCropRoi:
@@ -142,3 +142,4 @@ class TestCropRoi:
         frame = make_frame()
         out = crop_roi(frame, make_track(100, 100, 200, 300), margin_px=0)
         assert out.image.ndim == 3
+

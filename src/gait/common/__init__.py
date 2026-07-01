@@ -1,6 +1,6 @@
-"""Shared utilities, types, and constants for the gait analysis pipeline."""
+﻿"""Shared utilities, types, and constants for the gait analysis pipeline."""
 
-from src.gait.common.types import (
+from gait.common.types import (
     CameraCalibration,
     CalibrationLoadError,
     FrameSyncError,
@@ -11,7 +11,7 @@ from src.gait.common.types import (
     TrackingLostError,
     VideoDecodeError,
 )
-from src.gait.common.geometry import (
+from gait.common.geometry import (
     BBox,
     bbox_area_px2,
     clip_bbox,
@@ -23,7 +23,7 @@ from src.gait.common.geometry import (
     normalize_vector,
     signed_angle_deg,
 )
-from src.gait.common.logging_utils import (
+from gait.common.logging_utils import (
     get_logger,
     log_stage_timing,
     timed_stage,
@@ -57,3 +57,4 @@ __all__ = [
     "log_stage_timing",
     "timed_stage",
 ]
+

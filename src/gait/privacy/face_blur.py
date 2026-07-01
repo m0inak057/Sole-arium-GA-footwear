@@ -1,13 +1,13 @@
-"""Face blurring for DPDP Act 2023 compliance.
+﻿"""Face blurring for DPDP Act 2023 compliance.
 
 Detects faces in each video frame using OpenCV's Haar cascade classifier
 and applies Gaussian blur over each bounding box before writing the output
-video.  No heavyweight model dependencies — uses the cascade XML bundled
+video.  No heavyweight model dependencies â€” uses the cascade XML bundled
 with OpenCV.
 
 Usage::
 
-    from src.gait.privacy.face_blur import blur_all_session_videos
+    from gait.privacy.face_blur import blur_all_session_videos
 
     results = blur_all_session_videos(
         {"anterior": "/tmp/ant.avi", "sagittal": "/tmp/sag.avi", "posterior": "/tmp/pos.avi"},
@@ -24,7 +24,7 @@ from typing import Dict
 
 import cv2
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -48,7 +48,7 @@ def blur_faces_in_video(input_path: str, output_path: str) -> bool:
     """Detect and blur all faces in a video file.
 
     Opens the input video, runs Haar face detection on every frame, applies
-    Gaussian blur (kernel 99×99, σ=30) over each detected bounding box, and
+    Gaussian blur (kernel 99Ã—99, Ïƒ=30) over each detected bounding box, and
     writes the result to *output_path* at the same fps and resolution.
 
     Args:
@@ -56,8 +56,8 @@ def blur_faces_in_video(input_path: str, output_path: str) -> bool:
         output_path: Destination path for the blurred video (.avi, XVID codec).
 
     Returns:
-        True  — at least one face was detected and blurred across the whole video.
-        False — no faces were found in any frame (not an error; posterior/sagittal
+        True  â€” at least one face was detected and blurred across the whole video.
+        False â€” no faces were found in any frame (not an error; posterior/sagittal
                 views typically do not show the face).
 
     Raises:
@@ -134,7 +134,7 @@ def blur_all_session_videos(
     """Blur faces in all camera videos for one session.
 
     Args:
-        session_video_paths: Mapping of camera name → input path.
+        session_video_paths: Mapping of camera name â†’ input path.
                              Expected keys: "anterior", "sagittal", "posterior".
         output_dir:          Directory where blurred videos are written.
                              Each output is named ``<camera>_blurred.<ext>``.
@@ -165,3 +165,4 @@ def blur_all_session_videos(
         extra={"cameras": list(results.keys()), "any_blurred": any(results.values())},
     )
     return results
+

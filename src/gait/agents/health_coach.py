@@ -1,4 +1,4 @@
-"""GaitHealthCoach — Claude-powered personalized health assessment with deterministic fallback.
+﻿"""GaitHealthCoach â€” Claude-powered personalized health assessment with deterministic fallback.
 
 This agent uses Claude Opus 4.8 (with streaming + adaptive thinking) to generate
 personalized health assessments from biomechanical data. Strict validation ensures
@@ -20,9 +20,9 @@ from typing import Any, Dict, Optional
 import anthropic
 from pydantic import ValidationError
 
-from src.gait.agents.base import GaitAgent
-from src.gait.common.logging_utils import get_logger
-from src.gait.profile.schema import HealthAssessment, DefectDetail, ImprovementAction
+from gait.agents.base import GaitAgent
+from gait.common.logging_utils import get_logger
+from gait.profile.schema import HealthAssessment, DefectDetail, ImprovementAction
 
 logger = get_logger(__name__)
 
@@ -73,7 +73,7 @@ class GaitHealthCoach(GaitAgent):
             ) as stream:
                 response = stream.get_final_message()
 
-            # Extract text block (there may also be a thinking block — skip it)
+            # Extract text block (there may also be a thinking block â€” skip it)
             response_text = next(
                 (b.text for b in response.content if b.type == "text"), ""
             )
@@ -191,10 +191,10 @@ class GaitHealthCoach(GaitAgent):
             fpa_l = params.get("foot_progression_angle_left_deg", 0.0)
             fpa_r = params.get("foot_progression_angle_right_deg", 0.0)
             if "toe-in" in defect_lower or "toe in" in defect_lower:
-                # Toe-in is negative angle < -5°
+                # Toe-in is negative angle < -5Â°
                 return (fpa_l < -5 or fpa_r < -5) if defect.affected_side == "bilateral" else (fpa_l if defect.affected_side == "left" else fpa_r) < -5
             if "toe-out" in defect_lower or "toe out" in defect_lower:
-                # Toe-out is positive angle > 10°
+                # Toe-out is positive angle > 10Â°
                 return (fpa_l > 10 or fpa_r > 10) if defect.affected_side == "bilateral" else (fpa_l if defect.affected_side == "left" else fpa_r) > 10
             return True
 
@@ -202,7 +202,7 @@ class GaitHealthCoach(GaitAgent):
         if "frontal" in defect_lower or "excursion" in defect_lower:
             fpe_l = params.get("frontal_plane_excursion_deg_mean_L", 0.0)
             fpe_r = params.get("frontal_plane_excursion_deg_mean_R", 0.0)
-            # High excursion is > 8°
+            # High excursion is > 8Â°
             if "high" in defect_lower:
                 return (fpe_l > 8 or fpe_r > 8) if defect.affected_side == "bilateral" else (fpe_l if defect.affected_side == "left" else fpe_r) > 8
             return True
@@ -276,7 +276,7 @@ INSTRUCTIONS:
             "name": "Condition Name - Side",
             "severity": "mild|moderate|severe",
             "affected_side": "left|right|bilateral",
-            "biomechanical_cause": "Plain English explanation referencing the actual patient metrics (e.g., 'left rearfoot angle of {rearfoot_left:.1f}° exceeds normal')",
+            "biomechanical_cause": "Plain English explanation referencing the actual patient metrics (e.g., 'left rearfoot angle of {rearfoot_left:.1f}Â° exceeds normal')",
             "gait_cycle_phase": "Loading Response|Mid-Stance|Terminal Stance|etc."
         }}
     ],
@@ -303,8 +303,9 @@ Generate the assessment:"""
         This is used by validate() to check if defect claims are grounded.
         """
         return {
-            "rearfoot_angle_overpronation_threshold": 8.0,  # > 8° = overpronation
+            "rearfoot_angle_overpronation_threshold": 8.0,  # > 8Â° = overpronation
             "rearfoot_angle_neutral_min": 0.0,
             "rearfoot_angle_neutral_max": 4.0,
             "frontal_plane_excursion_normal_max": 10.0,
         }
+

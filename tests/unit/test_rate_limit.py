@@ -1,4 +1,4 @@
-"""Unit tests for rate limiting."""
+﻿"""Unit tests for rate limiting."""
 from __future__ import annotations
 
 import time
@@ -7,14 +7,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 import redis
 
-from src.gait.rate_limit.base import (
+from gait.rate_limit.base import (
     RateLimitConfig,
     RateLimitError,
     RateLimitStrategy,
-    RateLimiter,
 )
-from src.gait.rate_limit.token_bucket import TokenBucketLimiter
-from src.gait.rate_limit.dependencies import create_token_bucket_limiter
+from gait.rate_limit.dependencies import create_token_bucket_limiter
+from gait.rate_limit.token_bucket import TokenBucketLimiter
 
 
 class TestRateLimitConfig:
@@ -178,7 +177,7 @@ class TestRateLimitDependencies:
 
     def test_create_token_bucket_limiter_defaults(self):
         """Test creating token bucket limiter with defaults."""
-        with patch("src.gait.rate_limit.dependencies.redis.Redis") as mock_redis:
+        with patch("gait.rate_limit.dependencies.redis.Redis") as mock_redis:
             mock_instance = MagicMock()
             mock_redis.return_value = mock_instance
             mock_instance.ping.return_value = True
@@ -188,7 +187,7 @@ class TestRateLimitDependencies:
 
     def test_create_token_bucket_limiter_custom(self):
         """Test creating token bucket limiter with custom values."""
-        with patch("src.gait.rate_limit.dependencies.redis.Redis") as mock_redis:
+        with patch("gait.rate_limit.dependencies.redis.Redis") as mock_redis:
             mock_instance = MagicMock()
             mock_redis.return_value = mock_instance
             mock_instance.ping.return_value = True
@@ -204,7 +203,9 @@ class TestRateLimitDependencies:
 
     def test_create_token_bucket_limiter_connection_error(self):
         """Test handling Redis connection error."""
-        with patch("src.gait.rate_limit.dependencies.redis.Redis") as mock_redis:
+        with patch("gait.rate_limit.dependencies.redis.Redis") as mock_redis:
             mock_redis.side_effect = redis.ConnectionError("Cannot connect")
             with pytest.raises(redis.ConnectionError):
                 create_token_bucket_limiter()
+
+

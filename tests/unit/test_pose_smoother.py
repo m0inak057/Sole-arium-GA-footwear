@@ -1,4 +1,4 @@
-"""Unit tests for OneEuroSmoother (src.gait.pose.smoother)."""
+﻿"""Unit tests for OneEuroSmoother (src.gait.pose.smoother)."""
 from __future__ import annotations
 
 import math
@@ -7,10 +7,10 @@ from typing import Dict
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Keypoint, KeypointFrame
-from src.gait.pose.smoother import OneEuroSmoother, _OneEuroFilter
+from gait.common.interfaces import Keypoint, KeypointFrame
+from gait.pose.smoother import OneEuroSmoother, _OneEuroFilter
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 FPS = 120.0
 
@@ -40,7 +40,7 @@ def noisy_traj(base: float, amplitude: float = 10.0, n: int = 60) -> Dict[int, f
     return {i: base + noise[i] for i in range(n)}
 
 
-# ── _OneEuroFilter (private, tested for correctness) ─────────────────────────
+# â”€â”€ _OneEuroFilter (private, tested for correctness) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestOneEuroFilterInternal:
@@ -62,7 +62,7 @@ class TestOneEuroFilterInternal:
         assert all(0.0 <= o <= 50.0 for o in outputs)
 
     def test_high_cutoff_approximates_passthrough(self):
-        # min_cutoff=1000 Hz → alpha ≈ 0.98; after ~10 identical samples it converges.
+        # min_cutoff=1000 Hz â†’ alpha â‰ˆ 0.98; after ~10 identical samples it converges.
         f = _OneEuroFilter(FPS, min_cutoff=1000.0)
         x = 42.0
         for _ in range(10):
@@ -70,7 +70,7 @@ class TestOneEuroFilterInternal:
         assert abs(out - x) < 0.01
 
 
-# ── OneEuroSmoother.smooth ────────────────────────────────────────────────────
+# â”€â”€ OneEuroSmoother.smooth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSmoothMethod:
@@ -119,7 +119,7 @@ class TestSmoothMethod:
         assert var_smooth < var_tight
 
 
-# ── OneEuroSmoother.smooth_frame ──────────────────────────────────────────────
+# â”€â”€ OneEuroSmoother.smooth_frame â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSmoothFrameMethod:
@@ -212,3 +212,4 @@ class TestSmoothFrameMethod:
         out_x = [f.keypoints["left_ankle"].x for f in result]
         assert not np.allclose(in_x, out_x)  # smoothing changed the values
         assert np.var(out_x) < np.var(in_x)  # variance reduced
+

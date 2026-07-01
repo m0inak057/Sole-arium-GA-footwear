@@ -1,11 +1,11 @@
-"""Advanced gait metrics: symmetry, efficiency, stability."""
+﻿"""Advanced gait metrics: symmetry, efficiency, stability."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -178,3 +178,4 @@ class AdvancedMetricsAnalyzer:
             return 0.0
 
         return (numerator / denominator) * 100.0
+

@@ -1,4 +1,4 @@
-"""PrescriptionAgent — Claude-powered orthotist specification refinement.
+﻿"""PrescriptionAgent â€” Claude-powered orthotist specification refinement.
 
 Takes the rule-based PrescriptionSpec and asks Claude Opus 4.8 (streaming +
 adaptive thinking) to refine it given the full biomechanical picture.
@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 
 import anthropic
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -126,7 +126,7 @@ class PrescriptionAgent:
         Args:
             rule_based_spec:  model_dump() of a PrescriptionSpec (rule-based output).
             rule_params:      Flat condition dict used by the rules engine (pronation_type, etc.).
-            anthropometrics:  Patient measurements (height_cm, mass_kg, foot_length_mm, …).
+            anthropometrics:  Patient measurements (height_cm, mass_kg, foot_length_mm, â€¦).
 
         Returns:
             (refined_spec_dict, rationale_str)
@@ -208,7 +208,8 @@ CURRENT RULE-BASED PRESCRIPTION:
 
 Return a JSON object with the full refined prescription. Include every field shown above.
 Add a "rationale" field (string) explaining any changes made.
-Return ONLY valid JSON — no markdown fences, no other text.
+Return ONLY valid JSON â€” no markdown fences, no other text.
 
 Required JSON structure:
 {json.dumps(_PRESCRIPTION_JSON_SCHEMA, indent=2)}"""
+

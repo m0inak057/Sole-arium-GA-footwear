@@ -1,4 +1,4 @@
-"""Integration tests for the Gait Analysis FastAPI endpoints.
+﻿"""Integration tests for the Gait Analysis FastAPI endpoints.
 
 Uses FastAPI's synchronous TestClient (via httpx).  Celery is never actually
 invoked: we override `get_pipeline_task` with a fake task that stores a
@@ -15,11 +15,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.gait.api.main import app, get_pipeline_task, get_session_store
-from src.gait.api.models import SessionStatus
-from src.gait.api.session_store import SessionStore
+from gait.api.main import app, get_pipeline_task, get_session_store
+from gait.api.models import SessionStatus
+from gait.api.session_store import SessionStore
 
-# ── Sample data ────────────────────────────────────────────────────────────────
+# â”€â”€ Sample data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 ANTHRO = {
     "height_cm": 172.0,
@@ -72,7 +72,7 @@ SAMPLE_PROFILE = {
 }
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# â”€â”€ Fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.fixture()
@@ -108,7 +108,7 @@ def mock_async_result() -> MagicMock:
 def client(store: SessionStore, fake_task, mock_async_result) -> TestClient:
     app.dependency_overrides[get_session_store] = lambda: store
     app.dependency_overrides[get_pipeline_task] = lambda: fake_task
-    with patch("src.gait.api.tasks.celery_app") as mock_celery:
+    with patch("gait.api.tasks.celery_app") as mock_celery:
         mock_celery.AsyncResult.return_value = mock_async_result
         yield TestClient(app)
     app.dependency_overrides.clear()
@@ -129,7 +129,7 @@ def session_id(client: TestClient) -> str:
     return r.json()["session_id"]
 
 
-# ── Health endpoint ───────────────────────────────────────────────────────────
+# â”€â”€ Health endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHealth:
@@ -147,7 +147,7 @@ class TestHealth:
         assert "timestamp" in client.get("/health").json()
 
 
-# ── API root ──────────────────────────────────────────────────────────────────
+# â”€â”€ API root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestApiRoot:
@@ -162,7 +162,7 @@ class TestApiRoot:
         assert "version" in client.get("/api/v1/").json()
 
 
-# ── Create session ────────────────────────────────────────────────────────────
+# â”€â”€ Create session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreateSession:
@@ -253,7 +253,7 @@ class TestCreateSession:
         assert r1.json()["session_id"] != r2.json()["session_id"]
 
 
-# ── Upload video ──────────────────────────────────────────────────────────────
+# â”€â”€ Upload video â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUpload:
@@ -298,7 +298,7 @@ class TestUpload:
         assert r.status_code == 409
 
 
-# ── Process session ───────────────────────────────────────────────────────────
+# â”€â”€ Process session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProcess:
@@ -349,7 +349,7 @@ class TestProcess:
         assert r.status_code == 202
 
 
-# ── Status endpoint ───────────────────────────────────────────────────────────
+# â”€â”€ Status endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStatus:
@@ -401,7 +401,7 @@ class TestStatus:
         assert r.json()["error_message"] == "Pipeline exploded"
 
 
-# ── Profile endpoint ──────────────────────────────────────────────────────────
+# â”€â”€ Profile endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProfile:
@@ -459,7 +459,7 @@ class TestProfile:
         assert r.json()["profile"]["schema_version"] == "profile/v1"
 
 
-# ── Delete session ────────────────────────────────────────────────────────────
+# â”€â”€ Delete session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDeleteSession:
@@ -500,15 +500,15 @@ class TestDeleteSession:
         assert r.status_code == 204
 
 
-# ── Full session lifecycle ────────────────────────────────────────────────────
+# â”€â”€ Full session lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFullLifecycle:
     def test_create_upload_process_profile(
         self, client: TestClient, tmp_path, monkeypatch
     ):
-        """End-to-end lifecycle: create → upload → process → profile."""
-        from src.gait.api import main as api_main
+        """End-to-end lifecycle: create â†’ upload â†’ process â†’ profile."""
+        from gait.api import main as api_main
 
         monkeypatch.setattr(api_main, "UPLOAD_DIR", tmp_path)
 
@@ -532,7 +532,7 @@ class TestFullLifecycle:
         r = client.post(f"/api/v1/sessions/{sid}/process", json={})
         assert r.status_code == 202
 
-        # 4. Status → COMPLETED (fake task completes immediately)
+        # 4. Status â†’ COMPLETED (fake task completes immediately)
         r = client.get(f"/api/v1/sessions/{sid}/status")
         assert r.json()["status"] == "COMPLETED"
 
@@ -581,3 +581,5 @@ class TestFullLifecycle:
         s2 = client.get(f"/api/v1/sessions/{sid2}/status").json()["status"]
         assert s1 == "COMPLETED"
         assert s2 == "CREATED"
+
+

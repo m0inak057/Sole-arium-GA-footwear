@@ -1,11 +1,11 @@
-"""Authentication module (JWT, API keys, passwords)."""
-from src.gait.auth.api_key_manager import APIKeyValidator, generate_api_key, hash_api_key
-from src.gait.auth.dependencies import (
+﻿"""Authentication module (JWT, API keys, passwords)."""
+from gait.auth.api_key_manager import APIKeyValidator, generate_api_key, hash_api_key
+from gait.auth.dependencies import (
     create_jwt_handler,
     get_current_user,
     validate_api_key,
 )
-from src.gait.auth.exceptions import (
+from gait.auth.exceptions import (
     AuthenticationError,
     ExpiredTokenError,
     InsufficientPermissionsError,
@@ -14,8 +14,8 @@ from src.gait.auth.exceptions import (
     InvalidTokenError,
     MissingAuthenticationError,
 )
-from src.gait.auth.jwt_handler import JWTHandler, TokenPayload
-from src.gait.auth.password_utils import hash_password, verify_password
+from gait.auth.jwt_handler import JWTHandler, TokenPayload
+from gait.auth.password_utils import hash_password, verify_password
 
 __all__ = [
     "JWTHandler",
@@ -36,3 +36,4 @@ __all__ = [
     "MissingAuthenticationError",
     "InsufficientPermissionsError",
 ]
+

@@ -1,4 +1,4 @@
-"""MediaPipe Pose detector — wraps mp.solutions.pose for the pipeline."""
+﻿"""MediaPipe Pose detector â€” wraps mp.solutions.pose for the pipeline."""
 from __future__ import annotations
 
 import contextlib
@@ -7,13 +7,13 @@ from typing import Dict, List
 import cv2
 import mediapipe as mp
 
-from src.gait.common.interfaces import Frame, Keypoint, KeypointFrame, PoseDetector
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import PoseConfig
+from gait.common.interfaces import Frame, Keypoint, KeypointFrame, PoseDetector
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import PoseConfig
 
 logger = get_logger(__name__)
 
-# MediaPipe BlazePose: 33 landmarks, index → name
+# MediaPipe BlazePose: 33 landmarks, index â†’ name
 _LANDMARK_NAMES: Dict[int, str] = {
     0: "nose",
     1: "left_eye_inner",
@@ -69,7 +69,7 @@ class MediaPipePoseDetector(PoseDetector):
             min_tracking_confidence=config.confidence_threshold,
         )
 
-    # ── context manager ───────────────────────────────────────────────────
+    # â”€â”€ context manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def __enter__(self) -> "MediaPipePoseDetector":
         return self
@@ -81,7 +81,7 @@ class MediaPipePoseDetector(PoseDetector):
         with contextlib.suppress(Exception):
             self._pose.close()
 
-    # ── PoseDetector ABC ──────────────────────────────────────────────────
+    # â”€â”€ PoseDetector ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def detect(self, frame: Frame) -> KeypointFrame:
         """Detect pose keypoints in one frame.
@@ -124,5 +124,6 @@ class MediaPipePoseDetector(PoseDetector):
         )
 
     def batch_detect(self, frames: List[Frame]) -> List[KeypointFrame]:
-        """Run detect sequentially — preserves MediaPipe inter-frame tracking."""
+        """Run detect sequentially â€” preserves MediaPipe inter-frame tracking."""
         return [self.detect(f) for f in frames]
+

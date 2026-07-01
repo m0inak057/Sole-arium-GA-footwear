@@ -1,20 +1,20 @@
-"""Performance optimization modules."""
-from src.gait.optimization.cache_manager import (
+﻿"""Performance optimization modules."""
+from gait.optimization.cache_manager import (
     ComputationCache,
     CacheEntry,
     CacheStats,
     hash_input,
 )
-from src.gait.optimization.vectorization import (
+from gait.optimization.vectorization import (
     VectorizedAnalyzer,
     BatchMetrics,
 )
-from src.gait.optimization.profiler import (
+from gait.optimization.profiler import (
     PerformanceProfiler,
     TimingStats,
     ProfilingReport,
 )
-from src.gait.optimization.fast_path import (
+from gait.optimization.fast_path import (
     FastPathOptimizer,
     FastPathConfig,
 )
@@ -32,3 +32,4 @@ __all__ = [
     "FastPathOptimizer",
     "FastPathConfig",
 ]
+

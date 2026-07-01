@@ -1,4 +1,4 @@
-"""Intelligent caching for gait analysis computations."""
+﻿"""Intelligent caching for gait analysis computations."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -7,7 +7,7 @@ import hashlib
 import pickle
 import time
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -223,3 +223,4 @@ def hash_input(input_data: Any) -> str:
     except Exception:
         # Fallback for unhashable types
         return hashlib.sha256(str(input_data).encode()).hexdigest()
+

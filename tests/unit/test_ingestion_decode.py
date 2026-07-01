@@ -1,4 +1,4 @@
-"""Unit tests for VideoFileSource (src.gait.ingestion.decode)."""
+﻿"""Unit tests for VideoFileSource (src.gait.ingestion.decode)."""
 
 import logging
 
@@ -6,10 +6,10 @@ import cv2
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.types import VideoDecodeError
-from src.gait.ingestion.decode import VideoFileSource
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.types import VideoDecodeError
+from gait.ingestion.decode import VideoFileSource
+from gait.pipeline.config import IngestionConfig
 
 FPS = 30
 W, H = 320, 240
@@ -23,7 +23,7 @@ def cfg():
 
 @pytest.fixture
 def tiny_video(tmp_path):
-    """10-frame 320×240 video at 30 fps with per-frame colour variation."""
+    """10-frame 320Ã—240 video at 30 fps with per-frame colour variation."""
     path = tmp_path / "test.avi"
     writer = cv2.VideoWriter(
         str(path), cv2.VideoWriter_fourcc(*"XVID"), float(FPS), (W, H)
@@ -36,7 +36,7 @@ def tiny_video(tmp_path):
     return path
 
 
-# ── open / close / context manager ────────────────────────────────────────────
+# â”€â”€ open / close / context manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestOpenClose:
@@ -76,7 +76,7 @@ class TestOpenClose:
             list(src.get_frames())
 
 
-# ── frame content ─────────────────────────────────────────────────────────────
+# â”€â”€ frame content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFrameContent:
@@ -124,7 +124,7 @@ class TestFrameContent:
         assert timestamps == sorted(timestamps)
 
 
-# ── mismatch warnings ─────────────────────────────────────────────────────────
+# â”€â”€ mismatch warnings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMismatchWarnings:
@@ -159,3 +159,4 @@ class TestMismatchWarnings:
             with VideoFileSource(tiny_video, "sagittal", cfg_hd):
                 pass
         assert any("resolution_mismatch" in r.getMessage() for r in caplog.records)
+

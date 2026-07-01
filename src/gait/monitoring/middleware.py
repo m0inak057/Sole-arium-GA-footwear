@@ -1,4 +1,4 @@
-"""Middleware for instrumenting HTTP requests with metrics."""
+﻿"""Middleware for instrumenting HTTP requests with metrics."""
 from __future__ import annotations
 
 import time
@@ -7,8 +7,8 @@ from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.monitoring.metrics import (
+from gait.common.logging_utils import get_logger
+from gait.monitoring.metrics import (
     http_errors_total,
     http_request_duration_seconds,
     http_request_size_bytes,
@@ -125,3 +125,4 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             )
             http_errors_total.labels(status_code=500).inc()
             raise
+

@@ -1,4 +1,4 @@
-"""Gold standard comparison and validation against reference measurements."""
+﻿"""Gold standard comparison and validation against reference measurements."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,8 +6,8 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.validation.metrics import ICC_THRESHOLD, PerformanceValidator, ErrorMetrics, intraclass_correlation
+from gait.common.logging_utils import get_logger
+from gait.validation.metrics import ICC_THRESHOLD, PerformanceValidator, ErrorMetrics, intraclass_correlation
 
 logger = get_logger(__name__)
 
@@ -46,11 +46,11 @@ class GoldStandardComparator:
         """Initialize comparator."""
         # Acceptable error tolerances for each parameter
         self.tolerances = {
-            "cadence_spm": 5.0,  # ±5 SPM
-            "speed_ms": 0.1,  # ±0.1 m/s
-            "stride_length_m": 0.05,  # ±5 cm
-            "pronation_angle_deg": 3.0,  # ±3 degrees
-            "stance_time_pct": 5.0,  # ±5 percentage points
+            "cadence_spm": 5.0,  # Â±5 SPM
+            "speed_ms": 0.1,  # Â±0.1 m/s
+            "stride_length_m": 0.05,  # Â±5 cm
+            "pronation_angle_deg": 3.0,  # Â±3 degrees
+            "stance_time_pct": 5.0,  # Â±5 percentage points
         }
         self.validator = PerformanceValidator()
 
@@ -194,7 +194,7 @@ class GoldStandardComparator:
             # Compute error metrics
             error_metrics = self.validator.compute_error_metrics(predicted, reference)
 
-            # Compute ICC(2,1) — requires at least 2 subjects
+            # Compute ICC(2,1) â€” requires at least 2 subjects
             icc_val = intraclass_correlation(predicted, reference) if len(predicted) >= 2 else 0.0
             passes_icc = icc_val > ICC_THRESHOLD
 
@@ -246,3 +246,4 @@ class GoldStandardComparator:
                 passes_validation=False,
                 confidence_level=0.0,
             )
+

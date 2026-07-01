@@ -1,14 +1,14 @@
-"""Clinical validation report generation."""
+﻿"""Clinical validation report generation."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.validation.metrics import ValidationMetrics, ErrorMetrics
-from src.gait.validation.anomaly_detector import AnomalyReport
-from src.gait.validation.gold_standard import GoldStandardReport
+from gait.common.logging_utils import get_logger
+from gait.validation.metrics import ValidationMetrics, ErrorMetrics
+from gait.validation.anomaly_detector import AnomalyReport
+from gait.validation.gold_standard import GoldStandardReport
 
 logger = get_logger(__name__)
 
@@ -203,3 +203,4 @@ class ClinicalValidator:
         except Exception as e:
             logger.error("validation.report_printing_failed", extra={"error": str(e)})
             return f"Error formatting report: {str(e)}"
+

@@ -1,10 +1,10 @@
-"""Test GaitHealthCoach with comprehensive fallback validation.
+﻿"""Test GaitHealthCoach with comprehensive fallback validation.
 
 These tests verify:
 1. Agent success path (happy path)
-2. Malformed JSON rejection → static rules fallback
-3. Hallucinated defect rejection → static rules fallback
-4. LLM timeout/exception → static rules fallback
+2. Malformed JSON rejection â†’ static rules fallback
+3. Hallucinated defect rejection â†’ static rules fallback
+4. LLM timeout/exception â†’ static rules fallback
 5. agent_decisions log entries are written correctly
 """
 from __future__ import annotations
@@ -13,10 +13,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.gait.agents.health_coach import GaitHealthCoach
-from src.gait.profile.builder import create_profile_builder
-from src.gait.profile.schema import HealthAssessment
-from src.gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+from gait.agents.health_coach import GaitHealthCoach
+from gait.profile.builder import create_profile_builder
+from gait.profile.schema import HealthAssessment
+from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
 
 
 @pytest.mark.unit
@@ -212,7 +212,7 @@ class TestHealthCoachFallback:
             "step_length_right_m": 0.68,
             "foot_progression_angle_left_deg": 5.0,
             "foot_progression_angle_right_deg": 5.0,
-            "rearfoot_angle_deg_mean_L": 2.0,  # NEUTRAL (0-4°)
+            "rearfoot_angle_deg_mean_L": 2.0,  # NEUTRAL (0-4Â°)
             "rearfoot_angle_deg_mean_R": 2.5,
             "frontal_plane_excursion_deg_mean_L": 5.0,
             "frontal_plane_excursion_deg_mean_R": 5.5,
@@ -678,7 +678,7 @@ class TestHealthCoachFallback:
             "rearfoot_angle_deg_mean_L": 2.0,
             "rearfoot_angle_deg_mean_R": 2.5,
             "frontal_plane_excursion_deg_mean_L": 4.0,  # LOW excursion, NOT high!
-            "frontal_plane_excursion_deg_mean_R": 4.5,  # Below 8° threshold
+            "frontal_plane_excursion_deg_mean_R": 4.5,  # Below 8Â° threshold
             "pronation_type_L": "neutral",
             "pronation_type_R": "neutral",
             "arch_type_L": "normal",
@@ -808,3 +808,4 @@ class TestHealthCoachFallback:
         assert "confidence_score" in profile["agent_decisions"]
         assert profile["agent_decisions"]["confidence_score"] > 0.9
         assert "reasoning" in profile["agent_decisions"]
+

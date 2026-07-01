@@ -1,9 +1,9 @@
-"""Password hashing and verification utilities."""
+﻿"""Password hashing and verification utilities."""
 from __future__ import annotations
 
 import bcrypt
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -53,3 +53,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception as e:
         logger.error("password.verify_failed", extra={"error": str(e)})
         return False
+

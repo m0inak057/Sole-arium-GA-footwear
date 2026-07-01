@@ -1,12 +1,12 @@
-"""Unit tests for VelocityBasedEventDetector and its helpers.
+﻿"""Unit tests for VelocityBasedEventDetector and its helpers.
 
 Synthetic keypoint trajectories are generated mathematically so tests require
 no video files and no external models.
 
 Gait simulation:
-  - cycle_len=60 frames at FPS=30 → 2 Hz step rate
-  - heel.y   = 150 + 80*sin(2π*i/cycle_len)  → peaks at i≈15, 75, 135 ...
-  - toe.y    = 150 + 80*sin(2π*(i-20)/cycle_len) → peaks 20 frames after each heel peak
+  - cycle_len=60 frames at FPS=30 â†’ 2 Hz step rate
+  - heel.y   = 150 + 80*sin(2Ï€*i/cycle_len)  â†’ peaks at iâ‰ˆ15, 75, 135 ...
+  - toe.y    = 150 + 80*sin(2Ï€*(i-20)/cycle_len) â†’ peaks 20 frames after each heel peak
 """
 from __future__ import annotations
 
@@ -15,16 +15,16 @@ from typing import Dict, List
 
 import pytest
 
-from src.gait.common.interfaces import GaitEvent, Keypoint, KeypointFrame
-from src.gait.events.velocity_detector import (
+from gait.common.interfaces import GaitEvent, Keypoint, KeypointFrame
+from gait.events.velocity_detector import (
     VelocityBasedEventDetector,
     _find_peaks,
     _smooth,
     create_event_detector,
 )
-from src.gait.pipeline.config import EventDetectionConfig
+from gait.pipeline.config import EventDetectionConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 FPS = 30
 CYCLE_LEN = 60   # frames per step (2 Hz at 30fps)
@@ -33,7 +33,7 @@ N_CYCLES = 4     # full cycles in synthetic data
 
 def make_cfg(**overrides) -> EventDetectionConfig:
     params = dict(
-        heel_strike_threshold=0.15,   # low prominence threshold → easy to detect
+        heel_strike_threshold=0.15,   # low prominence threshold â†’ easy to detect
         toe_off_threshold=0.15,
         event_confidence_min=0.5,
         min_frames_between_events=10,
@@ -92,7 +92,7 @@ def make_event(
     )
 
 
-# ── _smooth helper ────────────────────────────────────────────────────────────
+# â”€â”€ _smooth helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSmooth:
@@ -116,7 +116,7 @@ class TestSmooth:
         assert max(smoothed) < max(values)
 
 
-# ── _find_peaks helper ────────────────────────────────────────────────────────
+# â”€â”€ _find_peaks helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFindPeaks:
@@ -147,7 +147,7 @@ class TestFindPeaks:
 
     def test_low_prominence_filtered_out(self):
         # Large peak at idx=3, tiny secondary bump at idx=10 (separation > min_distance=3).
-        # y_range=10; min_prominence=0.1*10=1.0; tiny bump prominence=0.3 < 1.0 → filtered.
+        # y_range=10; min_prominence=0.1*10=1.0; tiny bump prominence=0.3 < 1.0 â†’ filtered.
         values = [float(v) for v in [0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0.3, 0, 0, 0]]
         peaks = _find_peaks(values, min_distance=3, prominence_fraction=0.1)
         assert peaks == [3]  # only the prominent peak survives
@@ -164,7 +164,7 @@ class TestFindPeaks:
         assert peaks == []
 
 
-# ── detect_heel_strikes ───────────────────────────────────────────────────────
+# â”€â”€ detect_heel_strikes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectHeelStrikes:
@@ -226,7 +226,7 @@ class TestDetectHeelStrikes:
         assert indices == sorted(indices)
 
     def test_confidence_below_threshold_skips_frame(self):
-        # All keypoints have confidence=0.1 → below event_confidence_min=0.5
+        # All keypoints have confidence=0.1 â†’ below event_confidence_min=0.5
         total = N_CYCLES * CYCLE_LEN
         frames = [
             make_kf(
@@ -257,7 +257,7 @@ class TestDetectHeelStrikes:
             assert e.timestamp_ms == ts_map[e.frame_index]
 
 
-# ── detect_toe_offs ───────────────────────────────────────────────────────────
+# â”€â”€ detect_toe_offs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectToeOffs:
@@ -300,7 +300,7 @@ class TestDetectToeOffs:
             assert to[0].frame_index > hs[0].frame_index
 
 
-# ── segment_gait_cycles ───────────────────────────────────────────────────────
+# â”€â”€ segment_gait_cycles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSegmentGaitCycles:
@@ -409,7 +409,7 @@ class TestSegmentGaitCycles:
         assert cycles[0].foot == "R"
 
     def test_full_pipeline_from_cyclic_frames(self):
-        """Integration: detect events then segment — end-to-end smoke test."""
+        """Integration: detect events then segment â€” end-to-end smoke test."""
         frames = make_cyclic_frames(n_cycles=4)
         det = VelocityBasedEventDetector(make_cfg())
         hs = det.detect_heel_strikes(frames, "L")
@@ -423,7 +423,7 @@ class TestSegmentGaitCycles:
             assert len(cycle.swing_frames) > 0
 
 
-# ── create_event_detector factory ────────────────────────────────────────────
+# â”€â”€ create_event_detector factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFactory:
@@ -442,3 +442,4 @@ class TestFactory:
     def test_error_includes_model_name(self):
         with pytest.raises(ValueError, match="openpose_gait"):
             create_event_detector("openpose_gait", make_cfg())
+

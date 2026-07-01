@@ -1,25 +1,25 @@
-"""Tests for the prescription_spec feature.
+﻿"""Tests for the prescription_spec feature.
 
 Covers:
 1. Correct last_shape for overpronation (straight), oversupination (curved), neutral (semi_curved)
 2. Shore-C modifier for 80 kg patient (+10 vs baseline 70 kg patient)
 3. Heel lift: 3 mm for >10% step asymmetry on the shorter side, 0 mm when symmetric
 4. builder.build() produces both health_assessment AND prescription_spec non-null
-5. Rigid flat foot → "Refer to podiatrist" note and medial_post=False
+5. Rigid flat foot â†’ "Refer to podiatrist" note and medial_post=False
 """
 from __future__ import annotations
 
 import pytest
 
-from src.gait.pipeline.config import load_recommendation_rules
-from src.gait.profile.prescription_engine import (
+from gait.pipeline.config import load_recommendation_rules
+from gait.profile.prescription_engine import (
     PrescriptionEngine,
     _compute_heel_lift,
     _shore_c_modifier,
 )
 
 
-# ── helpers ────────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _make_engine() -> PrescriptionEngine:
@@ -43,7 +43,7 @@ def _params(
     }
 
 
-# ── 1. last_shape per pronation type ──────────────────────────────────────────
+# â”€â”€ 1. last_shape per pronation type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLastShape:
@@ -72,7 +72,7 @@ class TestLastShape:
         assert spec.last_spec.shape == "semi_curved"
 
 
-# ── 2. Shore-C body-mass modifier ─────────────────────────────────────────────
+# â”€â”€ 2. Shore-C body-mass modifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestShoreCModifier:
@@ -117,7 +117,7 @@ class TestShoreCModifier:
         assert "PU midsole" in notes_text
 
 
-# ── 3. Heel lift from step asymmetry ──────────────────────────────────────────
+# â”€â”€ 3. Heel lift from step asymmetry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHeelLift:
@@ -127,19 +127,19 @@ class TestHeelLift:
         assert right_mm == 0.0
 
     def test_less_than_10pct_asymmetry_no_lift(self) -> None:
-        # 0.68 vs 0.65 → ~4.5% asymmetry
+        # 0.68 vs 0.65 â†’ ~4.5% asymmetry
         left_mm, right_mm = _compute_heel_lift({}, 0.68, 0.65)
         assert left_mm == 0.0
         assert right_mm == 0.0
 
     def test_left_shorter_gets_3mm_lift(self) -> None:
-        # 0.55 vs 0.70 → ~24% asymmetry; left is shorter
+        # 0.55 vs 0.70 â†’ ~24% asymmetry; left is shorter
         left_mm, right_mm = _compute_heel_lift({}, 0.55, 0.70)
         assert left_mm == pytest.approx(3.0)
         assert right_mm == pytest.approx(0.0)
 
     def test_right_shorter_gets_3mm_lift(self) -> None:
-        # 0.70 vs 0.55 → ~24% asymmetry; right is shorter
+        # 0.70 vs 0.55 â†’ ~24% asymmetry; right is shorter
         left_mm, right_mm = _compute_heel_lift({}, 0.70, 0.55)
         assert left_mm == pytest.approx(0.0)
         assert right_mm == pytest.approx(3.0)
@@ -160,12 +160,12 @@ class TestHeelLift:
             step_length_left_m=0.55,
             step_length_right_m=0.70,
         )
-        # right is longer → left is shorter → left gets lift
+        # right is longer â†’ left is shorter â†’ left gets lift
         assert spec.foot_lift.heel_lift_left_mm == pytest.approx(3.0)
         assert spec.foot_lift.heel_lift_right_mm == pytest.approx(0.0)
 
 
-# ── 4. builder.build() produces both health_assessment and prescription_spec ──
+# â”€â”€ 4. builder.build() produces both health_assessment and prescription_spec â”€â”€
 
 
 class TestBuilderIntegration:
@@ -188,8 +188,8 @@ class TestBuilderIntegration:
         return {"L": per_foot.copy(), "R": per_foot.copy()}
 
     def test_both_blocks_present_and_non_null(self) -> None:
-        from src.gait.profile.builder import create_profile_builder
-        from src.gait.pipeline.config import AnalysisConfig, load_recommendation_rules
+        from gait.profile.builder import create_profile_builder
+        from gait.pipeline.config import AnalysisConfig, load_recommendation_rules
 
         rules_config = load_recommendation_rules()
         builder = create_profile_builder(rules_config, AnalysisConfig())
@@ -205,8 +205,8 @@ class TestBuilderIntegration:
         assert profile["prescription_spec"] is not None
 
     def test_prescription_spec_shape_matches_pronation(self) -> None:
-        from src.gait.profile.builder import create_profile_builder
-        from src.gait.pipeline.config import AnalysisConfig, load_recommendation_rules
+        from gait.profile.builder import create_profile_builder
+        from gait.pipeline.config import AnalysisConfig, load_recommendation_rules
 
         rules_config = load_recommendation_rules()
         builder = create_profile_builder(rules_config, AnalysisConfig())
@@ -242,12 +242,12 @@ class TestBuilderIntegration:
             )
 
 
-# ── 5. Rigid flat foot ─────────────────────────────────────────────────────────
+# â”€â”€ 5. Rigid flat foot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestRigidFlatFoot:
     def test_refer_to_podiatrist_note_present(self) -> None:
-        """Low arch without overpronation → rigid flat foot → podiatrist referral note."""
+        """Low arch without overpronation â†’ rigid flat foot â†’ podiatrist referral note."""
         engine = _make_engine()
         spec = engine.generate_prescription(
             rule_params=_params(pronation="neutral", arch="low"),
@@ -257,7 +257,7 @@ class TestRigidFlatFoot:
         assert "podiatrist" in notes_text.lower()
 
     def test_rigid_flat_foot_no_medial_post(self) -> None:
-        """Rigid flat foot must NOT have a medial post (no control post — accommodative only)."""
+        """Rigid flat foot must NOT have a medial post (no control post â€” accommodative only)."""
         engine = _make_engine()
         spec = engine.generate_prescription(
             rule_params=_params(pronation="neutral", arch="low"),
@@ -285,13 +285,13 @@ class TestRigidFlatFoot:
         assert "shank" in notes_text.lower()
 
 
-# ── 6. Schema validation ───────────────────────────────────────────────────────
+# â”€â”€ 6. Schema validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestPrescriptionSpecSchema:
     def test_prescription_spec_validates_against_pydantic_schema(self) -> None:
         """PrescriptionSpec returned by the engine must pass GaitPatientProfile validation."""
-        from src.gait.profile.schema import PrescriptionSpec
+        from gait.profile.schema import PrescriptionSpec
 
         engine = _make_engine()
         spec = engine.generate_prescription(
@@ -320,3 +320,4 @@ class TestPrescriptionSpecSchema:
         )
         assert spec.arch_support.medial_post is False
         assert spec.arch_support.medial_post_shore_c is None
+

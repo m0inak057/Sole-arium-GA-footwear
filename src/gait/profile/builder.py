@@ -1,4 +1,4 @@
-"""StandardProfileBuilder — assembles GaitPatientProfile from aggregated parameters.
+﻿"""StandardProfileBuilder â€” assembles GaitPatientProfile from aggregated parameters.
 
 The builder:
   1. Extracts L/R aggregated parameters from the parameters dict.
@@ -30,14 +30,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import ValidationError
 
-from src.gait.common.interfaces import ProfileBuilder, RecommendationEngine
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import AnalysisConfig, RecommendationRulesConfig
-from src.gait.profile.rules_engine import RuleBasedRecommendationEngine, create_recommendation_engine
+from gait.common.interfaces import ProfileBuilder, RecommendationEngine
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import AnalysisConfig, RecommendationRulesConfig
+from gait.profile.rules_engine import RuleBasedRecommendationEngine, create_recommendation_engine
 
 logger = get_logger(__name__)
 
-# ── pronation severity (higher = more pronated; used to pick dominant foot) ───
+# â”€â”€ pronation severity (higher = more pronated; used to pick dominant foot) â”€â”€â”€
 
 _PRONATION_RANK: Dict[str, int] = {
     "overpronation": 5,
@@ -48,7 +48,7 @@ _PRONATION_RANK: Dict[str, int] = {
 }
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _mean_of(a: Optional[float], b: Optional[float]) -> float:
@@ -127,7 +127,7 @@ def _derive_rule_parameters(
     return combined
 
 
-# ── builder ───────────────────────────────────────────────────────────────────
+# â”€â”€ builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class StandardProfileBuilder(ProfileBuilder):
@@ -145,7 +145,7 @@ class StandardProfileBuilder(ProfileBuilder):
         self._health_coach = health_coach
         self._rules_config = rules_config
 
-    # ── agent integration ──────────────────────────────────────────────────
+    # â”€â”€ agent integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _generate_health_assessment(
         self,
@@ -260,7 +260,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-    # ── ProfileBuilder ABC ─────────────────────────────────────────────────
+    # â”€â”€ ProfileBuilder ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def build(
         self,
@@ -280,12 +280,12 @@ class StandardProfileBuilder(ProfileBuilder):
         params_l: Dict[str, Any] = parameters.get("L", {})
         params_r: Dict[str, Any] = parameters.get("R", {})
 
-        # ── symmetry flags ─────────────────────────────────────────────────
+        # â”€â”€ symmetry flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         symmetry_flags = _compute_symmetry_flags(
             params_l, params_r, self._cfg.symmetry_flag_threshold_pct
         )
 
-        # ── combined parameters for rule-condition matching ────────────────
+        # â”€â”€ combined parameters for rule-condition matching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         extra_flags = list(symmetry_flags) + list(parameters.get("flags", []))
         rule_params = _derive_rule_parameters(
             params_l,
@@ -297,13 +297,13 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         )
 
-        # ── health assessment (agent → fallback to rules) ─────────────────────
+        # â”€â”€ health assessment (agent â†’ fallback to rules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         health_data, agent_decisions = self._generate_health_assessment(
             rule_params, patient_id, params_l, params_r, parameters
         )
         needs_human_review = bool(health_data.pop("needs_human_review", False))
 
-        # ── spatiotemporal ─────────────────────────────────────────────────
+        # â”€â”€ spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         cadence = _mean_of(
             params_l.get("cadence_steps_per_min_mean"),
             params_r.get("cadence_steps_per_min_mean"),
@@ -330,7 +330,7 @@ class StandardProfileBuilder(ProfileBuilder):
             "foot_progression_classification_right": parameters.get("foot_progression_classification_right", "neutral"),
         }
 
-        # ── foot strike ────────────────────────────────────────────────────
+        # â”€â”€ foot strike â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         foot_strike = {
             "pattern": {
                 "L": params_l.get("foot_strike_type", "rearfoot"),
@@ -342,7 +342,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-        # ── pronation ──────────────────────────────────────────────────────
+        # â”€â”€ pronation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         fpe_l = params_l.get("frontal_plane_excursion_deg_mean", 0.0)
         fpe_r = params_r.get("frontal_plane_excursion_deg_mean", 0.0)
         pronation = {
@@ -363,7 +363,7 @@ class StandardProfileBuilder(ProfileBuilder):
             "frontal_plane_excursion_right_deg": fpe_r,
         }
 
-        # ── arch ───────────────────────────────────────────────────────────
+        # â”€â”€ arch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         arch = {
             "type": {
                 "L": params_l.get("arch_type", "normal"),
@@ -375,7 +375,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-        # ── quality metrics (internal; not for shoe-design) ────────────────
+        # â”€â”€ quality metrics (internal; not for shoe-design) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         qf_l = params_l.get("quality_flag", "RERECORD")
         qf_r = params_r.get("quality_flag", "RERECORD")
         if qf_l == "RERECORD" or qf_r == "RERECORD":
@@ -395,16 +395,16 @@ class StandardProfileBuilder(ProfileBuilder):
             ],
         }
 
-        # ── health assessment ─────────────────────────────────────────────────
+        # â”€â”€ health assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         health_assessment = {
             "what_went_right": health_data.get("what_went_right", []),
             "defects_found": health_data.get("defects_found", []),
             "improvement_plan": health_data.get("improvements", []),
         }
 
-        # ── prescription spec ─────────────────────────────────────────────────
-        from src.gait.profile.prescription_engine import PrescriptionEngine
-        from src.gait.pipeline.config import load_recommendation_rules
+        # â”€â”€ prescription spec â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        from gait.profile.prescription_engine import PrescriptionEngine
+        from gait.pipeline.config import load_recommendation_rules
 
         prx_rules_config = (
             self._rules_config
@@ -463,7 +463,7 @@ class StandardProfileBuilder(ProfileBuilder):
 
         Returns (True, []) on success; (False, [error_str, ...]) on failure.
         """
-        from src.gait.profile.schema import GaitPatientProfile
+        from gait.profile.schema import GaitPatientProfile
 
         try:
             GaitPatientProfile(**profile)
@@ -475,7 +475,7 @@ class StandardProfileBuilder(ProfileBuilder):
             return False, [str(exc)]
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def create_profile_builder(
@@ -485,3 +485,4 @@ def create_profile_builder(
     """Factory: create a StandardProfileBuilder wired with a RuleBasedRecommendationEngine."""
     engine = create_recommendation_engine(rules_config)
     return StandardProfileBuilder(engine, analysis_config, rules_config=rules_config)
+

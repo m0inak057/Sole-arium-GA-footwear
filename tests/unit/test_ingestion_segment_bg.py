@@ -1,16 +1,16 @@
-"""Unit tests for background subtraction (src.gait.ingestion.segment_bg)."""
+﻿"""Unit tests for background subtraction (src.gait.ingestion.segment_bg)."""
 
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame
-from src.gait.ingestion.segment_bg import (
+from gait.common.interfaces import Frame
+from gait.ingestion.segment_bg import (
     MOG2BackgroundSubtractor,
     create_background_subtractor,
 )
-from src.gait.pipeline.config import IngestionConfig
+from gait.pipeline.config import IngestionConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 IMG_H, IMG_W = 240, 320
 
@@ -52,7 +52,7 @@ def warmup(sub: MOG2BackgroundSubtractor, n: int | None = None) -> None:
         sub.apply(bg_frame(i))
 
 
-# ── mask dtype and values ─────────────────────────────────────────────────────
+# â”€â”€ mask dtype and values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMaskProperties:
@@ -74,7 +74,7 @@ class TestMaskProperties:
         assert mask.shape == (IMG_H, IMG_W)
 
 
-# ── output frame properties ───────────────────────────────────────────────────
+# â”€â”€ output frame properties â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestOutputFrame:
@@ -103,7 +103,7 @@ class TestOutputFrame:
         assert out_frame.frame_index == frame.frame_index
 
 
-# ── warmup tracking ───────────────────────────────────────────────────────────
+# â”€â”€ warmup tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestWarmup:
@@ -118,12 +118,12 @@ class TestWarmup:
 
     def test_first_frame_returns_full_foreground(self):
         sub = MOG2BackgroundSubtractor(make_cfg())
-        # On the very first call, MOG2 has no model → all pixels are "new" → all 255
+        # On the very first call, MOG2 has no model â†’ all pixels are "new" â†’ all 255
         _, mask = sub.apply(bg_frame(0))
         assert mask.max() == 255
 
 
-# ── reset ─────────────────────────────────────────────────────────────────────
+# â”€â”€ reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestReset:
@@ -148,7 +148,7 @@ class TestReset:
         assert not sub.is_warmed_up
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreateBackgroundSubtractor:
@@ -163,3 +163,4 @@ class TestCreateBackgroundSubtractor:
     def test_unknown_model_raises_value_error(self):
         with pytest.raises(ValueError, match="Unknown background_subtraction_model"):
             create_background_subtractor("learned", make_cfg())
+

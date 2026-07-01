@@ -1,12 +1,12 @@
-"""Pure biomechanical parameter functions — no I/O, no state.
+﻿"""Pure biomechanical parameter functions â€” no I/O, no state.
 
 All functions take keypoints / cycle data in and return numbers or strings out.
 Classifiers rely exclusively on thresholds from AnalysisConfig; nothing is
 hardcoded here.
 
 Coordinate conventions (image space):
-  x  increases left → right
-  y  increases top  → bottom (so higher y = lower physical position)
+  x  increases left â†’ right
+  y  increases top  â†’ bottom (so higher y = lower physical position)
 
 Gait sign conventions:
   Foot-strike angle (FSA): positive = rearfoot (heel lower than toe in image)
@@ -17,12 +17,12 @@ from __future__ import annotations
 import math
 from typing import Dict, List, Optional
 
-from src.gait.common.geometry import signed_angle_deg
-from src.gait.common.interfaces import GaitCycle, Keypoint
-from src.gait.pipeline.config import AnalysisConfig
+from gait.common.geometry import signed_angle_deg
+from gait.common.interfaces import GaitCycle, Keypoint
+from gait.pipeline.config import AnalysisConfig
 
 
-# ── Spatiotemporal ─────────────────────────────────────────────────────────────
+# â”€â”€ Spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_spatiotemporal(cycle: GaitCycle, fps: float) -> Dict[str, float]:
@@ -48,7 +48,7 @@ def compute_spatiotemporal(cycle: GaitCycle, fps: float) -> Dict[str, float]:
     if total_ms > 0:
         result["stance_pct"] = stance_ms / total_ms * 100.0
         result["swing_pct"] = swing_ms / total_ms * 100.0
-        # One HS→HS on same foot = 1 stride = 2 steps
+        # One HSâ†’HS on same foot = 1 stride = 2 steps
         result["cadence_steps_per_min"] = 120_000.0 / total_ms
     else:
         result["stance_pct"] = 0.0
@@ -127,13 +127,13 @@ def compute_step_lengths_lr(
     return step_length_left_m, step_length_right_m
 
 
-# ── Foot-strike classification ─────────────────────────────────────────────────
+# â”€â”€ Foot-strike classification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_foot_progression_angle(heel: Keypoint, foot_index: Keypoint) -> float:
     """Foot progression angle (FPA) at heel-strike.
 
-    FPA = angle between the foot's long axis (heel→toe) and the direction of
+    FPA = angle between the foot's long axis (heelâ†’toe) and the direction of
     travel, assumed to be the image +x axis.  Image y is inverted relative to
     world y, so the world-space angle is atan2(-dy, dx).
 
@@ -188,21 +188,21 @@ def classify_foot_strike(angle_deg: float, cfg: AnalysisConfig) -> str:
     return "midfoot"
 
 
-# ── Pronation analysis ─────────────────────────────────────────────────────────
+# â”€â”€ Pronation analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_rearfoot_angle(knee: Keypoint, ankle: Keypoint, heel: Keypoint) -> float:
-    """Signed angle from the downward vertical to the ankle→heel vector.
+    """Signed angle from the downward vertical to the ankleâ†’heel vector.
 
-    Returns degrees.  Positive = heel tilts in the −x direction (left in image).
+    Returns degrees.  Positive = heel tilts in the âˆ’x direction (left in image).
 
-    Because signed_angle_deg((0,1), v) = atan2(−v.x, v.y):
-        heel.x > ankle.x  (right tilt) → negative raw angle
-        heel.x < ankle.x  (left tilt)  → positive raw angle
+    Because signed_angle_deg((0,1), v) = atan2(âˆ’v.x, v.y):
+        heel.x > ankle.x  (right tilt) â†’ negative raw angle
+        heel.x < ankle.x  (left tilt)  â†’ positive raw angle
 
     Callers must apply a side correction before clinical classification:
-        Left foot:  no correction  (pronation = heel tilts left = positive raw angle ✓)
-        Right foot: negate         (pronation = heel tilts right = negative raw → negate to get +)
+        Left foot:  no correction  (pronation = heel tilts left = positive raw angle âœ“)
+        Right foot: negate         (pronation = heel tilts right = negative raw â†’ negate to get +)
     """
     heel_vec = (heel.x - ankle.x, heel.y - ankle.y)
     return signed_angle_deg((0.0, 1.0), heel_vec)
@@ -244,7 +244,7 @@ def compute_frontal_plane_excursion(rearfoot_angles_deg: List[float]) -> float:
     return max_angle - initial_angle
 
 
-# ── Arch assessment ────────────────────────────────────────────────────────────
+# â”€â”€ Arch assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_arch_height_index(
@@ -256,7 +256,7 @@ def compute_arch_height_index(
 
     AHI = navicular_height_px / foot_length_px
 
-    navicular ≈ midpoint(ankle, foot_index) — rough proxy for navicular
+    navicular â‰ˆ midpoint(ankle, foot_index) â€” rough proxy for navicular
     navicular_height = heel.y - navicular.y  (pixels, positive = arch present)
     foot_length = Euclidean distance(heel, foot_index)
 
@@ -287,11 +287,11 @@ def classify_arch(ahi: float, cfg: AnalysisConfig) -> str:
     return "low"
 
 
-# ── Symmetry ───────────────────────────────────────────────────────────────────
+# â”€â”€ Symmetry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_symmetry_index(left_val: float, right_val: float) -> float:
-    """SI = |L - R| / mean(L, R) × 100.
+    """SI = |L - R| / mean(L, R) Ã— 100.
 
     Returns 0.0 when mean is effectively zero (both sides are zero).
     """
@@ -299,3 +299,4 @@ def compute_symmetry_index(left_val: float, right_val: float) -> float:
     if mean_val < 1e-12:
         return 0.0
     return abs(left_val - right_val) / mean_val * 100.0
+

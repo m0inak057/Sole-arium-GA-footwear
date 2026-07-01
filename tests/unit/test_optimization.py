@@ -1,25 +1,25 @@
-"""Unit tests for Phase D performance optimization."""
+﻿"""Unit tests for Phase D performance optimization."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 import time
 
-from src.gait.optimization.cache_manager import (
+from gait.optimization.cache_manager import (
     ComputationCache,
     CacheEntry,
     hash_input,
 )
-from src.gait.optimization.vectorization import (
+from gait.optimization.vectorization import (
     VectorizedAnalyzer,
     BatchMetrics,
 )
-from src.gait.optimization.profiler import (
+from gait.optimization.profiler import (
     PerformanceProfiler,
     TimingStats,
     ProfilingReport,
 )
-from src.gait.optimization.fast_path import (
+from gait.optimization.fast_path import (
     FastPathOptimizer,
     FastPathConfig,
 )
@@ -476,3 +476,4 @@ class TestOptimizationIntegration:
 
         assert len(report.operations) >= 2
         assert report.total_time_ms > 0
+

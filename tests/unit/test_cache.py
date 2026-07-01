@@ -1,4 +1,4 @@
-"""Unit tests for caching layer."""
+﻿"""Unit tests for caching layer."""
 from __future__ import annotations
 
 import json
@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 import redis
 
-from src.gait.cache.base import Cache, CacheConfig
-from src.gait.cache.redis_cache import RedisCache
-from src.gait.cache.dependencies import create_redis_cache
+from gait.cache.base import Cache, CacheConfig
+from gait.cache.redis_cache import RedisCache
+from gait.cache.dependencies import create_redis_cache
 
 
 class TestCacheConfig:
@@ -190,7 +190,7 @@ class TestCacheDependencies:
 
     def test_create_redis_cache_defaults(self):
         """Test creating Redis cache with defaults."""
-        with patch("src.gait.cache.dependencies.RedisCache") as mock_cache:
+        with patch("gait.cache.dependencies.RedisCache") as mock_cache:
             mock_cache.return_value = MagicMock()
             cache = create_redis_cache()
             mock_cache.assert_called_once()
@@ -201,7 +201,7 @@ class TestCacheDependencies:
 
     def test_create_redis_cache_custom(self):
         """Test creating Redis cache with custom values."""
-        with patch("src.gait.cache.dependencies.RedisCache") as mock_cache:
+        with patch("gait.cache.dependencies.RedisCache") as mock_cache:
             mock_cache.return_value = MagicMock()
             cache = create_redis_cache(
                 host="redis.example.com",
@@ -212,3 +212,5 @@ class TestCacheDependencies:
             assert kwargs["host"] == "redis.example.com"
             assert kwargs["port"] == 6380
             assert kwargs["db"] == 1
+
+

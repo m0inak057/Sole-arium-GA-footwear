@@ -1,4 +1,4 @@
-"""Unit tests for JWT token handling."""
+﻿"""Unit tests for JWT token handling."""
 from __future__ import annotations
 
 import time
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 
-from src.gait.auth.jwt_handler import JWTHandler, TokenPayload
+from gait.auth.jwt_handler import JWTHandler, TokenPayload
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def jwt_handler():
     return JWTHandler(secret_key="test-secret-key-that-is-longer-than-32-chars")
 
 
-# ── TokenPayload Tests ────────────────────────────────────────────────────
+# â”€â”€ TokenPayload Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTokenPayload:
@@ -34,7 +34,7 @@ class TestTokenPayload:
         assert payload.type == "refresh"
 
 
-# ── JWT Handler Tests ─────────────────────────────────────────────────────
+# â”€â”€ JWT Handler Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestJWTHandler:
@@ -88,7 +88,7 @@ class TestJWTHandler:
             jwt_handler.create_refresh_token("user123", expires_in_days=-1)
 
 
-# ── Token Verification Tests ──────────────────────────────────────────────
+# â”€â”€ Token Verification Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTokenVerification:
@@ -155,7 +155,7 @@ class TestTokenVerification:
             jwt_handler.verify_refresh_token(access_token)
 
 
-# ── Token Refresh Tests ───────────────────────────────────────────────────
+# â”€â”€ Token Refresh Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTokenRefresh:
@@ -202,7 +202,7 @@ class TestTokenRefresh:
         assert payload.sub == "user123"
 
 
-# ── Weak Secret Key Tests ─────────────────────────────────────────────────
+# â”€â”€ Weak Secret Key Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestWeakSecretKey:
@@ -214,7 +214,7 @@ class TestWeakSecretKey:
         # Warning should be logged
 
 
-# ── Token Payload Validation Tests ────────────────────────────────────────
+# â”€â”€ Token Payload Validation Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTokenPayloadValidation:
@@ -234,3 +234,4 @@ class TestTokenPayloadValidation:
         """Test payload defaults to access type."""
         payload = TokenPayload(sub="user123", exp=1234567890, iat=1234567800)
         assert payload.type == "access"
+

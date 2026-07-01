@@ -1,4 +1,4 @@
-"""Clinical validation metrics and performance evaluation."""
+﻿"""Clinical validation metrics and performance evaluation."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -44,15 +44,15 @@ def intraclass_correlation(rater_a: np.ndarray, rater_b: np.ndarray) -> float:
 
     For n subjects each measured once by two raters:
 
-        data  : n×2 matrix  (rows = subjects, columns = raters)
+        data  : nÃ—2 matrix  (rows = subjects, columns = raters)
         MSB   : between-subjects mean square
         MSC   : between-raters (columns) mean square
         MSE   : residual error mean square
         k = 2 : number of raters
 
-        ICC(2,1) = (MSB − MSE) / (MSB + (k−1)·MSE + k·(MSC − MSE)/n)
+        ICC(2,1) = (MSB âˆ’ MSE) / (MSB + (kâˆ’1)Â·MSE + kÂ·(MSC âˆ’ MSE)/n)
 
-    Returns a value in [−1, 1]; negative values indicate worse-than-chance
+    Returns a value in [âˆ’1, 1]; negative values indicate worse-than-chance
     agreement and are clipped to 0.0 before returning so callers can always
     compare against ICC_THRESHOLD without special-casing negatives.
 
@@ -82,8 +82,8 @@ def intraclass_correlation(rater_a: np.ndarray, rater_b: np.ndarray) -> float:
     data = np.column_stack([rater_a, rater_b])   # shape (n, 2)
 
     grand_mean = data.mean()
-    row_means = data.mean(axis=1)   # shape (n,)  — subject means
-    col_means = data.mean(axis=0)   # shape (2,)  — rater means
+    row_means = data.mean(axis=1)   # shape (n,)  â€” subject means
+    col_means = data.mean(axis=0)   # shape (2,)  â€” rater means
 
     ss_b = k * np.sum((row_means - grand_mean) ** 2)          # between subjects
     ss_c = n * np.sum((col_means - grand_mean) ** 2)          # between raters
@@ -319,3 +319,4 @@ class PerformanceValidator:
 
         except Exception:
             return (0.0, 1.0)
+

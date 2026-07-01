@@ -1,14 +1,14 @@
-"""FastAPI application — Gait Analysis REST API.
+﻿"""FastAPI application â€” Gait Analysis REST API.
 
 Endpoints:
-  GET  /health                                 → health check
-  GET  /api/v1/                                → API information
-  POST /api/v1/sessions                        → create session
-  POST /api/v1/sessions/{id}/uploads           → upload video file(s)
-  POST /api/v1/sessions/{id}/process           → trigger pipeline
-  GET  /api/v1/sessions/{id}/status            → poll job status
-  GET  /api/v1/sessions/{id}/profile           → retrieve completed profile
-  DELETE /api/v1/sessions/{id}                 → delete session
+  GET  /health                                 â†’ health check
+  GET  /api/v1/                                â†’ API information
+  POST /api/v1/sessions                        â†’ create session
+  POST /api/v1/sessions/{id}/uploads           â†’ upload video file(s)
+  POST /api/v1/sessions/{id}/process           â†’ trigger pipeline
+  GET  /api/v1/sessions/{id}/status            â†’ poll job status
+  GET  /api/v1/sessions/{id}/profile           â†’ retrieve completed profile
+  DELETE /api/v1/sessions/{id}                 â†’ delete session
 
 File uploads are written to {UPLOAD_DIR}/{session_id}/.
 UPLOAD_DIR defaults to "data/uploads" (relative to cwd).
@@ -28,7 +28,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from src.gait.api.models import (
+from gait.api.models import (
     ComparisonResponse,
     ConditionMetrics,
     HealthResponse,
@@ -41,14 +41,14 @@ from src.gait.api.models import (
     TrialConditionEnum,
     UploadResponse,
 )
-from src.gait.api.session_store import SessionState, SessionStore, get_session_store
-from src.gait.common.logging_utils import get_logger
+from gait.api.session_store import SessionState, SessionStore, get_session_store
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "data/uploads"))
 
-# ── FastAPI app ───────────────────────────────────────────────────────────────
+# â”€â”€ FastAPI app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 app = FastAPI(
     title="Sole-Arium Gait Analysis API",
@@ -71,17 +71,17 @@ app.add_middleware(
 )
 
 
-# ── task dependency (injectable for tests) ────────────────────────────────────
+# â”€â”€ task dependency (injectable for tests) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def get_pipeline_task() -> Any:
     """Return the Celery task object (injectable in tests)."""
-    from src.gait.api.tasks import run_gait_pipeline
+    from gait.api.tasks import run_gait_pipeline
 
     return run_gait_pipeline
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _require_session(session_id: str, store: SessionStore) -> SessionState:
@@ -108,7 +108,7 @@ def _sync_task_status(state: SessionState, store: SessionStore) -> SessionState:
         return state
 
     try:
-        from src.gait.api.tasks import celery_app
+        from gait.api.tasks import celery_app
 
         result = celery_app.AsyncResult(state.task_id)
 
@@ -155,7 +155,7 @@ def _sync_task_status(state: SessionState, store: SessionStore) -> SessionState:
     return state
 
 
-# ── comparison helpers ────────────────────────────────────────────────────────
+# â”€â”€ comparison helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _extract_condition_metrics(
@@ -178,7 +178,7 @@ def _extract_condition_metrics(
 
 
 def _build_delta(barefoot: ConditionMetrics, shod: ConditionMetrics) -> Dict[str, Any]:
-    """Compute numeric deltas (shod − barefoot) and changed flags for classifications."""
+    """Compute numeric deltas (shod âˆ’ barefoot) and changed flags for classifications."""
     delta: Dict[str, Any] = {}
 
     # Cadence: numeric delta
@@ -201,7 +201,7 @@ def _build_delta(barefoot: ConditionMetrics, shod: ConditionMetrics) -> Dict[str
     return delta
 
 
-# ── endpoints ─────────────────────────────────────────────────────────────────
+# â”€â”€ endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
@@ -212,7 +212,7 @@ async def health() -> HealthResponse:
 
 @app.get("/api/v1/", tags=["System"])
 async def api_info() -> Dict[str, str]:
-    """API root — version and documentation links."""
+    """API root â€” version and documentation links."""
     return {
         "name": "Sole-Arium Gait Analysis API",
         "version": app.version,
@@ -220,7 +220,7 @@ async def api_info() -> Dict[str, str]:
     }
 
 
-# ── sessions ──────────────────────────────────────────────────────────────────
+# â”€â”€ sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.post(
@@ -581,3 +581,4 @@ async def get_comparison(
         shod=shod,
         delta=_build_delta(barefoot, shod),
     )
+

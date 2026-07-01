@@ -1,4 +1,4 @@
-"""GaitPipeline — end-to-end pipeline orchestrator.
+﻿"""GaitPipeline â€” end-to-end pipeline orchestrator.
 
 Stitches together the five pipeline stages:
   1. Ingestion & preprocessing  (IngestionPreprocessor)
@@ -17,18 +17,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.gait.analysis.analyzer import create_biomechanical_analyzer
-from src.gait.common.interfaces import GaitCycle, KeypointFrame
-from src.gait.common.logging_utils import get_logger
-from src.gait.events.gait_event_detector import assign_pass_ids
-from src.gait.events.velocity_detector import create_event_detector
-from src.gait.pipeline.config import (
+from gait.analysis.analyzer import create_biomechanical_analyzer
+from gait.common.interfaces import GaitCycle, KeypointFrame
+from gait.common.logging_utils import get_logger
+from gait.events.gait_event_detector import assign_pass_ids
+from gait.events.velocity_detector import create_event_detector
+from gait.pipeline.config import (
     PipelineConfig,
     load_pipeline_config,
     load_recommendation_rules,
 )
-from src.gait.profile.builder import create_profile_builder
-from src.gait.profile.gating import discard_boundary_cycles
+from gait.profile.builder import create_profile_builder
+from gait.profile.gating import discard_boundary_cycles
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ def _make_health_coach() -> Any:
         return None
     try:
         import anthropic
-        from src.gait.agents.health_coach import GaitHealthCoach
+        from gait.agents.health_coach import GaitHealthCoach
 
         return GaitHealthCoach(anthropic.Anthropic())
     except Exception as exc:
@@ -53,7 +53,7 @@ def _make_prescription_agent() -> Any:
         return None
     try:
         import anthropic
-        from src.gait.agents.prescription_agent import PrescriptionAgent
+        from gait.agents.prescription_agent import PrescriptionAgent
 
         return PrescriptionAgent(anthropic.Anthropic())
     except Exception as exc:
@@ -85,7 +85,7 @@ class GaitPipeline:
         """Run all pipeline stages and return a GaitPatientProfile-shaped dict.
 
         Args:
-            video_paths:       camera_name → path mapping (e.g. {"sagittal": Path(...)}).
+            video_paths:       camera_name â†’ path mapping (e.g. {"sagittal": Path(...)}).
             anthropometrics:   Patient measurements (height_cm, mass_kg, foot_length_mm, ...).
             patient_id:        Pseudonymous patient identifier.
             session_timestamp: ISO 8601 string; defaults to current UTC time.
@@ -101,13 +101,13 @@ class GaitPipeline:
             extra={"patient_id": patient_id, "n_cameras": len(video_paths)},
         )
 
-        # ── Stage 1: Ingestion ─────────────────────────────────────────────────
+        # â”€â”€ Stage 1: Ingestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         keypoint_frames = self._run_ingestion_and_pose(video_paths)
 
-        # ── Stages 3–4: Events + Analysis ─────────────────────────────────────
+        # â”€â”€ Stages 3â€“4: Events + Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         parameters = self._run_analysis(keypoint_frames)
 
-        # ── Stage 5: Profile ───────────────────────────────────────────────────
+        # â”€â”€ Stage 5: Profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         rules_config = load_recommendation_rules()
         builder = create_profile_builder(rules_config, self._cfg.analysis)
 
@@ -125,13 +125,13 @@ class GaitPipeline:
             confidence_scores={"pipeline": 0.80},
         )
 
-        # ── Claude prescription refinement (post-build) ────────────────────
+        # â”€â”€ Claude prescription refinement (post-build) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if self._prescription_agent is not None and profile.get("prescription_spec"):
             try:
                 # Reconstruct rule_params for the prescription agent
                 params_l = parameters["L"]
                 params_r = parameters["R"]
-                from src.gait.profile.builder import _derive_rule_parameters, _compute_symmetry_flags
+                from gait.profile.builder import _derive_rule_parameters, _compute_symmetry_flags
 
                 sym_flags = _compute_symmetry_flags(
                     params_l, params_r, self._cfg.analysis.symmetry_flag_threshold_pct
@@ -166,7 +166,7 @@ class GaitPipeline:
         logger.info("pipeline.complete", extra={"patient_id": patient_id})
         return profile
 
-    # ── static calibration ─────────────────────────────────────────────────────
+    # â”€â”€ static calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def process_static_trial(
         self,
@@ -188,8 +188,8 @@ class GaitPipeline:
         Returns:
             StaticTrial containing averaged keypoints and joint_angle_offsets.
         """
-        from src.gait.common.types import StaticTrial  # noqa: F401 (type re-export)
-        from src.gait.ingestion.static_trial import StaticTrialProcessor
+        from gait.common.types import StaticTrial  # noqa: F401 (type re-export)
+        from gait.ingestion.static_trial import StaticTrialProcessor
 
         processor = StaticTrialProcessor(
             self._cfg.static_trial,
@@ -207,14 +207,14 @@ class GaitPipeline:
         )
         return trial
 
-    # ── helpers ────────────────────────────────────────────────────────────────
+    # â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _run_ingestion_and_pose(
         self, video_paths: Dict[str, Path]
     ) -> List[KeypointFrame]:
-        """Stages 1–2: ingestion + pose → keypoint frames."""
-        from src.gait.ingestion.preprocessor import IngestionPreprocessor
-        from src.gait.pose.estimator import PoseEstimator
+        """Stages 1â€“2: ingestion + pose â†’ keypoint frames."""
+        from gait.ingestion.preprocessor import IngestionPreprocessor
+        from gait.pose.estimator import PoseEstimator
 
         preprocessor = IngestionPreprocessor(self._cfg.ingestion)
         ingestion_result = preprocessor.run(video_paths)
@@ -226,8 +226,8 @@ class GaitPipeline:
     def _run_analysis(
         self, keypoint_frames: List[KeypointFrame]
     ) -> Dict[str, Dict[str, Any]]:
-        """Stages 3–4: event detection + analysis → {L: agg_params, R: agg_params}."""
-        from src.gait.analysis.parameters import compute_step_lengths_lr, compute_foot_progression_angle
+        """Stages 3â€“4: event detection + analysis â†’ {L: agg_params, R: agg_params}."""
+        from gait.analysis.parameters import compute_step_lengths_lr, compute_foot_progression_angle
 
         fps = float(self._cfg.ingestion.fps)
         detector = create_event_detector(
@@ -312,8 +312,8 @@ class GaitPipeline:
         self, keypoint_frames: List[KeypointFrame], heel_strikes: List, foot: str
     ) -> float:
         """Compute mean foot progression angle across heel strikes."""
-        from src.gait.analysis.parameters import compute_foot_progression_angle
-        from src.gait.common.interfaces import Keypoint
+        from gait.analysis.parameters import compute_foot_progression_angle
+        from gait.common.interfaces import Keypoint
 
         angles = []
         for event in heel_strikes:
@@ -330,3 +330,4 @@ class GaitPipeline:
 def create_pipeline(config: Optional[PipelineConfig] = None) -> GaitPipeline:
     """Factory: return a GaitPipeline instance."""
     return GaitPipeline(config)
+

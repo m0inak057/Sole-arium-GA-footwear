@@ -1,14 +1,14 @@
-"""PoseEstimator — orchestrates detector + 1-Euro smoother for a session."""
+﻿"""PoseEstimator â€” orchestrates detector + 1-Euro smoother for a session."""
 from __future__ import annotations
 
 import time
 from typing import List
 
-from src.gait.common.interfaces import Frame, KeypointFrame, PoseDetector
-from src.gait.common.logging_utils import get_logger, log_stage_timing
-from src.gait.pipeline.config import PoseConfig
-from src.gait.pose.mediapipe_detector import MediaPipePoseDetector
-from src.gait.pose.smoother import OneEuroSmoother
+from gait.common.interfaces import Frame, KeypointFrame, PoseDetector
+from gait.common.logging_utils import get_logger, log_stage_timing
+from gait.pipeline.config import PoseConfig
+from gait.pose.mediapipe_detector import MediaPipePoseDetector
+from gait.pose.smoother import OneEuroSmoother
 
 logger = get_logger(__name__)
 
@@ -45,7 +45,7 @@ class PoseEstimator:
 
         t0 = time.perf_counter()
 
-        # ── Detection ─────────────────────────────────────────────────────
+        # â”€â”€ Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         raw: List[KeypointFrame] = []
         dropped = 0
         batch_size = self._config.batch_size
@@ -75,7 +75,7 @@ class PoseEstimator:
             },
         )
 
-        # ── Smoothing ──────────────────────────────────────────────────────
+        # â”€â”€ Smoothing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         smoothed = self._smoother.smooth_frame(raw)
 
         log_stage_timing(
@@ -87,3 +87,4 @@ class PoseEstimator:
         )
 
         return smoothed
+

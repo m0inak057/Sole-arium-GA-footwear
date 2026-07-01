@@ -1,12 +1,12 @@
-"""Storage factory for creating storage backends."""
+﻿"""Storage factory for creating storage backends."""
 from __future__ import annotations
 
 import os
 from typing import Optional
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.storage.base import Storage, StorageConfig
-from src.gait.storage.s3_storage import S3Storage
+from gait.common.logging_utils import get_logger
+from gait.storage.base import Storage, StorageConfig
+from gait.storage.s3_storage import S3Storage
 
 logger = get_logger(__name__)
 
@@ -44,7 +44,7 @@ def create_storage(
         return S3Storage(config)
     elif backend_lower == "minio":
         # Lazy import to avoid minio dependency at module level
-        from src.gait.storage.minio_storage import MinIOStorage
+        from gait.storage.minio_storage import MinIOStorage
         logger.info("storage.created", extra={"backend": "minio"})
         return MinIOStorage(config)
     else:
@@ -68,3 +68,4 @@ def create_storage_from_env() -> Storage:
     """
     backend = os.getenv("STORAGE_BACKEND", "s3")
     return create_storage(backend=backend)
+

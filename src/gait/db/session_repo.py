@@ -1,4 +1,4 @@
-"""Session repository — database-backed alternative to in-memory SessionStore.
+﻿"""Session repository â€” database-backed alternative to in-memory SessionStore.
 
 Thread-safe and suitable for multi-instance deployments.
 Replaces src.gait.api.session_store.SessionStore for production use.
@@ -11,9 +11,9 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session as SQLSession
 
-from src.gait.api.models import SessionStatus
-from src.gait.common.logging_utils import get_logger
-from src.gait.db.models import Session, Upload
+from gait.api.models import SessionStatus
+from gait.common.logging_utils import get_logger
+from gait.db.models import Session, Upload
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ class SessionRepository:
         """
         self._db = db_session
 
-    # ── Create ────────────────────────────────────────────────────────────
+    # â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def create(
         self,
@@ -62,7 +62,7 @@ class SessionRepository:
         logger.info("session.created", extra={"session_id": session_id, "user_id": user_id})
         return session
 
-    # ── Read ──────────────────────────────────────────────────────────────
+    # â”€â”€ Read â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def get(self, session_id: str) -> Optional[Session]:
         """Get a session by ID.
@@ -102,7 +102,7 @@ class SessionRepository:
         stmt = select(Session).order_by(Session.created_at.desc())
         return self._db.execute(stmt).scalars().all()
 
-    # ── Update ────────────────────────────────────────────────────────────
+    # â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def update_status(
         self,
@@ -190,7 +190,7 @@ class SessionRepository:
         stmt = select(Upload).where(Upload.session_id == session_id).order_by(Upload.created_at)
         return self._db.execute(stmt).scalars().all()
 
-    # ── Delete ────────────────────────────────────────────────────────────
+    # â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def delete(self, session_id: str) -> bool:
         """Delete a session and all associated data.
@@ -210,7 +210,7 @@ class SessionRepository:
         logger.info("session.deleted", extra={"session_id": session_id})
         return True
 
-    # ── Utility ───────────────────────────────────────────────────────────
+    # â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def can_access(self, session_id: str, user_id: int) -> bool:
         """Check if a user can access a session.
@@ -224,3 +224,4 @@ class SessionRepository:
         """
         stmt = select(Session).where(and_(Session.id == session_id, Session.user_id == user_id))
         return self._db.execute(stmt).scalars().first() is not None
+

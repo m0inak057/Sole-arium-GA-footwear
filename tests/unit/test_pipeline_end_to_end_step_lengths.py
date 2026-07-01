@@ -1,12 +1,12 @@
-"""End-to-end test verifying step lengths flow through full pipeline to profile output."""
+﻿"""End-to-end test verifying step lengths flow through full pipeline to profile output."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Keypoint, KeypointFrame
-from src.gait.profile.builder import create_profile_builder
-from src.gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+from gait.common.interfaces import Keypoint, KeypointFrame
+from gait.profile.builder import create_profile_builder
+from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
 
 
 @pytest.mark.unit
@@ -98,17 +98,17 @@ class TestPipelineEndToEndStepLengths:
         assert spatiotemporal["step_length_left_m"] == 0.72, f"Expected 0.72m, got {spatiotemporal['step_length_left_m']}"
         assert spatiotemporal["step_length_right_m"] == 0.68, f"Expected 0.68m, got {spatiotemporal['step_length_right_m']}"
 
-        # CRITICAL: Verify asymmetry (left ≠ right)
+        # CRITICAL: Verify asymmetry (left â‰  right)
         assert spatiotemporal["step_length_left_m"] != spatiotemporal["step_length_right_m"], \
-            "Step lengths should be asymmetric (left ≠ right)"
+            "Step lengths should be asymmetric (left â‰  right)"
         assert spatiotemporal["step_length_left_m"] > spatiotemporal["step_length_right_m"], \
             "Left step length should be greater than right in this asymmetric gait"
 
         # CRITICAL: Verify foot progression angles are in profile and asymmetric
         assert spatiotemporal["foot_progression_angle_left_deg"] == 8.5, \
-            f"Expected 8.5°, got {spatiotemporal['foot_progression_angle_left_deg']}"
+            f"Expected 8.5Â°, got {spatiotemporal['foot_progression_angle_left_deg']}"
         assert spatiotemporal["foot_progression_angle_right_deg"] == -3.2, \
-            f"Expected -3.2°, got {spatiotemporal['foot_progression_angle_right_deg']}"
+            f"Expected -3.2Â°, got {spatiotemporal['foot_progression_angle_right_deg']}"
 
         # Verify asymmetry in foot progression angles
         assert spatiotemporal["foot_progression_angle_left_deg"] != spatiotemporal["foot_progression_angle_right_deg"], \
@@ -173,3 +173,4 @@ class TestPipelineEndToEndStepLengths:
             "Step length should default to 0.0 when not provided"
         assert spatiotemporal["step_length_right_m"] == 0.0, \
             "Step length should default to 0.0 when not provided"
+

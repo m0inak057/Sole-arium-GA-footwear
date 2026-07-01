@@ -1,11 +1,11 @@
-"""Unit tests for API key management and validation."""
+﻿"""Unit tests for API key management and validation."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from src.gait.auth.api_key_manager import (
+from gait.auth.api_key_manager import (
     APIKeyValidator,
     generate_api_key,
     hash_api_key,
@@ -161,7 +161,7 @@ class TestAPIKeyValidator:
 class TestConstantTimeComparison:
     def test_constant_time_equal(self):
         """Test constant time comparison of equal strings."""
-        from src.gait.auth.api_key_manager import _constant_time_compare
+        from gait.auth.api_key_manager import _constant_time_compare
 
         a = "abcdef1234567890"
         b = "abcdef1234567890"
@@ -169,7 +169,7 @@ class TestConstantTimeComparison:
 
     def test_constant_time_not_equal(self):
         """Test constant time comparison of different strings."""
-        from src.gait.auth.api_key_manager import _constant_time_compare
+        from gait.auth.api_key_manager import _constant_time_compare
 
         a = "abcdef1234567890"
         b = "different1234567"
@@ -177,7 +177,7 @@ class TestConstantTimeComparison:
 
     def test_constant_time_different_length(self):
         """Test constant time comparison with different lengths."""
-        from src.gait.auth.api_key_manager import _constant_time_compare
+        from gait.auth.api_key_manager import _constant_time_compare
 
         a = "short"
         b = "much_longer_string"
@@ -185,7 +185,7 @@ class TestConstantTimeComparison:
 
     def test_constant_time_prevents_timing_attack(self):
         """Test that constant time comparison doesn't leak via timing."""
-        from src.gait.auth.api_key_manager import _constant_time_compare
+        from gait.auth.api_key_manager import _constant_time_compare
 
         # Compare strings that differ in different positions
         # All should take similar time (constant time)
@@ -198,3 +198,4 @@ class TestConstantTimeComparison:
         assert _constant_time_compare(str1, str2_diff_start) is False
         assert _constant_time_compare(str1, str2_diff_middle) is False
         assert _constant_time_compare(str1, str2_diff_end) is False
+

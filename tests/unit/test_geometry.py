@@ -1,9 +1,9 @@
-"""Unit tests for src.gait.common.geometry — all pure functions, no I/O."""
+﻿"""Unit tests for src.gait.common.geometry â€” all pure functions, no I/O."""
 
 import pytest
 import numpy as np
 
-from src.gait.common.geometry import (
+from gait.common.geometry import (
     bbox_area_px2,
     clip_bbox,
     compute_angle_deg,
@@ -16,7 +16,7 @@ from src.gait.common.geometry import (
 )
 
 
-# ── compute_iou ───────────────────────────────────────────────────────────────
+# â”€â”€ compute_iou â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeIoU:
@@ -52,7 +52,7 @@ class TestComputeIoU:
         assert compute_iou(a, b) == pytest.approx(compute_iou(b, a))
 
 
-# ── bbox_area_px2 ─────────────────────────────────────────────────────────────
+# â”€â”€ bbox_area_px2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBboxAreaPx2:
@@ -66,7 +66,7 @@ class TestBboxAreaPx2:
         assert bbox_area_px2((5, 5, 1, 1)) == 1
 
 
-# ── expand_bbox ───────────────────────────────────────────────────────────────
+# â”€â”€ expand_bbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExpandBbox:
@@ -99,7 +99,7 @@ class TestExpandBbox:
         assert x == 0 and y == 0 and w == 640 and h == 480
 
 
-# ── clip_bbox ─────────────────────────────────────────────────────────────────
+# â”€â”€ clip_bbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClipBbox:
@@ -119,12 +119,12 @@ class TestClipBbox:
         assert y + h == 480
 
 
-# ── compute_angle_deg ─────────────────────────────────────────────────────────
+# â”€â”€ compute_angle_deg â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeAngleDeg:
     def test_right_angle(self):
-        # p1=(1,0), vertex=(0,0), p2=(0,1) → 90°
+        # p1=(1,0), vertex=(0,0), p2=(0,1) â†’ 90Â°
         assert compute_angle_deg((1, 0), (0, 0), (0, 1)) == pytest.approx(90.0)
 
     def test_straight_angle(self):
@@ -142,12 +142,12 @@ class TestComputeAngleDeg:
             compute_angle_deg((1, 0), (0, 0), (0, 0))
 
     def test_off_axis_angle(self):
-        # Equilateral-triangle angle = 60°
+        # Equilateral-triangle angle = 60Â°
         angle = compute_angle_deg((1, 0), (0, 0), (0.5, 0.866))
         assert angle == pytest.approx(60.0, abs=0.5)
 
 
-# ── normalize_vector ──────────────────────────────────────────────────────────
+# â”€â”€ normalize_vector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNormalizeVector:
@@ -166,7 +166,7 @@ class TestNormalizeVector:
             normalize_vector((0.0, 0.0))
 
 
-# ── compute_midpoint ──────────────────────────────────────────────────────────
+# â”€â”€ compute_midpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeMidpoint:
@@ -180,23 +180,23 @@ class TestComputeMidpoint:
         assert compute_midpoint((-4, -6), (4, 6)) == pytest.approx((0.0, 0.0))
 
 
-# ── signed_angle_deg ─────────────────────────────────────────────────────────
+# â”€â”€ signed_angle_deg â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSignedAngleDeg:
     def test_ccw_positive(self):
-        # Counter-clockwise from (1,0) to (0,1) = +90°
+        # Counter-clockwise from (1,0) to (0,1) = +90Â°
         assert signed_angle_deg((1, 0), (0, 1)) == pytest.approx(90.0)
 
     def test_cw_negative(self):
-        # Clockwise from (0,1) to (1,0) = -90°
+        # Clockwise from (0,1) to (1,0) = -90Â°
         assert signed_angle_deg((0, 1), (1, 0)) == pytest.approx(-90.0)
 
     def test_same_direction_zero(self):
         assert signed_angle_deg((1, 0), (2, 0)) == pytest.approx(0.0)
 
 
-# ── frame_index_to_timestamp_ms ───────────────────────────────────────────────
+# â”€â”€ frame_index_to_timestamp_ms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFrameIndexToTimestampMs:
@@ -218,3 +218,4 @@ class TestFrameIndexToTimestampMs:
     def test_monotonically_increasing(self):
         timestamps = [frame_index_to_timestamp_ms(i, 120) for i in range(10)]
         assert timestamps == sorted(timestamps)
+

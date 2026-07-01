@@ -1,7 +1,7 @@
-"""In-memory session state store.
+﻿"""In-memory session state store.
 
 Thread-safe via a simple threading.Lock.  For production at scale, swap this
-out for a Redis- or PostgreSQL-backed store — the interface is identical.
+out for a Redis- or PostgreSQL-backed store â€” the interface is identical.
 
 FastAPI dependency injection lets tests replace the module-level singleton
 with a fresh `SessionStore()` instance per test, preventing state leak.
@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.gait.api.models import SessionStatus, TrialConditionEnum
+from gait.api.models import SessionStatus, TrialConditionEnum
 
 
 @dataclass
@@ -47,7 +47,7 @@ class SessionStore:
         self._sessions: Dict[str, SessionState] = {}
         self._lock = threading.Lock()
 
-    # ── write ──────────────────────────────────────────────────────────────
+    # â”€â”€ write â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def create(
         self,
@@ -111,7 +111,7 @@ class SessionStore:
         with self._lock:
             return self._sessions.pop(session_id, None) is not None
 
-    # ── read ───────────────────────────────────────────────────────────────
+    # â”€â”€ read â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def get(self, session_id: str) -> Optional[SessionState]:
         """Return session state or None if not found."""
@@ -123,7 +123,7 @@ class SessionStore:
             return list(self._sessions.values())
 
 
-# ── FastAPI dependency ────────────────────────────────────────────────────────
+# â”€â”€ FastAPI dependency â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 # Module-level singleton used by the production app.
 # Tests override this via app.dependency_overrides.
@@ -133,3 +133,4 @@ _default_store = SessionStore()
 def get_session_store() -> SessionStore:
     """FastAPI dependency that returns the active session store."""
     return _default_store
+

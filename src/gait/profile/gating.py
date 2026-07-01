@@ -1,12 +1,12 @@
-"""StandardGatingEngine — quality gating based on clean gait cycle count."""
+﻿"""StandardGatingEngine â€” quality gating based on clean gait cycle count."""
 from __future__ import annotations
 
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-from src.gait.common.interfaces import GaitCycle, GatingEngine
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import AnalysisConfig
+from gait.common.interfaces import GaitCycle, GatingEngine
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import AnalysisConfig
 
 logger = get_logger(__name__)
 
@@ -81,3 +81,4 @@ def discard_boundary_cycles(cycles: List[GaitCycle]) -> List[GaitCycle]:
         },
     )
     return kept
+

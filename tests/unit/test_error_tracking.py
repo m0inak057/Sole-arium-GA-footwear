@@ -1,11 +1,11 @@
-"""Unit tests for error tracking (Sentry)."""
+﻿"""Unit tests for error tracking (Sentry)."""
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.gait.error_tracking.sentry_config import (
+from gait.error_tracking.sentry_config import (
     SentryConfig,
     add_sentry_breadcrumb,
     capture_sentry_exception,
@@ -194,3 +194,4 @@ class TestCaptureSentryMessage:
             )
             args, kwargs = mock_capture.call_args
             assert kwargs["tags"]["service"] == "gait-analysis"
+

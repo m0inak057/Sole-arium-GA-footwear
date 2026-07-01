@@ -1,9 +1,9 @@
-"""Unit tests for password hashing and verification."""
+﻿"""Unit tests for password hashing and verification."""
 from __future__ import annotations
 
 import pytest
 
-from src.gait.auth.password_utils import hash_password, verify_password
+from gait.auth.password_utils import hash_password, verify_password
 
 
 class TestPasswordHashing:
@@ -95,7 +95,7 @@ class TestPasswordVerification:
 
     def test_verify_password_unicode(self):
         """Test password with unicode characters."""
-        password = "p@sswörd™"
+        password = "p@sswÃ¶rdâ„¢"
         hashed = hash_password(password)
         assert verify_password(password, hashed) is True
         assert verify_password("p@ssword", hashed) is False  # Different without unicode
@@ -126,3 +126,4 @@ class TestPasswordSecurity:
         assert hash1 != hash2
         assert not verify_password(password2, hash1)
         assert not verify_password(password1, hash2)
+

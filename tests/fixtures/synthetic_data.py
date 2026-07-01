@@ -1,4 +1,4 @@
-"""Synthetic data generators for testing without hardware.
+﻿"""Synthetic data generators for testing without hardware.
 
 Generates realistic synthetic gait data:
 - Keypoint trajectories
@@ -12,8 +12,8 @@ from typing import Dict, List
 
 import numpy as np
 
-from src.gait.common.interfaces import Frame, Keypoint, KeypointFrame, GaitCycle, GaitEvent
-from src.gait.profile.schema import (
+from gait.common.interfaces import Frame, Keypoint, KeypointFrame, GaitCycle, GaitEvent
+from gait.profile.schema import (
     GaitPatientProfile,
     Anthropometrics,
     Spatiotemporal,
@@ -47,7 +47,7 @@ class SyntheticGaitGenerator:
             noise_std: Gaussian noise standard deviation.
 
         Returns:
-            Dict mapping frame_index → keypoint_value.
+            Dict mapping frame_index â†’ keypoint_value.
         """
         trajectory = {}
         t = np.linspace(0, num_frames / 120.0, num_frames)  # Assume 120 fps
@@ -98,7 +98,7 @@ class SyntheticGaitGenerator:
         keypoints = {}
         for name in keypoint_names:
             # Generate random but realistic coordinates
-            x = np.random.normal(250, 50)  # ~250px, ±50px variance
+            x = np.random.normal(250, 50)  # ~250px, Â±50px variance
             y = np.random.normal(200 + frame_idx % 50, 30)  # Motion over time
             z = np.random.normal(0, 10) if camera_view == "sagittal" else None
 
@@ -325,3 +325,4 @@ def synthetic_profile_overpronation():
         foot_strike="rearfoot",
         arch_type="low",
     )
+

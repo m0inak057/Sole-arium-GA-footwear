@@ -1,4 +1,4 @@
-"""Redis cache implementation."""
+﻿"""Redis cache implementation."""
 from __future__ import annotations
 
 import json
@@ -6,8 +6,8 @@ from typing import Any, Optional
 
 import redis
 
-from src.gait.cache.base import Cache, CacheConfig
-from src.gait.common.logging_utils import get_logger
+from gait.cache.base import Cache, CacheConfig
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -224,3 +224,4 @@ class RedisCache(Cache):
             logger.info("redis.closed")
         except Exception as e:
             logger.error("redis.close_failed", extra={"error": str(e)})
+

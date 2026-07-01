@@ -1,8 +1,8 @@
-"""Tests for face blurring (DPDP Act 2023 compliance).
+﻿"""Tests for face blurring (DPDP Act 2023 compliance).
 
 Covers:
-  1. blur_faces_in_video with a frame containing a face-like region → True
-  2. blur_faces_in_video with a plain background frame → False, output still written
+  1. blur_faces_in_video with a frame containing a face-like region â†’ True
+  2. blur_faces_in_video with a plain background frame â†’ False, output still written
   3. blur_all_session_videos returns all 3 camera keys
   4. Celery task respects features.face_blur_pipeline: false (skips blur)
   5. face_blur_applied is correctly set to True/False in the final profile
@@ -18,10 +18,10 @@ import cv2
 import numpy as np
 import pytest
 
-from src.gait.privacy.face_blur import blur_all_session_videos, blur_faces_in_video
+from gait.privacy.face_blur import blur_all_session_videos, blur_faces_in_video
 
 
-# ── helpers ────────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _write_single_frame_video(path: Path, frame: np.ndarray) -> None:
     """Write a one-frame AVI at 30 fps."""
@@ -37,14 +37,14 @@ def _write_single_frame_video(path: Path, frame: np.ndarray) -> None:
 
 
 def _make_face_like_frame() -> np.ndarray:
-    """Return a 320×240 BGR frame with a skin-toned oval that the Haar cascade
-    may or may not detect — but crucially, the function must still run without
+    """Return a 320Ã—240 BGR frame with a skin-toned oval that the Haar cascade
+    may or may not detect â€” but crucially, the function must still run without
     crashing and return a written output video.
 
     Because the Haar cascade is a real detector we cannot guarantee detection in
     a synthetic frame, so the test checks that:
       - The output video is written (output file exists)
-      - The function returns a bool (True or False — both are valid)
+      - The function returns a bool (True or False â€” both are valid)
     """
     frame = np.zeros((240, 320, 3), dtype=np.uint8)
     # Skin-tone ellipse in the centre (rough face approximation)
@@ -60,7 +60,7 @@ def _make_blank_frame() -> np.ndarray:
     return np.full((240, 320, 3), 128, dtype=np.uint8)
 
 
-# ── unit tests ─────────────────────────────────────────────────────────────────
+# â”€â”€ unit tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.mark.unit
@@ -167,7 +167,7 @@ class TestCeleryTaskFaceBlur:
 
     def test_face_blur_skipped_when_flag_false(self):
         """Celery task skips blur entirely when features.face_blur_pipeline is False."""
-        from src.gait.api.tasks import run_gait_pipeline
+        from gait.api.tasks import run_gait_pipeline
 
         mock_config = MagicMock()
         mock_config.features.face_blur_pipeline = False
@@ -178,9 +178,9 @@ class TestCeleryTaskFaceBlur:
             "session_timestamp": "2026-06-18T10:00:00Z",
         }
 
-        with patch("src.gait.api.tasks.load_pipeline_config", return_value=mock_config), \
-             patch("src.gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
-             patch("src.gait.privacy.face_blur.blur_all_session_videos") as mock_blur, \
+        with patch("gait.api.tasks.load_pipeline_config", return_value=mock_config), \
+             patch("gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
+             patch("gait.privacy.face_blur.blur_all_session_videos") as mock_blur, \
              patch.object(run_gait_pipeline, "update_state"):
 
             mock_pipeline = MagicMock()
@@ -199,7 +199,7 @@ class TestCeleryTaskFaceBlur:
 
     def test_face_blur_runs_when_flag_true(self, tmp_path):
         """Celery task calls blur and sets face_blur_applied correctly when flag is True."""
-        from src.gait.api.tasks import run_gait_pipeline
+        from gait.api.tasks import run_gait_pipeline
 
         mock_config = MagicMock()
         mock_config.features.face_blur_pipeline = True
@@ -212,9 +212,9 @@ class TestCeleryTaskFaceBlur:
 
         blur_results = {"anterior": True, "sagittal": False, "posterior": False}
 
-        with patch("src.gait.api.tasks.load_pipeline_config", return_value=mock_config), \
-             patch("src.gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
-             patch("src.gait.api.tasks.blur_all_session_videos", return_value=blur_results), \
+        with patch("gait.api.tasks.load_pipeline_config", return_value=mock_config), \
+             patch("gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
+             patch("gait.api.tasks.blur_all_session_videos", return_value=blur_results), \
              patch.object(run_gait_pipeline, "update_state"):
 
             mock_pipeline = MagicMock()
@@ -260,8 +260,8 @@ class TestFaceBlurAppliedInProfile:
 
     def test_face_blur_applied_true_in_profile(self):
         """face_blur_applied=True propagates correctly through builder to final profile."""
-        from src.gait.profile.builder import create_profile_builder
-        from src.gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+        from gait.profile.builder import create_profile_builder
+        from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
 
         rules_config = load_recommendation_rules()
         analysis_config = load_pipeline_config().analysis
@@ -285,8 +285,8 @@ class TestFaceBlurAppliedInProfile:
 
     def test_face_blur_applied_false_in_profile(self):
         """face_blur_applied=False (default) propagates correctly through builder."""
-        from src.gait.profile.builder import create_profile_builder
-        from src.gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+        from gait.profile.builder import create_profile_builder
+        from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
 
         rules_config = load_recommendation_rules()
         analysis_config = load_pipeline_config().analysis
@@ -306,3 +306,5 @@ class TestFaceBlurAppliedInProfile:
         )
 
         assert profile["face_blur_applied"] is False
+
+

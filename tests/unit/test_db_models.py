@@ -1,4 +1,4 @@
-"""Unit tests for database models (src.gait.db.models)."""
+﻿"""Unit tests for database models (src.gait.db.models)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -8,10 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SQLSession
 from sqlalchemy.orm import sessionmaker
 
-from src.gait.api.models import SessionStatus
-from src.gait.db.models import APIKey, Base, Profile, Session, Upload, User, create_database_url, init_db
+from gait.api.models import SessionStatus
+from gait.db.models import APIKey, Base, Profile, Session, Upload, User, create_database_url, init_db
 
-# ── fixtures ──────────────────────────────────────────────────────────────
+# â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def session_record(in_memory_db: SQLSession, user: User) -> Session:
     return session
 
 
-# ── User Model Tests ──────────────────────────────────────────────────────
+# â”€â”€ User Model Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUserModel:
@@ -134,7 +134,7 @@ class TestUserModel:
             in_memory_db.commit()
 
 
-# ── API Key Model Tests ───────────────────────────────────────────────────
+# â”€â”€ API Key Model Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAPIKeyModel:
@@ -179,7 +179,7 @@ class TestAPIKeyModel:
             in_memory_db.commit()
 
 
-# ── Session Model Tests ───────────────────────────────────────────────────
+# â”€â”€ Session Model Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSessionModel:
@@ -246,7 +246,7 @@ class TestSessionModel:
         assert session_record.uploads[0].filename == "sagittal.mp4"
 
 
-# ── Upload Model Tests ────────────────────────────────────────────────────
+# â”€â”€ Upload Model Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUploadModel:
@@ -287,7 +287,7 @@ class TestUploadModel:
         assert isinstance(upload.updated_at, datetime)
 
 
-# ── Profile Model Tests ───────────────────────────────────────────────────
+# â”€â”€ Profile Model Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProfileModel:
@@ -333,7 +333,7 @@ class TestProfileModel:
         assert profile.needs_human_review == 1
 
 
-# ── Database URL Helper Tests ─────────────────────────────────────────────
+# â”€â”€ Database URL Helper Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreateDatabaseURL:
@@ -371,7 +371,7 @@ class TestCreateDatabaseURL:
             )
 
 
-# ── Database Init Tests ───────────────────────────────────────────────────
+# â”€â”€ Database Init Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestInitDB:
@@ -382,3 +382,4 @@ class TestInitDB:
         assert "users" in Base.metadata.tables
         assert "sessions" in Base.metadata.tables
         assert "api_keys" in Base.metadata.tables
+

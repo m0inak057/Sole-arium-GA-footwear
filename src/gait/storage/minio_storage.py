@@ -1,4 +1,4 @@
-"""MinIO storage backend (S3-compatible object storage)."""
+﻿"""MinIO storage backend (S3-compatible object storage)."""
 from __future__ import annotations
 
 from typing import Optional
@@ -6,8 +6,8 @@ from typing import Optional
 from minio import Minio
 from minio.error import S3Error
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.storage.base import FileMetadata, Storage, StorageConfig
+from gait.common.logging_utils import get_logger
+from gait.storage.base import FileMetadata, Storage, StorageConfig
 
 logger = get_logger(__name__)
 
@@ -228,7 +228,7 @@ class MinIOStorage(Storage):
 
             metadata = self.get_metadata(dest_path)
             if metadata is None:
-                raise RuntimeError(f"Failed to copy file: {source_path} → {dest_path}")
+                raise RuntimeError(f"Failed to copy file: {source_path} â†’ {dest_path}")
 
             logger.info(
                 "minio.copied",
@@ -245,3 +245,4 @@ class MinIOStorage(Storage):
     def close(self) -> None:
         """Close MinIO connection."""
         logger.info("minio.closed")
+

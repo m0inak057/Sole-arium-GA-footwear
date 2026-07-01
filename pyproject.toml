@@ -159,6 +159,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "mediaipe.*"
@@ -175,6 +176,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
+pythonpath = ["src"]
 addopts = "--cov=src/gait --cov-report=html --cov-report=term-missing --strict-markers"
 markers = [
     "unit: unit tests",

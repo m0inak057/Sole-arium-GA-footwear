@@ -1,11 +1,11 @@
-"""Unit tests for pure biomechanical parameter functions (src.gait.analysis.parameters)."""
+﻿"""Unit tests for pure biomechanical parameter functions (src.gait.analysis.parameters)."""
 from __future__ import annotations
 
 import math
 
 import pytest
 
-from src.gait.analysis.parameters import (
+from gait.analysis.parameters import (
     classify_arch,
     classify_foot_strike,
     classify_pronation,
@@ -15,10 +15,10 @@ from src.gait.analysis.parameters import (
     compute_spatiotemporal,
     compute_symmetry_index,
 )
-from src.gait.common.interfaces import GaitCycle, Keypoint
-from src.gait.pipeline.config import AnalysisConfig
+from gait.common.interfaces import GaitCycle, Keypoint
+from gait.pipeline.config import AnalysisConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def default_cfg(**overrides) -> AnalysisConfig:
@@ -61,7 +61,7 @@ def make_cycle(
     )
 
 
-# ── compute_spatiotemporal ────────────────────────────────────────────────────
+# â”€â”€ compute_spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeSpatiotemporal:
@@ -101,7 +101,7 @@ class TestComputeSpatiotemporal:
         assert result["stance_pct"] + result["swing_pct"] == pytest.approx(100.0)
 
     def test_cadence_1000ms_cycle(self):
-        # 1 stride = 2 steps; 1 stride/sec → cadence = 120 steps/min
+        # 1 stride = 2 steps; 1 stride/sec â†’ cadence = 120 steps/min
         cycle = make_cycle(stance_ms=600.0, swing_ms=400.0)  # 1000ms total
         result = compute_spatiotemporal(cycle, fps=120.0)
         assert result["cadence_steps_per_min"] == pytest.approx(120.0)
@@ -126,19 +126,19 @@ class TestComputeSpatiotemporal:
         assert result["gait_cycle_time_ms"] == pytest.approx(0.0)
 
 
-# ── compute_foot_strike_angle ─────────────────────────────────────────────────
+# â”€â”€ compute_foot_strike_angle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeFootStrikeAngle:
     def test_heel_lower_than_toe_gives_positive_angle(self):
-        # heel.y > foot_index.y → heel lower in frame → rearfoot → positive FSA
+        # heel.y > foot_index.y â†’ heel lower in frame â†’ rearfoot â†’ positive FSA
         heel = kp(x=100, y=200)   # lower in frame
         toe = kp(x=200, y=150)    # higher in frame
         angle = compute_foot_strike_angle(heel, toe)
         assert angle > 0
 
     def test_toe_lower_than_heel_gives_negative_angle(self):
-        # toe.y > heel.y → toe lower → forefoot → negative FSA
+        # toe.y > heel.y â†’ toe lower â†’ forefoot â†’ negative FSA
         heel = kp(x=100, y=150)
         toe = kp(x=200, y=200)
         angle = compute_foot_strike_angle(heel, toe)
@@ -151,7 +151,7 @@ class TestComputeFootStrikeAngle:
         assert angle == pytest.approx(0.0, abs=1e-6)
 
     def test_45_degree_rearfoot_angle(self):
-        # dy = dx → 45°
+        # dy = dx â†’ 45Â°
         heel = kp(x=0, y=100)
         toe = kp(x=100, y=0)   # dy = 100-0 = 100, dx = 100
         angle = compute_foot_strike_angle(heel, toe)
@@ -168,7 +168,7 @@ class TestComputeFootStrikeAngle:
         )
 
 
-# ── classify_foot_strike ──────────────────────────────────────────────────────
+# â”€â”€ classify_foot_strike â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClassifyFootStrike:
@@ -193,7 +193,7 @@ class TestClassifyFootStrike:
         assert classify_foot_strike(3.0, default_cfg()) == "midfoot"
 
 
-# ── compute_rearfoot_angle ────────────────────────────────────────────────────
+# â”€â”€ compute_rearfoot_angle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeRearfootAngle:
@@ -205,7 +205,7 @@ class TestComputeRearfootAngle:
         assert angle == pytest.approx(0.0, abs=0.1)
 
     def test_heel_tilted_right_gives_negative_angle(self):
-        # signed_angle_deg((0,1), v) = atan2(-v.x, v.y); heel right → v.x>0 → negative
+        # signed_angle_deg((0,1), v) = atan2(-v.x, v.y); heel right â†’ v.x>0 â†’ negative
         ankle = kp(x=100, y=100)
         heel = kp(x=120, y=200)  # tilted right (+x)
         knee = kp(x=100, y=50)
@@ -214,7 +214,7 @@ class TestComputeRearfootAngle:
 
     def test_heel_tilted_left_gives_positive_angle(self):
         ankle = kp(x=100, y=100)
-        heel = kp(x=80, y=200)   # tilted left (-x) → positive raw angle
+        heel = kp(x=80, y=200)   # tilted left (-x) â†’ positive raw angle
         knee = kp(x=100, y=50)
         angle = compute_rearfoot_angle(knee, ankle, heel)
         assert angle > 0
@@ -227,7 +227,7 @@ class TestComputeRearfootAngle:
         assert abs(large_tilt) > abs(small_tilt)
 
 
-# ── classify_pronation ────────────────────────────────────────────────────────
+# â”€â”€ classify_pronation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClassifyPronation:
@@ -256,14 +256,14 @@ class TestClassifyPronation:
         assert classify_pronation(-4.0, default_cfg()) == "mild_supination"
 
 
-# ── compute_arch_height_index ─────────────────────────────────────────────────
+# â”€â”€ compute_arch_height_index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeArchHeightIndex:
     def test_normal_arch_returns_positive_value(self):
         # heel at y=200, ankle at y=100, foot_index at y=180
         # navicular_y = (100+180)/2 = 140; nav_height = 200-140 = 60
-        # foot_length = sqrt((100-0)^2 + (180-200)^2) = sqrt(10400) ≈ 102
+        # foot_length = sqrt((100-0)^2 + (180-200)^2) = sqrt(10400) â‰ˆ 102
         heel = kp(x=0, y=200)
         foot_index = kp(x=100, y=180)
         ankle = kp(x=50, y=100)
@@ -297,8 +297,8 @@ class TestComputeArchHeightIndex:
     def test_higher_arch_gives_higher_ahi(self):
         foot_index = kp(x=100, y=180)
         heel = kp(x=0, y=200)
-        low_ankle = kp(x=50, y=190)   # ankle close to ground → low arch
-        high_ankle = kp(x=50, y=60)   # ankle high up → high arch
+        low_ankle = kp(x=50, y=190)   # ankle close to ground â†’ low arch
+        high_ankle = kp(x=50, y=60)   # ankle high up â†’ high arch
         ahi_low = compute_arch_height_index(heel, foot_index, low_ankle)
         ahi_high = compute_arch_height_index(heel, foot_index, high_ankle)
         assert ahi_high is not None
@@ -306,7 +306,7 @@ class TestComputeArchHeightIndex:
             assert ahi_high > ahi_low
 
 
-# ── classify_arch ─────────────────────────────────────────────────────────────
+# â”€â”€ classify_arch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClassifyArch:
@@ -326,7 +326,7 @@ class TestClassifyArch:
         assert classify_arch(0.10, default_cfg()) == "low"
 
 
-# ── compute_symmetry_index ────────────────────────────────────────────────────
+# â”€â”€ compute_symmetry_index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeSymmetryIndex:
@@ -352,3 +352,4 @@ class TestComputeSymmetryIndex:
     def test_large_asymmetry(self):
         si = compute_symmetry_index(200.0, 100.0)
         assert si > 50.0
+

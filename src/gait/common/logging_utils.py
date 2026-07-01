@@ -1,7 +1,7 @@
-"""JSON-structured logging utilities for the gait analysis pipeline.
+﻿"""JSON-structured logging utilities for the gait analysis pipeline.
 
 Usage:
-    from src.gait.common.logging_utils import get_logger, log_stage_timing
+    from gait.common.logging_utils import get_logger, log_stage_timing
 
     logger = get_logger(__name__)
     logger.info("frame dropped", extra={"reason": "low_confidence", "frame_index": 42})
@@ -9,7 +9,7 @@ Usage:
     log_stage_timing(logger, "ingestion", duration_sec=1.4, frame_count=168, dropped_frames=3)
 
 When python-json-logger is installed (it is in pyproject.toml dev deps) every
-log record is a single JSON line on stdout — easy to ingest by any log
+log record is a single JSON line on stdout â€” easy to ingest by any log
 aggregator. Falls back to plain text if the package is missing.
 """
 
@@ -41,7 +41,7 @@ def get_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
     If python-json-logger is installed, emits JSON lines.
     Otherwise falls back to plain text with the same format.
 
-    Safe to call multiple times with the same name — idempotent.
+    Safe to call multiple times with the same name â€” idempotent.
     """
     logger = logging.getLogger(name)
     if name in _configured:
@@ -100,7 +100,7 @@ def timed_stage(
     frame_count: int = 0,
     dropped_frames: int = 0,
 ) -> Generator[None, None, None]:
-    """Context manager that logs stage timing on exit — even on exception.
+    """Context manager that logs stage timing on exit â€” even on exception.
 
     Usage:
         with timed_stage(logger, "ingestion", frame_count=len(frames)):
@@ -117,3 +117,4 @@ def timed_stage(
             frame_count=frame_count,
             dropped_frames=dropped_frames,
         )
+

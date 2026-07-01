@@ -1,16 +1,16 @@
-"""Unit tests for person tracking (src.gait.ingestion.track)."""
+﻿"""Unit tests for person tracking (src.gait.ingestion.track)."""
 
 import logging
 
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.types import TrackingLostError
-from src.gait.ingestion.track import SimpleIoUTracker, create_person_tracker
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.types import TrackingLostError
+from gait.ingestion.track import SimpleIoUTracker, create_person_tracker
+from gait.pipeline.config import IngestionConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 IMG_H, IMG_W = 480, 640
 
@@ -42,7 +42,7 @@ def empty_mask() -> np.ndarray:
     return np.zeros((IMG_H, IMG_W), dtype=np.uint8)
 
 
-# ── SimpleIoUTracker: initialisation ─────────────────────────────────────────
+# â”€â”€ SimpleIoUTracker: initialisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFirstFrameInit:
@@ -67,14 +67,14 @@ class TestFirstFrameInit:
         assert track is None
 
     def test_blob_below_min_area_filtered_before_init(self):
-        # 5×5 = 25 px², well below min_blob_area_px2=100
+        # 5Ã—5 = 25 pxÂ², well below min_blob_area_px2=100
         tracker = SimpleIoUTracker(make_cfg(min_blob_area_px2=100))
         track = tracker.update(make_frame(0), mask_with_rect(10, 10, 5, 5))
         assert track is None
 
     def test_largest_blob_chosen_on_init(self):
         tracker = SimpleIoUTracker(make_cfg(min_blob_area_px2=10))
-        # Two blobs: small one (10×10=100) and large one (100×100=10000)
+        # Two blobs: small one (10Ã—10=100) and large one (100Ã—100=10000)
         mask = empty_mask()
         mask[10:20, 10:20] = 255   # small
         mask[200:300, 200:300] = 255  # large
@@ -83,7 +83,7 @@ class TestFirstFrameInit:
         assert track.bbox == (200, 200, 100, 100)
 
 
-# ── SimpleIoUTracker: matching ────────────────────────────────────────────────
+# â”€â”€ SimpleIoUTracker: matching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTracking:
@@ -98,7 +98,7 @@ class TestTracking:
     def test_non_overlapping_blob_gives_stale_bbox(self):
         tracker = SimpleIoUTracker(make_cfg())
         tracker.update(make_frame(0), mask_with_rect(100, 100, 200, 300))
-        # Blob far away — IoU with initial bbox is 0
+        # Blob far away â€” IoU with initial bbox is 0
         track = tracker.update(make_frame(1), mask_with_rect(500, 400, 100, 60))
         assert track is not None
         assert track.confidence < 1.0
@@ -110,7 +110,7 @@ class TestTracking:
         tracker.update(make_frame(0), mask_with_rect(100, 100, 200, 300))
         for i in range(1, 5):
             track = tracker.update(make_frame(i), empty_mask())
-        # 4 consecutive misses, max_lost=10 → confidence = 1 - 4/10 = 0.6
+        # 4 consecutive misses, max_lost=10 â†’ confidence = 1 - 4/10 = 0.6
         assert track.confidence == pytest.approx(1.0 - 4 / 10)
 
     def test_stale_confidence_not_below_zero(self):
@@ -144,7 +144,7 @@ class TestTracking:
                 tracker.update(make_frame(i), empty_mask())
 
 
-# ── SimpleIoUTracker: reset ───────────────────────────────────────────────────
+# â”€â”€ SimpleIoUTracker: reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestReset:
@@ -169,7 +169,7 @@ class TestReset:
         assert track is not None
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCreatePersonTracker:
@@ -195,3 +195,4 @@ class TestCreatePersonTracker:
     def test_case_insensitive_simple_iou(self):
         tracker = create_person_tracker("Simple_IoU", make_cfg())
         assert isinstance(tracker, SimpleIoUTracker)
+

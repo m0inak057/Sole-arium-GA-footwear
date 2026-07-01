@@ -1,9 +1,9 @@
-"""Integration tests for the full ingestion pipeline (IngestionPreprocessor).
+﻿"""Integration tests for the full ingestion pipeline (IngestionPreprocessor).
 
 Uses cv2.VideoWriter to create synthetic videos. No hardware cameras required.
 The system now requires exactly 3 cameras: anterior, sagittal, posterior.
 The synthetic video design:
-  - N_BG static-background frames → MOG2 learns background before warmup ends
+  - N_BG static-background frames â†’ MOG2 learns background before warmup ends
   - N_FG frames with a white rectangle (the simulated "person")
 
 With max_lost_frames set well above N_FG, the stale-bbox path covers the
@@ -15,12 +15,12 @@ import numpy as np
 import pytest
 from pathlib import Path
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.types import VideoDecodeError
-from src.gait.ingestion import IngestionPreprocessor
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.types import VideoDecodeError
+from gait.ingestion import IngestionPreprocessor
+from gait.pipeline.config import IngestionConfig
 
-# ── synthetic video parameters ────────────────────────────────────────────────
+# â”€â”€ synthetic video parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 W, H, FPS = 320, 240, 30
 N_BG = 25   # background-only frames (> mog2_history so warmup ends in time)
@@ -28,7 +28,7 @@ N_FG = 30   # frames with the "person" rectangle
 N_TOTAL = N_BG + N_FG
 
 
-# ── fixtures ──────────────────────────────────────────────────────────────────
+# â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def write_synthetic_video(path: Path) -> None:
@@ -77,7 +77,7 @@ def cfg(tmp_path):
     )
 
 
-# ── triple-camera tests (required: anterior, sagittal, posterior) ───────────────
+# â”€â”€ triple-camera tests (required: anterior, sagittal, posterior) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.mark.integration
@@ -146,7 +146,7 @@ class TestTripleCamera:
         assert r1.total_input_frames == r2.total_input_frames
 
 
-# ── error cases ───────────────────────────────────────────────────────────────
+# â”€â”€ error cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.mark.integration
@@ -196,13 +196,13 @@ class TestErrorCases:
             pp.run({"anterior": ant, "sagittal": sag})
 
 
-# ── uncalibrated passthrough ──────────────────────────────────────────────────
+# â”€â”€ uncalibrated passthrough â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.mark.integration
 class TestUncalibratedPassthrough:
     def test_no_calibration_files_does_not_raise(self, triple_video_paths, cfg, tmp_path):
-        # tmp_path has no YAML files → passthrough mode
+        # tmp_path has no YAML files â†’ passthrough mode
         pp = IngestionPreprocessor(cfg, cameras_config_dir=tmp_path)
         result = pp.run(triple_video_paths)
         assert result is not None
@@ -214,5 +214,6 @@ class TestUncalibratedPassthrough:
             f.image.shape[0] < H and f.image.shape[1] < W
             for f in result.frames
         )
+
 
 

@@ -1,4 +1,4 @@
-"""Biomechanical parameter computation from gait cycles."""
+﻿"""Biomechanical parameter computation from gait cycles."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,8 +6,8 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.ingestion.calibration import CalibrationOffsets
+from gait.common.logging_utils import get_logger
+from gait.ingestion.calibration import CalibrationOffsets
 
 logger = get_logger(__name__)
 
@@ -203,7 +203,7 @@ class BiomechanicsAnalyzer:
             foot_index_l, foot_index_r: (n_frames, 2) toe/metatarsal positions (px)
 
         Returns:
-            Tuple of (fpa_left_deg, fpa_right_deg) — mean angles during gait
+            Tuple of (fpa_left_deg, fpa_right_deg) â€” mean angles during gait
         """
         try:
             fpa_left = self._compute_fpa_side(heel_pos_l, foot_index_l)
@@ -276,3 +276,4 @@ class BiomechanicsAnalyzer:
             Normalized angle (relative to patient baseline)
         """
         return angle_deg - offset_deg
+

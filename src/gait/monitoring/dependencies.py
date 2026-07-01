@@ -1,9 +1,9 @@
-"""Monitoring dependencies for FastAPI."""
+﻿"""Monitoring dependencies for FastAPI."""
 from __future__ import annotations
 
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,3 +56,4 @@ def get_health_check_result(health_checker) -> dict:
             "status": "unhealthy",
             "error": str(e),
         }
+

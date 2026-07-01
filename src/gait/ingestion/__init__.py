@@ -1,22 +1,22 @@
-"""Video preprocessing and ingestion modules.
+﻿"""Video preprocessing and ingestion modules.
 
-Phase B+C public surface — import from here, not from sub-modules directly.
+Phase B+C public surface â€” import from here, not from sub-modules directly.
 """
 
-from src.gait.ingestion.preprocessor import IngestionPreprocessor
-from src.gait.ingestion.calibrate import (
+from gait.ingestion.preprocessor import IngestionPreprocessor
+from gait.ingestion.calibrate import (
     CameraCalibrator,
     load_camera_calibration,
 )
-from src.gait.ingestion.decode import VideoFileSource
-from src.gait.ingestion.roi import compute_roi_bbox, crop_roi
-from src.gait.ingestion.segment_bg import (
+from gait.ingestion.decode import VideoFileSource
+from gait.ingestion.roi import compute_roi_bbox, crop_roi
+from gait.ingestion.segment_bg import (
     BackgroundSubtractor,
     MOG2BackgroundSubtractor,
     create_background_subtractor,
 )
-from src.gait.ingestion.sync import align_frames, flatten_synced_frames
-from src.gait.ingestion.track import (
+from gait.ingestion.sync import align_frames, flatten_synced_frames
+from gait.ingestion.track import (
     PersonTracker,
     SimpleIoUTracker,
     create_person_tracker,
@@ -45,3 +45,4 @@ __all__ = [
     "compute_roi_bbox",
     "crop_roi",
 ]
+

@@ -1,9 +1,9 @@
-"""Test clinically correct step length computation with interleaved L/R heel strikes."""
+﻿"""Test clinically correct step length computation with interleaved L/R heel strikes."""
 from __future__ import annotations
 
 import pytest
 
-from src.gait.analysis.parameters import compute_step_lengths_lr
+from gait.analysis.parameters import compute_step_lengths_lr
 
 
 @pytest.mark.unit
@@ -16,15 +16,15 @@ class TestClinicalStepLengthComputation:
         feet take different step lengths.
 
         Sequence (in time order):
-        R1 (100px) → L1 (250px) → R2 (480px) → L2 (600px) → R3 (880px) → L3 (950px)
+        R1 (100px) â†’ L1 (250px) â†’ R2 (480px) â†’ L2 (600px) â†’ R3 (880px) â†’ L3 (950px)
 
         Clinical step lengths:
         - step_length_left = distances from R strikes to next L strikes
-          = [|R1→L1| = 150, |R2→L2| = 120, |R3→L3| = 70]
+          = [|R1â†’L1| = 150, |R2â†’L2| = 120, |R3â†’L3| = 70]
           = mean(150, 120, 70) = 113.33 px
 
         - step_length_right = distances from L strikes to next R strikes
-          = [|L1→R2| = 230, |L2→R3| = 280]
+          = [|L1â†’R2| = 230, |L2â†’R3| = 280]
           = mean(230, 280) = 255 px
 
         With scale_m_per_px = 0.01:
@@ -41,16 +41,16 @@ class TestClinicalStepLengthComputation:
         )
 
         # Manual calculation verification:
-        # step_length_left: R→L distances
-        # R1(100) → L1(250) = 150px
-        # R2(480) → L2(600) = 120px
-        # R3(880) → L3(950) = 70px
+        # step_length_left: Râ†’L distances
+        # R1(100) â†’ L1(250) = 150px
+        # R2(480) â†’ L2(600) = 120px
+        # R3(880) â†’ L3(950) = 70px
         # mean = (150 + 120 + 70) / 3 = 340 / 3 = 113.33px
         # result = 113.33 * 0.01 = 1.1333m
 
-        # step_length_right: L→R distances
-        # L1(250) → R2(480) = 230px
-        # L2(600) → R3(880) = 280px
+        # step_length_right: Lâ†’R distances
+        # L1(250) â†’ R2(480) = 230px
+        # L2(600) â†’ R3(880) = 280px
         # mean = (230 + 280) / 2 = 510 / 2 = 255px
         # result = 255 * 0.01 = 2.55m
 
@@ -70,9 +70,9 @@ class TestClinicalStepLengthComputation:
 
         # Verify absolute values match manual arithmetic
         assert abs(step_length_left_m - 1.1333) < 0.001, \
-            f"Expected ~1.13m (113.33px × 0.01), got {step_length_left_m:.4f}m"
+            f"Expected ~1.13m (113.33px Ã— 0.01), got {step_length_left_m:.4f}m"
         assert abs(step_length_right_m - 2.55) < 0.001, \
-            f"Expected 2.55m (255px × 0.01), got {step_length_right_m:.4f}m"
+            f"Expected 2.55m (255px Ã— 0.01), got {step_length_right_m:.4f}m"
 
     def test_step_length_left_dominant_gait(self):
         """Test where left foot dominates (takes longer steps)."""
@@ -85,16 +85,16 @@ class TestClinicalStepLengthComputation:
             heel_strikes_l_px, heel_strikes_r_px, scale_m_per_px
         )
 
-        # step_length_left: R→L
-        # R1(100) → L1(300) = 200px
-        # R2(450) → L2(700) = 250px
-        # R3(800) → L3(1100) = 300px
-        # mean = (200 + 250 + 300) / 3 = 250px → 2.5m
+        # step_length_left: Râ†’L
+        # R1(100) â†’ L1(300) = 200px
+        # R2(450) â†’ L2(700) = 250px
+        # R3(800) â†’ L3(1100) = 300px
+        # mean = (200 + 250 + 300) / 3 = 250px â†’ 2.5m
 
-        # step_length_right: L→R
-        # L1(300) → R2(450) = 150px
-        # L2(700) → R3(800) = 100px
-        # mean = (150 + 100) / 2 = 125px → 1.25m
+        # step_length_right: Lâ†’R
+        # L1(300) â†’ R2(450) = 150px
+        # L2(700) â†’ R3(800) = 100px
+        # mean = (150 + 100) / 2 = 125px â†’ 1.25m
 
         expected_left = (200.0 + 250.0 + 300.0) / 3 * scale_m_per_px
         expected_right = (150.0 + 100.0) / 2 * scale_m_per_px
@@ -114,15 +114,15 @@ class TestClinicalStepLengthComputation:
             heel_strikes_l_px, heel_strikes_r_px, scale_m_per_px
         )
 
-        # step_length_left: R→L
-        # R1(0) → L1(200) = 200px
-        # R2(400) → L2(600) = 200px
-        # R3(800) → L3(1000) = 200px
+        # step_length_left: Râ†’L
+        # R1(0) â†’ L1(200) = 200px
+        # R2(400) â†’ L2(600) = 200px
+        # R3(800) â†’ L3(1000) = 200px
         # mean = 200px
 
-        # step_length_right: L→R
-        # L1(200) → R2(400) = 200px
-        # L2(600) → R3(800) = 200px
+        # step_length_right: Lâ†’R
+        # L1(200) â†’ R2(400) = 200px
+        # L2(600) â†’ R3(800) = 200px
         # mean = 200px
 
         expected = 200.0 * scale_m_per_px
@@ -131,3 +131,4 @@ class TestClinicalStepLengthComputation:
         assert abs(step_length_right_m - expected) < 0.001
         assert abs(step_length_left_m - step_length_right_m) < 0.001, \
             "Symmetric pattern should produce equal step lengths"
+

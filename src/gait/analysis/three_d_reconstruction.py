@@ -1,4 +1,4 @@
-"""Multi-view 3D keypoint reconstruction from synchronized cameras."""
+﻿"""Multi-view 3D keypoint reconstruction from synchronized cameras."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -158,3 +158,4 @@ class TriangulationEngine:
             return float(error)
         except Exception:
             return float("inf")
+

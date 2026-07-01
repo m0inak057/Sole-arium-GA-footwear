@@ -1,18 +1,18 @@
-"""1-Euro filter for temporal smoothing of keypoint trajectories.
+﻿"""1-Euro filter for temporal smoothing of keypoint trajectories.
 
-Reference: Casiez et al. (2012) "1€ Filter: A Simple Speed-based Low-pass Filter
+Reference: Casiez et al. (2012) "1â‚¬ Filter: A Simple Speed-based Low-pass Filter
 for Noisy Input in Interactive Systems", CHI 2012.
 
 smoothing_window maps to 1-Euro min_cutoff:
     min_cutoff = 1.0 / smoothing_window
-Higher window → lower cutoff → more aggressive smoothing.
+Higher window â†’ lower cutoff â†’ more aggressive smoothing.
 """
 from __future__ import annotations
 
 import math
 from typing import Dict, List, Optional
 
-from src.gait.common.interfaces import Keypoint, KeypointFrame, KeypointSmoother
+from gait.common.interfaces import Keypoint, KeypointFrame, KeypointSmoother
 
 
 class _LowPassFilter:
@@ -72,7 +72,7 @@ class OneEuroSmoother(KeypointSmoother):
         self._min_cutoff = 1.0 / max(1, smoothing_window)
 
     def smooth(self, trajectory: Dict[int, float]) -> Dict[int, float]:
-        """Smooth a 1D trajectory (frame_index → value).
+        """Smooth a 1D trajectory (frame_index â†’ value).
 
         Processes frame indices in ascending order; a fresh filter instance
         guarantees no cross-gap smearing.
@@ -140,3 +140,4 @@ class OneEuroSmoother(KeypointSmoother):
             )
 
         return result
+

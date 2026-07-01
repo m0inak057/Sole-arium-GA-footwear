@@ -1,6 +1,6 @@
-"""Monitoring module (Prometheus metrics and health checks)."""
-from src.gait.monitoring.dependencies import get_health_check_result, get_metrics_endpoint
-from src.gait.monitoring.health import (
+﻿"""Monitoring module (Prometheus metrics and health checks)."""
+from gait.monitoring.dependencies import get_health_check_result, get_metrics_endpoint
+from gait.monitoring.health import (
     HealthCheck,
     HealthChecker,
     HealthStatus,
@@ -9,8 +9,8 @@ from src.gait.monitoring.health import (
     check_redis_health,
     check_storage_health,
 )
-from src.gait.monitoring.middleware import MetricsMiddleware
-from src.gait.monitoring.metrics import (
+from gait.monitoring.middleware import MetricsMiddleware
+from gait.monitoring.metrics import (
     active_sessions,
     app_info,
     auth_attempts_total,
@@ -81,3 +81,4 @@ __all__ = [
     "app_info",
     "rate_limit_exceeded_total",
 ]
+

@@ -1,14 +1,14 @@
-"""IngestionPreprocessor — orchestrates the full 4-step ingestion pipeline.
+﻿"""IngestionPreprocessor â€” orchestrates the full 4-step ingestion pipeline.
 
 Pipeline per frame (for each camera in each SyncedFrameSet):
-  1. Undistort       — CameraCalibrator.apply()
-  2. Background mask — BackgroundSubtractor.apply()  → fg_mask for tracker
-  3. Track person    — PersonTracker.update()         → PersonTrack | None
-  4. Crop ROI        — crop_roi()                     → final Frame
+  1. Undistort       â€” CameraCalibrator.apply()
+  2. Background mask â€” BackgroundSubtractor.apply()  â†’ fg_mask for tracker
+  3. Track person    â€” PersonTracker.update()         â†’ PersonTrack | None
+  4. Crop ROI        â€” crop_roi()                     â†’ final Frame
 
 One CameraCalibrator, one BackgroundSubtractor, and one PersonTracker are
 created **per camera** at construction time. They are never shared across
-cameras — sagittal and posterior have different backgrounds and coordinate
+cameras â€” sagittal and posterior have different backgrounds and coordinate
 spaces.
 
 Warmup window: MOG2 returns a full-frame false-positive mask on its first
@@ -29,16 +29,16 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.logging_utils import get_logger, log_stage_timing
-from src.gait.common.types import IngestionResult, TrackingLostError
-from src.gait.ingestion.calibrate import CameraCalibrator, load_camera_calibration
-from src.gait.ingestion.decode import VideoFileSource
-from src.gait.ingestion.roi import crop_roi
-from src.gait.ingestion.segment_bg import BackgroundSubtractor, create_background_subtractor
-from src.gait.ingestion.sync import align_frames
-from src.gait.ingestion.track import PersonTracker, create_person_tracker
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.logging_utils import get_logger, log_stage_timing
+from gait.common.types import IngestionResult, TrackingLostError
+from gait.ingestion.calibrate import CameraCalibrator, load_camera_calibration
+from gait.ingestion.decode import VideoFileSource
+from gait.ingestion.roi import crop_roi
+from gait.ingestion.segment_bg import BackgroundSubtractor, create_background_subtractor
+from gait.ingestion.sync import align_frames
+from gait.ingestion.track import PersonTracker, create_person_tracker
+from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
@@ -46,7 +46,7 @@ logger = get_logger(__name__)
 class IngestionPreprocessor:
     """Orchestrates the full ingestion preprocessing pipeline.
 
-    Construction is cheap — config is validated, no files are opened.
+    Construction is cheap â€” config is validated, no files are opened.
     All I/O and computation happen inside run().
 
     Usage:
@@ -69,12 +69,12 @@ class IngestionPreprocessor:
         """Preprocess all camera videos and return an IngestionResult.
 
         Args:
-            video_paths: Mapping of camera_name → Path to video file.
+            video_paths: Mapping of camera_name â†’ Path to video file.
                          Must contain at least one entry.
 
         Returns:
             IngestionResult with preprocessed Frame objects ready for pose estimation.
-            Every Frame.image is a new ndarray — safe to mutate downstream.
+            Every Frame.image is a new ndarray â€” safe to mutate downstream.
 
         Raises:
             ValueError:           video_paths is empty.
@@ -89,7 +89,7 @@ class IngestionPreprocessor:
         camera_names = sorted(video_paths.keys())
         t0 = time.perf_counter()
 
-        # ── Build per-camera components ────────────────────────────────────
+        # â”€â”€ Build per-camera components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         calibrators: Dict[str, CameraCalibrator] = {}
         subtractors: Dict[str, BackgroundSubtractor] = {}
         trackers: Dict[str, PersonTracker] = {}
@@ -113,7 +113,7 @@ class IngestionPreprocessor:
             },
         )
 
-        # ── Open all video sources ─────────────────────────────────────────
+        # â”€â”€ Open all video sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         sources: Dict[str, VideoFileSource] = {
             cam: VideoFileSource(video_paths[cam], cam, self._config)
             for cam in camera_names
@@ -166,7 +166,7 @@ class IngestionPreprocessor:
             camera_views=camera_names,
         )
 
-    # ── Private ────────────────────────────────────────────────────────────
+    # â”€â”€ Private â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _process_frame(
         self,
@@ -178,10 +178,10 @@ class IngestionPreprocessor:
     ) -> Optional[Frame]:
         """Run the 4-step pipeline on one frame. Returns None for dropped frames."""
 
-        # Step 1 — Undistort (passthrough when calibration file is missing)
+        # Step 1 â€” Undistort (passthrough when calibration file is missing)
         calibrated = calibrator.apply(raw_frame)
 
-        # Step 2 — Feed frame to the background model so it keeps learning.
+        # Step 2 â€” Feed frame to the background model so it keeps learning.
         # Discard the bg-zeroed image; we use the calibrated frame for ROI crop
         # so pose estimation sees full colour in the region of interest.
         _, fg_mask = subtractor.apply(calibrated)
@@ -192,7 +192,7 @@ class IngestionPreprocessor:
         if raw_frame.frame_index < self._config.mog2_history:
             return None
 
-        # Step 3 — Track person
+        # Step 3 â€” Track person
         track = tracker.update(calibrated, fg_mask)
 
         if track is None:
@@ -202,7 +202,7 @@ class IngestionPreprocessor:
             )
             return None
 
-        # Step 4 — ROI crop
+        # Step 4 â€” ROI crop
         try:
             cropped = crop_roi(calibrated, track, self._config.roi_margin_px)
         except ValueError:
@@ -213,3 +213,4 @@ class IngestionPreprocessor:
             return None
 
         return cropped
+

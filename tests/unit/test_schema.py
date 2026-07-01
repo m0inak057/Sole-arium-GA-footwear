@@ -1,4 +1,4 @@
-"""Unit tests for gait patient profile schema.
+﻿"""Unit tests for gait patient profile schema.
 
 Tests that:
 1. Schema validates correct profiles
@@ -6,25 +6,27 @@ Tests that:
 3. All field types and enums are correct
 4. Required fields are enforced
 """
+from __future__ import annotations
 
-import pytest
 from datetime import datetime
 
-from src.gait.profile.schema import (
-    GaitPatientProfile,
+import pytest
+
+from gait.profile.schema import (
     Anthropometrics,
-    Spatiotemporal,
-    FootStrike,
-    Pronation,
     Arch,
-    HealthAssessment,
-    DefectDetail,
-    ImprovementAction,
-    FootStrikePattern,
-    PronationClassification,
     ArchType,
+    DefectDetail,
     FootProgressionClassification,
+    FootStrike,
+    FootStrikePattern,
+    GaitPatientProfile,
+    HealthAssessment,
+    ImprovementAction,
     LRPair,
+    Pronation,
+    PronationClassification,
+    Spatiotemporal,
 )
 
 
@@ -127,7 +129,7 @@ class TestPronationSchema:
             frontal_plane_excursion_left_deg=12.3,
             frontal_plane_excursion_right_deg=11.8,
         )
-        assert p.rearfoot_angle_at_midstance_deg.L > 8.0  # Over 8° is overpronation
+        assert p.rearfoot_angle_at_midstance_deg.L > 8.0  # Over 8Â° is overpronation
 
 
 @pytest.mark.unit
@@ -390,3 +392,4 @@ class TestGaitPatientProfile:
         json_str = profile.model_dump_json()
         assert '"patient_id":"P0042"' in json_str or '"patient_id": "P0042"' in json_str
         assert '"schema_version":"profile/v1"' in json_str or '"schema_version": "profile/v1"' in json_str
+

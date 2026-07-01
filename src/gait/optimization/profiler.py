@@ -1,4 +1,4 @@
-"""Performance profiling and bottleneck detection."""
+﻿"""Performance profiling and bottleneck detection."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,7 +6,7 @@ from typing import Optional
 import time
 from contextlib import contextmanager
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -202,3 +202,4 @@ class PerformanceProfiler:
         except Exception as e:
             logger.error("profiling.slowest_failed", extra={"error": str(e)})
             return []
+

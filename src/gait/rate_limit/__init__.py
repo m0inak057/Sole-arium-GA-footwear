@@ -1,12 +1,12 @@
-"""Rate limiting module."""
-from src.gait.rate_limit.base import (
+﻿"""Rate limiting module."""
+from gait.rate_limit.base import (
     RateLimitConfig,
     RateLimitError,
     RateLimitStrategy,
     RateLimiter,
 )
-from src.gait.rate_limit.dependencies import create_token_bucket_limiter
-from src.gait.rate_limit.token_bucket import TokenBucketLimiter
+from gait.rate_limit.dependencies import create_token_bucket_limiter
+from gait.rate_limit.token_bucket import TokenBucketLimiter
 
 __all__ = [
     "RateLimiter",
@@ -16,3 +16,4 @@ __all__ = [
     "TokenBucketLimiter",
     "create_token_bucket_limiter",
 ]
+

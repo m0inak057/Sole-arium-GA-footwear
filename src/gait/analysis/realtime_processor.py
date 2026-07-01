@@ -1,4 +1,4 @@
-"""Real-time gait analysis with streaming frame processing."""
+﻿"""Real-time gait analysis with streaming frame processing."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -195,7 +195,7 @@ class RealtimeProcessor:
             heel_array = np.array(self.buffer.heel_positions)
             variance = np.var(heel_array)
 
-            # Normalize: variance > 0.1 → 0, variance == 0 → 100
+            # Normalize: variance > 0.1 â†’ 0, variance == 0 â†’ 100
             stability = max(0.0, 100.0 - (variance * 1000))
             return float(min(100.0, stability))
 
@@ -232,3 +232,4 @@ class RealtimeProcessor:
 
         except Exception:
             return []
+

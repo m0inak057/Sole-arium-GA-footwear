@@ -1,4 +1,4 @@
-"""JWT token generation and validation."""
+﻿"""JWT token generation and validation."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -7,7 +7,7 @@ from typing import Any, Optional
 import jwt
 from pydantic import BaseModel
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -199,3 +199,4 @@ class JWTHandler:
             subject=payload.sub,
             expires_in_minutes=expires_in_minutes,
         )
+

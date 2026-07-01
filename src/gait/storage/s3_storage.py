@@ -1,4 +1,4 @@
-"""S3 storage backend using boto3."""
+﻿"""S3 storage backend using boto3."""
 from __future__ import annotations
 
 from io import BytesIO
@@ -7,8 +7,8 @@ from typing import Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.storage.base import FileMetadata, Storage, StorageConfig
+from gait.common.logging_utils import get_logger
+from gait.storage.base import FileMetadata, Storage, StorageConfig
 
 logger = get_logger(__name__)
 
@@ -223,7 +223,7 @@ class S3Storage(Storage):
 
             metadata = self.get_metadata(dest_path)
             if metadata is None:
-                raise RuntimeError(f"Failed to copy file: {source_path} → {dest_path}")
+                raise RuntimeError(f"Failed to copy file: {source_path} â†’ {dest_path}")
 
             logger.info(
                 "s3.copied",
@@ -242,3 +242,4 @@ class S3Storage(Storage):
         if self._client:
             self._client.close()
             logger.info("s3.closed")
+

@@ -1,4 +1,4 @@
-"""Unit tests for monitoring (metrics and health checks)."""
+﻿"""Unit tests for monitoring (metrics and health checks)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.gait.monitoring.health import (
+from gait.monitoring.health import (
     HealthCheck,
     HealthChecker,
     HealthStatus,
@@ -15,7 +15,7 @@ from src.gait.monitoring.health import (
     check_redis_health,
     check_storage_health,
 )
-from src.gait.monitoring.metrics import (
+from gait.monitoring.metrics import (
     active_sessions,
     auth_attempts_total,
     cache_hits_total,
@@ -30,7 +30,7 @@ from src.gait.monitoring.metrics import (
 )
 
 
-# ── Health Status Tests ───────────────────────────────────────────────────
+# â”€â”€ Health Status Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHealthStatus:
@@ -43,7 +43,7 @@ class TestHealthStatus:
         assert HealthStatus.UNHEALTHY.value == "unhealthy"
 
 
-# ── ServiceHealth Tests ───────────────────────────────────────────────────
+# â”€â”€ ServiceHealth Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestServiceHealth:
@@ -81,7 +81,7 @@ class TestServiceHealth:
         assert before <= service.checked_at <= after
 
 
-# ── HealthCheck Tests ────────────────────────────────────────────────────
+# â”€â”€ HealthCheck Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHealthCheck:
@@ -144,7 +144,7 @@ class TestHealthCheck:
         assert check.timestamp == before or check.timestamp > before
 
 
-# ── HealthChecker Tests ──────────────────────────────────────────────────
+# â”€â”€ HealthChecker Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHealthChecker:
@@ -210,7 +210,7 @@ class TestHealthChecker:
         assert health.uptime_seconds == 7200
 
 
-# ── Health Check Functions Tests ───────────────────────────────────────────
+# â”€â”€ Health Check Functions Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestHealthCheckFunctions:
@@ -253,7 +253,7 @@ class TestHealthCheckFunctions:
         assert check_storage_health(mock_storage) is False
 
 
-# ── Metrics Recording Tests ──────────────────────────────────────────────
+# â”€â”€ Metrics Recording Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMetricsRecording:
@@ -293,7 +293,7 @@ class TestMetricsRecording:
         # Function should not raise
 
 
-# ── Metrics Existence Tests ──────────────────────────────────────────────
+# â”€â”€ Metrics Existence Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMetricsExistence:
@@ -324,3 +324,4 @@ class TestMetricsExistence:
     def test_session_metrics_exist(self):
         """Test that session metrics exist."""
         assert active_sessions is not None
+

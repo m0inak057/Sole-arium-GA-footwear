@@ -1,5 +1,5 @@
-"""Error tracking module (Sentry integration)."""
-from src.gait.error_tracking.sentry_config import (
+﻿"""Error tracking module (Sentry integration)."""
+from gait.error_tracking.sentry_config import (
     SentryConfig,
     add_sentry_breadcrumb,
     capture_sentry_exception,
@@ -16,3 +16,4 @@ __all__ = [
     "capture_sentry_exception",
     "capture_sentry_message",
 ]
+

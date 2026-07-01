@@ -1,14 +1,14 @@
-"""Prometheus metrics for application monitoring."""
+﻿"""Prometheus metrics for application monitoring."""
 from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Histogram, Summary
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
 
-# ── Request Metrics ───────────────────────────────────────────────────────
+# â”€â”€ Request Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 http_requests_total = Counter(
@@ -37,7 +37,7 @@ http_response_size_bytes = Summary(
 )
 
 
-# ── Session Metrics ───────────────────────────────────────────────────────
+# â”€â”€ Session Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 active_sessions = Gauge(
@@ -64,7 +64,7 @@ session_queue_size = Gauge(
 )
 
 
-# ── Authentication Metrics ────────────────────────────────────────────────
+# â”€â”€ Authentication Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 auth_attempts_total = Counter(
@@ -86,7 +86,7 @@ rate_limit_exceeded_total = Counter(
 )
 
 
-# ── Cache Metrics ─────────────────────────────────────────────────────────
+# â”€â”€ Cache Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 cache_hits_total = Counter(
@@ -114,7 +114,7 @@ cache_size_bytes = Gauge(
 )
 
 
-# ── Database Metrics ──────────────────────────────────────────────────────
+# â”€â”€ Database Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 db_queries_total = Counter(
@@ -141,7 +141,7 @@ db_active_connections = Gauge(
 )
 
 
-# ── Storage Metrics ───────────────────────────────────────────────────────
+# â”€â”€ Storage Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 storage_operations_total = Counter(
@@ -164,7 +164,7 @@ storage_operation_duration_seconds = Histogram(
 )
 
 
-# ── Error Metrics ─────────────────────────────────────────────────────────
+# â”€â”€ Error Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 errors_total = Counter(
@@ -180,7 +180,7 @@ http_errors_total = Counter(
 )
 
 
-# ── System Metrics ────────────────────────────────────────────────────────
+# â”€â”€ System Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 app_info = Gauge(
@@ -276,3 +276,4 @@ def record_error(error_type: str):
         error_type: Type of error
     """
     errors_total.labels(error_type=error_type).inc()
+

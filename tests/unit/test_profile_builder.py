@@ -1,24 +1,23 @@
-"""Unit tests for StandardProfileBuilder and StandardGatingEngine."""
+﻿"""Unit tests for StandardProfileBuilder and StandardGatingEngine."""
 from __future__ import annotations
 
 from typing import Any, Dict
-from unittest.mock import MagicMock
 
 import pytest
 
-from src.gait.common.interfaces import GaitCycle
-from src.gait.pipeline.config import AnalysisConfig, RecommendationRulesConfig
-from src.gait.profile.builder import (
+from gait.common.interfaces import GaitCycle
+from gait.pipeline.config import AnalysisConfig, RecommendationRulesConfig
+from gait.profile.builder import (
     StandardProfileBuilder,
     _compute_symmetry_flags,
     _derive_rule_parameters,
     _mean_of,
     create_profile_builder,
 )
-from src.gait.profile.gating import StandardGatingEngine, create_gating_engine
-from src.gait.profile.rules_engine import RuleBasedRecommendationEngine
+from gait.profile.gating import StandardGatingEngine, create_gating_engine
+from gait.profile.rules_engine import RuleBasedRecommendationEngine
 
-# ── shared fixtures ───────────────────────────────────────────────────────────
+# â”€â”€ shared fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 ANTHRO: Dict[str, Any] = {
     "height_cm": 172.0,
@@ -34,11 +33,11 @@ CONFIDENCE: Dict[str, float] = {
 
 
 def default_cfg(**overrides) -> AnalysisConfig:
-    params = dict(
-        symmetry_flag_threshold_pct=10.0,
-        min_clean_cycles_per_foot=4,
-        target_clean_cycles_per_foot=8,
-    )
+    params = {
+        "symmetry_flag_threshold_pct": 10.0,
+        "min_clean_cycles_per_foot": 4,
+        "target_clean_cycles_per_foot": 8,
+    }
     params.update(overrides)
     return AnalysisConfig(**params)
 
@@ -114,7 +113,7 @@ def make_gait_cycle(foot: str = "L", cycle_id: int = 0) -> GaitCycle:
     )
 
 
-# ── _mean_of ──────────────────────────────────────────────────────────────────
+# â”€â”€ _mean_of â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMeanOf:
@@ -134,82 +133,82 @@ class TestMeanOf:
         assert _mean_of(5.0, 5.0) == pytest.approx(5.0)
 
 
-# ── _compute_symmetry_flags ───────────────────────────────────────────────────
+# â”€â”€ _compute_symmetry_flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestComputeSymmetryFlags:
     def test_symmetric_cadence_no_flags(self):
-        l = make_agg_params("L", cadence=120.0)
+        left = make_agg_params("L", cadence=120.0)
         r = make_agg_params("R", cadence=120.0)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert "high_asymmetry" not in flags
 
     def test_large_cadence_asymmetry_flags_high_asymmetry(self):
-        l = make_agg_params("L", cadence=100.0)
+        left = make_agg_params("L", cadence=100.0)
         r = make_agg_params("R", cadence=140.0)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert "high_asymmetry" in flags
 
     def test_specific_flag_label_includes_parameter_name(self):
-        l = make_agg_params("L", cadence=100.0)
+        left = make_agg_params("L", cadence=100.0)
         r = make_agg_params("R", cadence=150.0)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert any("cadence" in f for f in flags)
 
     def test_small_asymmetry_below_threshold_no_flag(self):
-        l = make_agg_params("L", stance_pct=61.0)
+        left = make_agg_params("L", stance_pct=61.0)
         r = make_agg_params("R", stance_pct=61.5)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert not flags
 
     def test_missing_key_on_one_side_skipped(self):
-        l = {}  # missing all keys
+        left = {}  # missing all keys
         r = make_agg_params("R")
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert not flags
 
     def test_rearfoot_angle_asymmetry_flagged(self):
-        l = make_agg_params("L", rearfoot_angle=2.0)
+        left = make_agg_params("L", rearfoot_angle=2.0)
         r = make_agg_params("R", rearfoot_angle=15.0)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert "high_asymmetry" in flags
         assert any("rearfoot_angle" in f for f in flags)
 
     def test_high_asymmetry_added_once_even_if_multiple_params_asymmetric(self):
-        l = make_agg_params("L", cadence=100.0, stance_pct=50.0)
+        left = make_agg_params("L", cadence=100.0, stance_pct=50.0)
         r = make_agg_params("R", cadence=160.0, stance_pct=75.0)
-        flags = _compute_symmetry_flags(l, r, threshold_pct=10.0)
+        flags = _compute_symmetry_flags(left, r, threshold_pct=10.0)
         assert flags.count("high_asymmetry") == 1
 
 
-# ── _derive_rule_parameters ───────────────────────────────────────────────────
+# â”€â”€ _derive_rule_parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDeriveRuleParameters:
     def test_more_pronated_left_is_dominant(self):
-        l = make_agg_params("L", pronation="overpronation", arch="low")
+        left = make_agg_params("L", pronation="overpronation", arch="low")
         r = make_agg_params("R", pronation="neutral", arch="normal")
-        result = _derive_rule_parameters(l, r, {})
+        result = _derive_rule_parameters(left, r, {})
         assert result["pronation_type"] == "overpronation"
         assert result["arch_type"] == "low"
 
     def test_more_pronated_right_is_dominant(self):
-        l = make_agg_params("L", pronation="neutral", arch="normal")
+        left = make_agg_params("L", pronation="neutral", arch="normal")
         r = make_agg_params("R", pronation="mild_pronation", arch="low")
-        result = _derive_rule_parameters(l, r, {})
+        result = _derive_rule_parameters(left, r, {})
         assert result["pronation_type"] == "mild_pronation"
 
     def test_equal_pronation_left_is_dominant(self):
-        l = make_agg_params("L", pronation="neutral", foot_strike="midfoot")
+        left = make_agg_params("L", pronation="neutral", foot_strike="midfoot")
         r = make_agg_params("R", pronation="neutral", foot_strike="forefoot")
-        result = _derive_rule_parameters(l, r, {})
+        result = _derive_rule_parameters(left, r, {})
         # left wins on tie
         assert result["foot_strike_type"] == "midfoot"
 
     def test_extra_flags_merged(self):
-        l = make_agg_params("L")
+        left = make_agg_params("L")
         r = make_agg_params("R")
-        result = _derive_rule_parameters(l, r, {"flags": ["pathological_gait"]})
+        result = _derive_rule_parameters(left, r, {"flags": ["pathological_gait"]})
         assert "pathological_gait" in result["flags"]
 
     def test_empty_params_uses_defaults(self):
@@ -218,7 +217,7 @@ class TestDeriveRuleParameters:
         assert result["arch_type"] == "normal"
 
 
-# ── StandardProfileBuilder.build() ───────────────────────────────────────────
+# â”€â”€ StandardProfileBuilder.build() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBuildProfile:
@@ -382,7 +381,7 @@ class TestBuildProfile:
 
     def test_extra_flags_passed_to_rules_engine(self):
         """External flags (e.g. pathological_gait) must reach the rules engine."""
-        from src.gait.pipeline.config import RecommendationRule
+        from gait.pipeline.config import RecommendationRule
 
         engine = RuleBasedRecommendationEngine(
             RecommendationRulesConfig(
@@ -422,7 +421,7 @@ class TestBuildProfile:
         assert profile["pronation"]["classification"]["L"] == "neutral"
 
 
-# ── StandardProfileBuilder.validate() ────────────────────────────────────────
+# â”€â”€ StandardProfileBuilder.validate() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestValidate:
@@ -463,7 +462,7 @@ class TestValidate:
         assert all(isinstance(e, str) for e in errors)
 
 
-# ── StandardGatingEngine ──────────────────────────────────────────────────────
+# â”€â”€ StandardGatingEngine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStandardGatingEngine:
@@ -526,7 +525,7 @@ class TestStandardGatingEngine:
         assert ok is False
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFactory:
@@ -535,7 +534,7 @@ class TestFactory:
         assert isinstance(engine, StandardGatingEngine)
 
     def test_create_profile_builder_returns_correct_type(self):
-        from src.gait.pipeline.config import load_recommendation_rules
+        from gait.pipeline.config import load_recommendation_rules
 
         cfg = load_recommendation_rules()
         builder = create_profile_builder(cfg, default_cfg())
@@ -547,3 +546,4 @@ class TestFactory:
             default_cfg(),
         )
         assert isinstance(builder, StandardProfileBuilder)
+

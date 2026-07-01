@@ -1,13 +1,13 @@
-"""Person tracking — locks onto the subject across frames using IoU matching.
+﻿"""Person tracking â€” locks onto the subject across frames using IoU matching.
 
 SimpleIoUTracker strategy:
   1. Extract foreground blobs via cv2.connectedComponentsWithStats.
   2. Filter blobs below min_blob_area_px2.
   3. First detection: choose the largest blob as the initial track.
   4. Subsequent frames: find the blob with highest IoU to the last known bbox.
-     - IoU >= iou_threshold → fresh track, confidence=1.0.
-     - IoU < iou_threshold → return last-known bbox with decaying confidence.
-  5. After max_lost_frames consecutive misses → raise TrackingLostError.
+     - IoU >= iou_threshold â†’ fresh track, confidence=1.0.
+     - IoU < iou_threshold â†’ return last-known bbox with decaying confidence.
+  5. After max_lost_frames consecutive misses â†’ raise TrackingLostError.
 
 ByteTrack is planned for Phase 2; the factory falls back to SimpleIoUTracker
 with a WARNING so the pipeline does not fail when bytetrack is configured.
@@ -21,11 +21,11 @@ from typing import List, Optional, Tuple
 import cv2
 import numpy as np
 
-from src.gait.common.geometry import bbox_area_px2, compute_iou
-from src.gait.common.interfaces import Frame
-from src.gait.common.logging_utils import get_logger
-from src.gait.common.types import PersonTrack, TrackingLostError
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.geometry import bbox_area_px2, compute_iou
+from gait.common.interfaces import Frame
+from gait.common.logging_utils import get_logger
+from gait.common.types import PersonTrack, TrackingLostError
+from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ _BBox = Tuple[int, int, int, int]
 
 
 class PersonTracker(ABC):
-    """Abstract tracker — locks onto the subject across frames."""
+    """Abstract tracker â€” locks onto the subject across frames."""
 
     @abstractmethod
     def update(
@@ -73,7 +73,7 @@ class SimpleIoUTracker(PersonTracker):
             return self._handle_miss(frame.frame_index)
 
         if self._track is None:
-            # First detection — initialise with the largest blob
+            # First detection â€” initialise with the largest blob
             best_bbox = max(blobs, key=bbox_area_px2)
             self._track = PersonTrack(
                 track_id=1,
@@ -104,7 +104,7 @@ class SimpleIoUTracker(PersonTracker):
         self._track = None
         self._lost_frames = 0
 
-    # ── Private ────────────────────────────────────────────────────────────
+    # â”€â”€ Private â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _extract_blobs(self, mask: np.ndarray) -> List[_BBox]:
         """Return (x, y, w, h) bboxes for all blobs above min_blob_area_px2."""
@@ -129,7 +129,7 @@ class SimpleIoUTracker(PersonTracker):
             )
 
         if self._track is None:
-            # Haven't found anyone yet — still in warmup
+            # Haven't found anyone yet â€” still in warmup
             logger.debug(
                 "tracker_warmup_miss",
                 extra={"frame_index": frame_index, "lost_frames": self._lost_frames},
@@ -159,11 +159,11 @@ def create_person_tracker(
     model_name: str,
     config: IngestionConfig,
 ) -> PersonTracker:
-    """Factory — return the requested PersonTracker.
+    """Factory â€” return the requested PersonTracker.
 
-    'simple_iou' → SimpleIoUTracker
-    'bytetrack'  → WARNING (not yet implemented) then SimpleIoUTracker
-    Unknown name → ValueError
+    'simple_iou' â†’ SimpleIoUTracker
+    'bytetrack'  â†’ WARNING (not yet implemented) then SimpleIoUTracker
+    Unknown name â†’ ValueError
     """
     name = model_name.lower()
     if name == "simple_iou":
@@ -178,3 +178,4 @@ def create_person_tracker(
         f"Unknown person_tracking_model {model_name!r}. "
         f"Supported: 'simple_iou', 'bytetrack' (falls back to simple_iou)"
     )
+

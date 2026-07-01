@@ -1,14 +1,14 @@
-"""Unit tests for camera calibration (src.gait.ingestion.calibrate)."""
+﻿"""Unit tests for camera calibration (src.gait.ingestion.calibrate)."""
 
 import numpy as np
 import pytest
 import yaml
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.types import CalibrationLoadError
-from src.gait.ingestion.calibrate import CameraCalibrator, load_camera_calibration
+from gait.common.interfaces import Frame
+from gait.common.types import CalibrationLoadError
+from gait.ingestion.calibrate import CameraCalibrator, load_camera_calibration
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 VALID_CAL = {
     "camera_matrix": [[800.0, 0.0, 320.0], [0.0, 800.0, 240.0], [0.0, 0.0, 1.0]],
@@ -37,7 +37,7 @@ def make_frame(h=100, w=100, value=128):
     )
 
 
-# ── load_camera_calibration ───────────────────────────────────────────────────
+# â”€â”€ load_camera_calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLoadCameraCalibration:
@@ -89,7 +89,7 @@ class TestLoadCameraCalibration:
         assert cal.map2 is None
 
 
-# ── CameraCalibrator ──────────────────────────────────────────────────────────
+# â”€â”€ CameraCalibrator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCameraCalibratorUncalibrated:
@@ -158,9 +158,10 @@ class TestCameraCalibratorCalibrated:
         assert out.confidence == frame.confidence
 
     def test_identity_calibration_preserves_image(self, calibrator):
-        # Identity distortion coefficients → output should equal input
+        # Identity distortion coefficients â†’ output should equal input
         frame = make_frame(value=55)
         out = calibrator.apply(frame)
         # Pixel values should be very close (remap with identity may have boundary effects)
         assert out.image.dtype == np.uint8
         assert out.image.shape == frame.image.shape
+

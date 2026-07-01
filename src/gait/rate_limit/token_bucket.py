@@ -1,4 +1,4 @@
-"""Token bucket rate limiter implementation."""
+﻿"""Token bucket rate limiter implementation."""
 from __future__ import annotations
 
 import time
@@ -6,8 +6,8 @@ from typing import Optional
 
 import redis
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.rate_limit.base import RateLimitConfig, RateLimitError, RateLimiter
+from gait.common.logging_utils import get_logger
+from gait.rate_limit.base import RateLimitConfig, RateLimitError, RateLimiter
 
 logger = get_logger(__name__)
 
@@ -172,3 +172,4 @@ class TokenBucketLimiter(RateLimiter):
     def close(self) -> None:
         """Close rate limiter (no-op for Redis client)."""
         logger.info("ratelimit.closed")
+

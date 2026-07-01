@@ -1,4 +1,4 @@
-"""FastAPI dependency injection for authentication."""
+﻿"""FastAPI dependency injection for authentication."""
 from __future__ import annotations
 
 from typing import Optional
@@ -7,15 +7,15 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.gait.auth.api_key_manager import APIKeyValidator
-from src.gait.auth.exceptions import (
+from gait.auth.api_key_manager import APIKeyValidator
+from gait.auth.exceptions import (
     ExpiredTokenError,
     InvalidAPIKeyError,
     InvalidTokenError,
     MissingAuthenticationError,
 )
-from src.gait.auth.jwt_handler import JWTHandler
-from src.gait.common.logging_utils import get_logger
+from gait.auth.jwt_handler import JWTHandler
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -126,3 +126,4 @@ def create_jwt_handler(
         Configured JWTHandler instance
     """
     return JWTHandler(secret_key=secret_key, algorithm=algorithm)
+

@@ -1,4 +1,4 @@
-"""RuleBasedRecommendationEngine — applies rules.yaml to generate health assessments.
+﻿"""RuleBasedRecommendationEngine â€” applies rules.yaml to generate health assessments.
 
 Rules are sorted by priority ascending (lower first). Higher-priority rules
 come last and can override earlier defects/improvements.  `needs_human_review`
@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from src.gait.common.interfaces import RecommendationEngine
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import RecommendationRule, RecommendationRulesConfig
+from gait.common.interfaces import RecommendationEngine
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import RecommendationRule, RecommendationRulesConfig
 
 logger = get_logger(__name__)
 
-# ── sensible defaults (applied before any rule fires) ─────────────────────────
+# â”€â”€ sensible defaults (applied before any rule fires) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _DEFAULTS: Dict[str, Any] = {
     "defects_found": [],
@@ -27,19 +27,19 @@ _DEFAULTS: Dict[str, Any] = {
 }
 
 
-# ── condition matching ────────────────────────────────────────────────────────
+# â”€â”€ condition matching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _match_condition(condition: Dict[str, Any], parameters: Dict[str, Any]) -> bool:
     """Return True when ALL entries in condition match parameters (AND semantics).
 
     Supported condition keys:
-      pronation: <str>        → parameters["pronation_type"] == value
-      arch: <str>             → parameters["arch_type"] == value
-      foot_strike: <str>      → parameters["foot_strike_type"] == value
-      flag: <str>             → value in parameters.get("flags", [])
-      eversion_peak_early: bool → parameters.get("eversion_peak_early", False) == value
-      age_years_below: <num>  → parameters.get("age_years", ∞) < value
+      pronation: <str>        â†’ parameters["pronation_type"] == value
+      arch: <str>             â†’ parameters["arch_type"] == value
+      foot_strike: <str>      â†’ parameters["foot_strike_type"] == value
+      flag: <str>             â†’ value in parameters.get("flags", [])
+      eversion_peak_early: bool â†’ parameters.get("eversion_peak_early", False) == value
+      age_years_below: <num>  â†’ parameters.get("age_years", âˆž) < value
     """
     for key, value in condition.items():
         if key == "pronation":
@@ -69,7 +69,7 @@ def _match_condition(condition: Dict[str, Any], parameters: Dict[str, Any]) -> b
     return True
 
 
-# ── engine ────────────────────────────────────────────────────────────────────
+# â”€â”€ engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class RuleBasedRecommendationEngine(RecommendationEngine):
@@ -145,3 +145,4 @@ def create_recommendation_engine(
 ) -> RuleBasedRecommendationEngine:
     """Factory: return a RuleBasedRecommendationEngine."""
     return RuleBasedRecommendationEngine(rules_config)
+

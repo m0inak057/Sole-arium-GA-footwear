@@ -1,10 +1,10 @@
-"""Cache dependencies for FastAPI."""
+﻿"""Cache dependencies for FastAPI."""
 from __future__ import annotations
 
 from typing import Optional
 
-from src.gait.cache.base import Cache, CacheConfig
-from src.gait.cache.redis_cache import RedisCache
+from gait.cache.base import Cache, CacheConfig
+from gait.cache.redis_cache import RedisCache
 
 
 def create_redis_cache(
@@ -31,3 +31,4 @@ def create_redis_cache(
         config = CacheConfig()
 
     return RedisCache(config=config, host=host, port=port, db=db)
+

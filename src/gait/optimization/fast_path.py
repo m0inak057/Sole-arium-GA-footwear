@@ -1,4 +1,4 @@
-"""Fast execution paths for common operations."""
+﻿"""Fast execution paths for common operations."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -85,7 +85,7 @@ class FastPathOptimizer:
         """
         try:
             # Vectorized Euclidean distance
-            # ||a-b||^2 = ||a||^2 + ||b||^2 - 2*a·b
+            # ||a-b||^2 = ||a||^2 + ||b||^2 - 2*aÂ·b
             sq1 = np.sum(points1**2, axis=1, keepdims=True)  # (n, 1)
             sq2 = np.sum(points2**2, axis=1, keepdims=True)  # (m, 1)
             dot_product = points1 @ points2.T  # (n, m)
@@ -217,3 +217,4 @@ class FastPathOptimizer:
             "vectorization_enabled": self.config.enable_vectorization,
             "using_approximations": self.config.use_approximations,
         }
+

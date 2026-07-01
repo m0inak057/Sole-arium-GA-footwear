@@ -1,26 +1,26 @@
-"""Unit tests for Phase C advanced analysis (3D, metrics, real-time, reporting)."""
+﻿"""Unit tests for Phase C advanced analysis (3D, metrics, real-time, reporting)."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from src.gait.analysis.three_d_reconstruction import (
+from gait.analysis.three_d_reconstruction import (
     CameraIntrinsics,
     CameraExtrinsics,
     TriangulationEngine,
     Keypoint3D,
 )
-from src.gait.analysis.advanced_metrics import (
+from gait.analysis.advanced_metrics import (
     AdvancedMetricsAnalyzer,
     SymmetryMetrics,
     EfficiencyMetrics,
 )
-from src.gait.analysis.realtime_processor import (
+from gait.analysis.realtime_processor import (
     RealtimeProcessor,
     RealtimeGaitMetrics,
     StreamingBuffer,
 )
-from src.gait.analysis.session_report import (
+from gait.analysis.session_report import (
     SessionReporter,
     SessionReport,
     ClinicalFinding,
@@ -209,7 +209,7 @@ class TestAdvancedMetricsAnalyzer:
     def test_symmetry_index_formula(self, analyzer):
         """Test symmetry index calculation."""
         # Symmetry index = |L - R| / (0.5 * (|L| + |R|)) * 100
-        # Example: L=100, R=110 → |10| / 105 * 100 ≈ 9.5%
+        # Example: L=100, R=110 â†’ |10| / 105 * 100 â‰ˆ 9.5%
         result = analyzer._symmetry_index(100.0, 110.0)
         assert 9.0 < result < 10.0
 
@@ -424,7 +424,7 @@ class TestPhaseIntegration:
     """Integration tests across Phase C modules."""
 
     def test_3d_reconstruction_to_metrics(self):
-        """Test workflow: triangulation → metrics."""
+        """Test workflow: triangulation â†’ metrics."""
         engine = TriangulationEngine()
         analyzer = AdvancedMetricsAnalyzer()
 
@@ -444,7 +444,7 @@ class TestPhaseIntegration:
         assert symmetry.stride_length_symmetry_pct < 5.0
 
     def test_realtime_to_report(self):
-        """Test workflow: real-time processing → reporting."""
+        """Test workflow: real-time processing â†’ reporting."""
         processor = RealtimeProcessor(fps=120.0, window_seconds=0.5)
         reporter = SessionReporter()
 
@@ -480,3 +480,4 @@ class TestPhaseIntegration:
 
         assert report.session_id == "integration_session"
         assert report.frames_analyzed == 60
+

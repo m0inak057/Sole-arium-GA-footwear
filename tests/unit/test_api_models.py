@@ -1,4 +1,4 @@
-"""Unit tests for API Pydantic models (src.gait.api.models)."""
+﻿"""Unit tests for API Pydantic models (src.gait.api.models)."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,7 +6,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from src.gait.api.models import (
+from gait.api.models import (
     AnthropometricsIn,
     LRMeasurement,
     ProcessRequest,
@@ -19,7 +19,7 @@ from src.gait.api.models import (
     UploadResponse,
 )
 
-# ── SessionStatus enum ────────────────────────────────────────────────────────
+# â”€â”€ SessionStatus enum â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSessionStatus:
@@ -46,7 +46,7 @@ class TestSessionStatus:
         assert SessionStatus.UPLOADING == "UPLOADING"
 
 
-# ── LRMeasurement ─────────────────────────────────────────────────────────────
+# â”€â”€ LRMeasurement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLRMeasurement:
@@ -64,7 +64,7 @@ class TestLRMeasurement:
             LRMeasurement(L=258.0)
 
 
-# ── AnthropometricsIn ─────────────────────────────────────────────────────────
+# â”€â”€ AnthropometricsIn â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAnthropometricsIn:
@@ -110,7 +110,7 @@ class TestAnthropometricsIn:
         assert a.foot_length_mm.R == pytest.approx(260.0)
 
 
-# ── SessionCreate ─────────────────────────────────────────────────────────────
+# â”€â”€ SessionCreate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSessionCreate:
@@ -151,7 +151,7 @@ class TestSessionCreate:
         assert sc.patient_id == "P 001"
 
 
-# ── ProcessRequest ────────────────────────────────────────────────────────────
+# â”€â”€ ProcessRequest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProcessRequest:
@@ -170,7 +170,7 @@ class TestProcessRequest:
         assert r.config_overrides["analysis"]["symmetry_flag_threshold_pct"] == 15.0
 
 
-# ── SessionResponse ───────────────────────────────────────────────────────────
+# â”€â”€ SessionResponse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSessionResponse:
@@ -185,7 +185,7 @@ class TestSessionResponse:
         assert r.status == SessionStatus.CREATED
 
 
-# ── UploadResponse ────────────────────────────────────────────────────────────
+# â”€â”€ UploadResponse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUploadResponse:
@@ -210,7 +210,7 @@ class TestUploadResponse:
         assert r.status == SessionStatus.UPLOADING
 
 
-# ── StatusResponse ────────────────────────────────────────────────────────────
+# â”€â”€ StatusResponse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStatusResponse:
@@ -253,7 +253,7 @@ class TestStatusResponse:
             )
 
 
-# ── ProfileResponse ───────────────────────────────────────────────────────────
+# â”€â”€ ProfileResponse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProfileResponse:
@@ -275,7 +275,7 @@ class TestProfileResponse:
         assert r.profile["patient_id"] == "P001"
 
 
-# ── UploadQueryParams ─────────────────────────────────────────────────────────
+# â”€â”€ UploadQueryParams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestUploadQueryParams:
@@ -291,3 +291,4 @@ class TestUploadQueryParams:
     def test_invalid_camera_view_raises(self):
         with pytest.raises(ValidationError):
             UploadQueryParams(camera_view="plantar")
+

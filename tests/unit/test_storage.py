@@ -1,15 +1,13 @@
-"""Unit tests for storage backends (src.gait.storage)."""
+﻿"""Unit tests for storage backends (src.gait.storage)."""
 from __future__ import annotations
 
-from io import BytesIO
-from unittest.mock import MagicMock, patch, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.gait.storage.base import FileMetadata, Storage, StorageConfig
+from gait.storage.base import FileMetadata, Storage, StorageConfig
 
-
-# ── fixtures ──────────────────────────────────────────────────────────────
+# â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.fixture
@@ -35,7 +33,7 @@ def file_metadata() -> FileMetadata:
     )
 
 
-# ── FileMetadata Tests ────────────────────────────────────────────────────
+# â”€â”€ FileMetadata Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFileMetadata:
@@ -53,7 +51,7 @@ class TestFileMetadata:
         assert metadata.content_type == "application/octet-stream"
 
 
-# ── StorageConfig Tests ───────────────────────────────────────────────────
+# â”€â”€ StorageConfig Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStorageConfig:
@@ -83,7 +81,7 @@ class TestStorageConfig:
         assert config.region == "eu-west-1"
 
 
-# ── S3Storage Tests ───────────────────────────────────────────────────────
+# â”€â”€ S3Storage Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestS3Storage:
@@ -95,8 +93,8 @@ class TestS3Storage:
 
     def test_upload(self, storage_config: StorageConfig, mock_s3_client):
         """Test uploading bytes to S3."""
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             content = b"test file content"
 
@@ -119,8 +117,8 @@ class TestS3Storage:
         )
         mock_s3_client.get_object.return_value = mock_response
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             result = storage.download("test.mp4")
 
@@ -132,8 +130,8 @@ class TestS3Storage:
 
     def test_exists_true(self, storage_config: StorageConfig, mock_s3_client):
         """Test file existence check when file exists."""
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             assert storage.exists("test.mp4") is True
 
@@ -144,15 +142,15 @@ class TestS3Storage:
         error_response = {"Error": {"Code": "404"}}
         mock_s3_client.head_object.side_effect = ClientError(error_response, "HeadObject")
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             assert storage.exists("nonexistent.mp4") is False
 
     def test_delete(self, storage_config: StorageConfig, mock_s3_client):
         """Test deleting file from S3."""
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             result = storage.delete("test.mp4")
 
@@ -165,8 +163,8 @@ class TestS3Storage:
         error_response = {"Error": {"Code": "404"}}
         mock_s3_client.head_object.side_effect = ClientError(error_response, "HeadObject")
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             result = storage.delete("nonexistent.mp4")
 
@@ -177,8 +175,8 @@ class TestS3Storage:
         expected_url = "https://s3.amazonaws.com/bucket/file.mp4?signature"
         mock_s3_client.generate_presigned_url.return_value = expected_url
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             url = storage.generate_presigned_url("test.mp4", expires_in_minutes=60)
 
@@ -192,8 +190,8 @@ class TestS3Storage:
             "Contents": [{"Key": f} for f in files]
         }
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             result = storage.list_files(prefix="sessions/")
 
@@ -205,8 +203,8 @@ class TestS3Storage:
         mock_s3_client.head_object.return_value = {"ContentLength": 1024}
         mock_s3_client.copy_object.return_value = {}
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             result = storage.copy("source.mp4", "dest.mp4")
 
@@ -214,23 +212,23 @@ class TestS3Storage:
             mock_s3_client.copy_object.assert_called_once()
 
 
-# ── Factory Tests ─────────────────────────────────────────────────────────
+# â”€â”€ Factory Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStorageFactory:
     def test_create_s3_storage(self, storage_config: StorageConfig):
         """Test creating S3 storage via factory."""
         with patch("boto3.client"):
-            with patch("src.gait.storage.factory.S3Storage") as MockS3:
+            with patch("gait.storage.factory.S3Storage") as MockS3:
                 MockS3.return_value = Mock(spec=Storage)
-                from src.gait.storage.factory import create_storage
-                storage = create_storage("s3", storage_config)
+                from gait.storage.factory import create_storage
+                create_storage("s3", storage_config)
                 MockS3.assert_called_once_with(storage_config)
 
     def test_unsupported_backend(self, storage_config: StorageConfig):
         """Test error on unsupported backend."""
         with pytest.raises(ValueError, match="Unsupported storage backend"):
-            from src.gait.storage.factory import create_storage
+            from gait.storage.factory import create_storage
             create_storage("gcs", storage_config)
 
     def test_create_from_env(self):
@@ -243,14 +241,14 @@ class TestStorageFactory:
             "S3_BUCKET_NAME": "env-bucket",
         }):
             with patch("boto3.client"):
-                with patch("src.gait.storage.factory.S3Storage") as MockS3:
+                with patch("gait.storage.factory.S3Storage") as MockS3:
                     MockS3.return_value = Mock(spec=Storage)
-                    from src.gait.storage.factory import create_storage_from_env
-                    storage = create_storage_from_env()
+                    from gait.storage.factory import create_storage_from_env
+                    create_storage_from_env()
                     MockS3.assert_called_once()
 
 
-# ── Storage Interface Tests ───────────────────────────────────────────────
+# â”€â”€ Storage Interface Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStorageInterface:
@@ -262,22 +260,22 @@ class TestStorageInterface:
     def test_context_manager(self, storage_config: StorageConfig):
         """Test context manager support."""
         with patch("boto3.client"):
-            with patch("src.gait.storage.factory.S3Storage") as MockS3:
+            with patch("gait.storage.factory.S3Storage") as MockS3:
                 mock_storage = Mock(spec=Storage)
                 mock_storage.__enter__ = Mock(return_value=mock_storage)
                 mock_storage.__exit__ = Mock(return_value=None)
                 MockS3.return_value = mock_storage
-                from src.gait.storage.factory import create_storage
+                from gait.storage.factory import create_storage
                 with create_storage("s3", storage_config) as storage:
                     assert storage is mock_storage
 
     def test_upload_stream_interface(self, storage_config: StorageConfig):
         """Test upload_stream method exists."""
         with patch("boto3.client"):
-            with patch("src.gait.storage.factory.S3Storage") as MockS3:
+            with patch("gait.storage.factory.S3Storage") as MockS3:
                 mock_storage = Mock(spec=Storage)
                 MockS3.return_value = mock_storage
-                from src.gait.storage.factory import create_storage
+                from gait.storage.factory import create_storage
                 storage = create_storage("s3", storage_config)
                 assert hasattr(storage, "upload_stream")
                 assert callable(storage.upload_stream)
@@ -285,10 +283,10 @@ class TestStorageInterface:
     def test_download_stream_interface(self, storage_config: StorageConfig):
         """Test download_stream method exists."""
         with patch("boto3.client"):
-            with patch("src.gait.storage.factory.S3Storage") as MockS3:
+            with patch("gait.storage.factory.S3Storage") as MockS3:
                 mock_storage = Mock(spec=Storage)
                 MockS3.return_value = mock_storage
-                from src.gait.storage.factory import create_storage
+                from gait.storage.factory import create_storage
                 storage = create_storage("s3", storage_config)
                 assert hasattr(storage, "download_stream")
                 assert callable(storage.download_stream)
@@ -296,16 +294,16 @@ class TestStorageInterface:
     def test_get_metadata_interface(self, storage_config: StorageConfig):
         """Test get_metadata method exists."""
         with patch("boto3.client"):
-            with patch("src.gait.storage.factory.S3Storage") as MockS3:
+            with patch("gait.storage.factory.S3Storage") as MockS3:
                 mock_storage = Mock(spec=Storage)
                 MockS3.return_value = mock_storage
-                from src.gait.storage.factory import create_storage
+                from gait.storage.factory import create_storage
                 storage = create_storage("s3", storage_config)
                 assert hasattr(storage, "get_metadata")
                 assert callable(storage.get_metadata)
 
 
-# ── Error Handling Tests ──────────────────────────────────────────────────
+# â”€â”€ Error Handling Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestErrorHandling:
@@ -316,8 +314,8 @@ class TestErrorHandling:
         error_response = {"Error": {"Code": "NoSuchKey"}}
         mock_s3_client.get_object.side_effect = ClientError(error_response, "GetObject")
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
 
             with pytest.raises(FileNotFoundError):
@@ -328,8 +326,8 @@ class TestErrorHandling:
         from botocore.exceptions import ClientError
         error_response = {"Error": {"Code": "NoSuchKey"}}
 
-        with patch("src.gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
-            from src.gait.storage.s3_storage import S3Storage
+        with patch("gait.storage.s3_storage.boto3.client", return_value=mock_s3_client):
+            from gait.storage.s3_storage import S3Storage
             storage = S3Storage(storage_config)
             mock_s3_client.head_object.side_effect = ClientError(error_response, "HeadObject")
 
@@ -342,3 +340,5 @@ def mock_s3_client():
     """Session-scoped S3 client mock."""
     with patch("boto3.client") as mock:
         yield mock.return_value
+
+

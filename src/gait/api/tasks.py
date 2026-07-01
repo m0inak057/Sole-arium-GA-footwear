@@ -1,4 +1,4 @@
-"""Celery application and background task definitions.
+﻿"""Celery application and background task definitions.
 
 The Celery worker is launched via:
     celery -A src.gait.api.tasks worker --loglevel=info --concurrency=4
@@ -20,15 +20,15 @@ from typing import Any, Dict, Optional
 from celery import Celery
 from celery.utils.log import get_task_logger
 
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import load_pipeline_config
-from src.gait.pipeline.orchestrator import GaitPipeline
-from src.gait.privacy.face_blur import blur_all_session_videos
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import load_pipeline_config
+from gait.pipeline.orchestrator import GaitPipeline
+from gait.privacy.face_blur import blur_all_session_videos
 
 logger = get_logger(__name__)
 task_logger = get_task_logger(__name__)
 
-# ── Celery application ────────────────────────────────────────────────────────
+# â”€â”€ Celery application â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 celery_app = Celery(
     "gait_analysis",
@@ -47,7 +47,7 @@ celery_app.conf.update(
 )
 
 
-# ── Pipeline task ─────────────────────────────────────────────────────────────
+# â”€â”€ Pipeline task â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @celery_app.task(
@@ -60,7 +60,7 @@ celery_app.conf.update(
 def run_gait_pipeline(
     self,
     session_id: str,
-    video_paths: Dict[str, str],  # camera_name → str path (JSON-serialisable)
+    video_paths: Dict[str, str],  # camera_name â†’ str path (JSON-serialisable)
     anthropometrics: Dict[str, Any],
     patient_id: str,
     session_timestamp: Optional[str] = None,
@@ -101,7 +101,7 @@ def run_gait_pipeline(
             session_timestamp=session_timestamp,
         )
 
-        # ── Face blurring (DPDP Act 2023 compliance) ────────────────────────
+        # â”€â”€ Face blurring (DPDP Act 2023 compliance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Runs AFTER profile.json is written, BEFORE videos are stored in MinIO.
         # Controlled by features.face_blur_pipeline in pipeline.yaml.
         face_blur_applied = False
@@ -149,3 +149,4 @@ def run_gait_pipeline(
             exc_info=True,
         )
         raise
+

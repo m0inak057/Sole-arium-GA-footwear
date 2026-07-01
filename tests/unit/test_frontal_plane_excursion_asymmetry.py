@@ -1,10 +1,10 @@
-"""Test that frontal_plane_excursion outputs real asymmetric values left vs right."""
+﻿"""Test that frontal_plane_excursion outputs real asymmetric values left vs right."""
 from __future__ import annotations
 
 import pytest
 
-from src.gait.profile.builder import create_profile_builder
-from src.gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+from gait.profile.builder import create_profile_builder
+from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
 
 
 @pytest.mark.unit
@@ -93,7 +93,7 @@ class TestFrontalPlaneExcursionAsymmetry:
         assert fpe_left > 0, f"Left FPE should be non-zero, got {fpe_left}"
         assert fpe_right > 0, f"Right FPE should be non-zero, got {fpe_right}"
 
-        # ASSERTION 2: Values are asymmetric (left ≠ right)
+        # ASSERTION 2: Values are asymmetric (left â‰  right)
         assert fpe_left != fpe_right, \
             f"FPE should be asymmetric (left={fpe_left}, right={fpe_right})"
 
@@ -166,3 +166,4 @@ class TestFrontalPlaneExcursionAsymmetry:
             "FPE should default to 0.0 when not provided"
         assert pronation["frontal_plane_excursion_right_deg"] == 0.0, \
             "FPE should default to 0.0 when not provided"
+

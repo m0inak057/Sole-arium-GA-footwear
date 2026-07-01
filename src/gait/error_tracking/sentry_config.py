@@ -1,4 +1,4 @@
-"""Sentry error tracking configuration."""
+﻿"""Sentry error tracking configuration."""
 from __future__ import annotations
 
 from typing import Optional
@@ -7,7 +7,7 @@ import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -167,3 +167,4 @@ def capture_sentry_message(
         level=level,
         tags=tags or {},
     )
+

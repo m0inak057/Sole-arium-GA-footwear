@@ -1,16 +1,14 @@
-"""Unit tests for RuleBasedRecommendationEngine (src.gait.profile.rules_engine)."""
+﻿"""Unit tests for RuleBasedRecommendationEngine (src.gait.profile.rules_engine)."""
 from __future__ import annotations
 
-import pytest
-
-from src.gait.pipeline.config import RecommendationRule, RecommendationRulesConfig
-from src.gait.profile.rules_engine import (
+from gait.pipeline.config import RecommendationRule, RecommendationRulesConfig
+from gait.profile.rules_engine import (
     RuleBasedRecommendationEngine,
     _match_condition,
     create_recommendation_engine,
 )
 
-# ── fixtures ──────────────────────────────────────────────────────────────────
+# â”€â”€ fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def make_rules_config(*rules: RecommendationRule) -> RecommendationRulesConfig:
@@ -27,11 +25,11 @@ def make_rule(
 
 
 def minimal_engine() -> RuleBasedRecommendationEngine:
-    """Engine with no rules — always returns defaults."""
+    """Engine with no rules â€” always returns defaults."""
     return RuleBasedRecommendationEngine(RecommendationRulesConfig(version=1, rules=[]))
 
 
-# ── _match_condition ──────────────────────────────────────────────────────────
+# â”€â”€ _match_condition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMatchCondition:
@@ -126,7 +124,7 @@ class TestMatchCondition:
         ) is False
 
     def test_age_years_below_missing_is_inf(self):
-        # missing age → treated as infinity → not < 18
+        # missing age â†’ treated as infinity â†’ not < 18
         assert _match_condition({"age_years_below": 18}, {}) is False
 
     def test_multiple_conditions_all_match(self):
@@ -142,7 +140,7 @@ class TestMatchCondition:
         ) is False
 
 
-# ── apply_rule ────────────────────────────────────────────────────────────────
+# â”€â”€ apply_rule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestApplyRule:
@@ -183,7 +181,7 @@ class TestApplyRule:
         assert result is not recs
 
 
-# ── generate_recommendations ──────────────────────────────────────────────────
+# â”€â”€ generate_recommendations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestGenerateRecommendations:
@@ -242,7 +240,7 @@ class TestGenerateRecommendations:
             )
         )
         result = engine.generate_recommendations({})
-        # priority 10 fires first, priority 90 fires last → "high" wins
+        # priority 10 fires first, priority 90 fires last â†’ "high" wins
         assert result["arch_support"] == "high"
 
     def test_needs_human_review_set_by_flag(self):
@@ -293,14 +291,14 @@ class TestGenerateRecommendations:
         assert r1 == r2
 
 
-# ── rules loaded from RecommendationRulesConfig ───────────────────────────────
+# â”€â”€ rules loaded from RecommendationRulesConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestWithRealRulesConfig:
     """Integration tests using the full rules schema from config."""
 
     def _full_engine(self) -> RuleBasedRecommendationEngine:
-        from src.gait.pipeline.config import load_recommendation_rules
+        from gait.pipeline.config import load_recommendation_rules
 
         cfg = load_recommendation_rules()
         return create_recommendation_engine(cfg)
@@ -365,7 +363,7 @@ class TestWithRealRulesConfig:
         assert len(result["what_went_right"]) > 0
 
 
-# ── factory ───────────────────────────────────────────────────────────────────
+# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFactory:
@@ -388,3 +386,4 @@ class TestFactory:
         engine = create_recommendation_engine(RecommendationRulesConfig(version=1, rules=[]))
         result = engine.generate_recommendations({"pronation_type": "neutral"})
         assert isinstance(result, dict)
+

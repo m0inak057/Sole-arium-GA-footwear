@@ -1,4 +1,4 @@
-"""Health check utilities for monitoring."""
+﻿"""Health check utilities for monitoring."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from pydantic import BaseModel
 
-from src.gait.common.logging_utils import get_logger
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -176,3 +176,4 @@ def check_storage_health(storage) -> bool:
     except Exception as e:
         logger.error("health.storage_check_failed", extra={"error": str(e)})
         return False
+

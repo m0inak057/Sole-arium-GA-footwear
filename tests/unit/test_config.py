@@ -1,4 +1,4 @@
-"""Unit tests for pipeline configuration loaders.
+﻿"""Unit tests for pipeline configuration loaders.
 
 Tests that:
 1. Configs load from YAML
@@ -12,7 +12,7 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from src.gait.pipeline.config import (
+from gait.pipeline.config import (
     load_thresholds,
     load_pipeline_config,
     load_recommendation_rules,
@@ -251,3 +251,4 @@ future_feature:
         finally:
             if temp_path:
                 os.unlink(temp_path)
+

@@ -1,6 +1,6 @@
-"""Unit tests for MediaPipePoseDetector (src.gait.pose.mediapipe_detector).
+﻿"""Unit tests for MediaPipePoseDetector (src.gait.pose.mediapipe_detector).
 
-MediaPipe model inference is mocked — no GPU/camera/internet required.
+MediaPipe model inference is mocked â€” no GPU/camera/internet required.
 The mock patches `mp` in the mediapipe_detector module so that
 `mp.solutions.pose.Pose(...)` returns a MagicMock whose `.process()` method
 returns synthetic landmark results.
@@ -13,11 +13,11 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from src.gait.common.interfaces import Frame, KeypointFrame
-from src.gait.pose.mediapipe_detector import MediaPipePoseDetector, _LANDMARK_NAMES
-from src.gait.pipeline.config import PoseConfig
+from gait.common.interfaces import Frame, KeypointFrame
+from gait.pose.mediapipe_detector import MediaPipePoseDetector, _LANDMARK_NAMES
+from gait.pipeline.config import PoseConfig
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 IMG_H, IMG_W = 240, 320
 
@@ -63,13 +63,13 @@ def cfg_3d():
 @pytest.fixture
 def mp_patch():
     """Patch `mp` in the detector module; yield (mock_mp, pose_instance)."""
-    with patch("src.gait.pose.mediapipe_detector.mp") as mock_mp:
+    with patch("gait.pose.mediapipe_detector.mp") as mock_mp:
         instance = MagicMock()
         mock_mp.solutions.pose.Pose.return_value = instance
         yield mock_mp, instance
 
 
-# ── detect: successful detection ──────────────────────────────────────────────
+# â”€â”€ detect: successful detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectWithLandmarks:
@@ -107,7 +107,7 @@ class TestDetectWithLandmarks:
         inst.process.return_value = make_results(lm)
         det = MediaPipePoseDetector(cfg)
         kf = det.detect(make_frame(w=IMG_W))
-        # nose (idx 0) should be at x ≈ 0.5 * IMG_W
+        # nose (idx 0) should be at x â‰ˆ 0.5 * IMG_W
         if "nose" in kf.keypoints:
             assert kf.keypoints["nose"].x == pytest.approx(0.5 * IMG_W)
 
@@ -147,7 +147,7 @@ class TestDetectWithLandmarks:
         assert kf.confidence == pytest.approx(0.6, abs=1e-6)
 
 
-# ── detect: below-threshold and no-detection ─────────────────────────────────
+# â”€â”€ detect: below-threshold and no-detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectBelowThreshold:
@@ -181,7 +181,7 @@ class TestDetectBelowThreshold:
         assert kf.confidence == 0.0
 
 
-# ── detect: metadata propagation ─────────────────────────────────────────────
+# â”€â”€ detect: metadata propagation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectMetadata:
@@ -214,7 +214,7 @@ class TestDetectMetadata:
         assert kf.camera_view == "posterior"
 
 
-# ── batch_detect ──────────────────────────────────────────────────────────────
+# â”€â”€ batch_detect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBatchDetect:
@@ -240,7 +240,7 @@ class TestBatchDetect:
         assert [kf.frame_index for kf in results] == [0, 1, 2]
 
 
-# ── resource management ───────────────────────────────────────────────────────
+# â”€â”€ resource management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestResourceManagement:
@@ -269,7 +269,7 @@ class TestResourceManagement:
         inst.close.assert_called()
 
 
-# ── landmark name map ─────────────────────────────────────────────────────────
+# â”€â”€ landmark name map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLandmarkNames:
@@ -284,3 +284,5 @@ class TestLandmarkNames:
 
     def test_indices_contiguous_0_to_32(self):
         assert set(_LANDMARK_NAMES.keys()) == set(range(33))
+
+

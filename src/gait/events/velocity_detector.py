@@ -1,9 +1,9 @@
-"""Velocity-based gait event detector.
+﻿"""Velocity-based gait event detector.
 
 Algorithm (position peak detection):
-- Heel-strike (HS): local maximum of heel.y — heel at lowest point in frame
+- Heel-strike (HS): local maximum of heel.y â€” heel at lowest point in frame
   (image y increases downward, so maximum y = ground level).
-- Toe-off (TO):     local maximum of foot_index.y — toe at lowest point before liftoff.
+- Toe-off (TO):     local maximum of foot_index.y â€” toe at lowest point before liftoff.
 
 Both use a moving-average pre-smoother and a prominence filter to suppress noise.
 Peak selection uses a greedy largest-first strategy so closely spaced spurious peaks
@@ -13,14 +13,14 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from src.gait.common.interfaces import (
+from gait.common.interfaces import (
     EventDetector,
     GaitCycle,
     GaitEvent,
     KeypointFrame,
 )
-from src.gait.common.logging_utils import get_logger
-from src.gait.pipeline.config import EventDetectionConfig
+from gait.common.logging_utils import get_logger
+from gait.pipeline.config import EventDetectionConfig
 
 logger = get_logger(__name__)
 
@@ -50,7 +50,7 @@ def _find_peaks(
 ) -> List[int]:
     """Find indices of prominent local maxima with minimum separation.
 
-    Prominence is measured relative to the local minimum within ±min_distance
+    Prominence is measured relative to the local minimum within Â±min_distance
     of each candidate peak, and filtered against `prominence_fraction * y_range`.
 
     Returns indices in ascending order.
@@ -88,7 +88,7 @@ def _extract_y_traj(
     keypoint_name: str,
     min_confidence: float,
 ) -> Tuple[List[int], List[float], Dict[int, int]]:
-    """Extract (frame_indices, y_values, frame→timestamp_ms) for a keypoint.
+    """Extract (frame_indices, y_values, frameâ†’timestamp_ms) for a keypoint.
 
     Frames where the keypoint is absent or below min_confidence are skipped.
     """
@@ -123,7 +123,7 @@ class VelocityBasedEventDetector(EventDetector):
     def __init__(self, config: EventDetectionConfig) -> None:
         self._cfg = config
 
-    # ── EventDetector ABC ─────────────────────────────────────────────────
+    # â”€â”€ EventDetector ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def detect_heel_strikes(
         self, keypoint_frames: List[KeypointFrame], foot: str
@@ -214,7 +214,7 @@ class VelocityBasedEventDetector(EventDetector):
         toe_offs: List[GaitEvent],
         foot: str,
     ) -> List[GaitCycle]:
-        """Segment HS → TO → HS triplets into GaitCycle objects.
+        """Segment HS â†’ TO â†’ HS triplets into GaitCycle objects.
 
         One cycle = the interval between two consecutive HS events on the same
         foot, provided exactly one TO falls between them.  Cycles with no TO
@@ -300,3 +300,4 @@ def create_event_detector(
     raise ValueError(
         f"Unknown heel_strike_model: {model!r}. Supported: 'velocity_based'"
     )
+

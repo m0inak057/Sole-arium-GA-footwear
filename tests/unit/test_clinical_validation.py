@@ -1,27 +1,27 @@
-"""Unit tests for Phase E clinical validation."""
+﻿"""Unit tests for Phase E clinical validation."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from src.gait.validation.metrics import (
+from gait.validation.metrics import (
     ICC_THRESHOLD,
     ValidationMetrics,
     ErrorMetrics,
     PerformanceValidator,
     intraclass_correlation,
 )
-from src.gait.validation.anomaly_detector import (
+from gait.validation.anomaly_detector import (
     AnomalyFlag,
     AnomalyReport,
     AnomalyDetector,
 )
-from src.gait.validation.gold_standard import (
+from gait.validation.gold_standard import (
     ValidationResult,
     GoldStandardReport,
     GoldStandardComparator,
 )
-from src.gait.validation.clinical_report import (
+from gait.validation.clinical_report import (
     ClinicalValidationReport,
     ClinicalValidator,
 )
@@ -237,9 +237,9 @@ class TestClinicalValidator:
 
     def test_generate_report_passing(self, clinical_validator):
         """Test report generation for passing validation."""
-        from src.gait.validation.metrics import ValidationMetrics
-        from src.gait.validation.anomaly_detector import AnomalyReport
-        from src.gait.validation.gold_standard import GoldStandardReport
+        from gait.validation.metrics import ValidationMetrics
+        from gait.validation.anomaly_detector import AnomalyReport
+        from gait.validation.gold_standard import GoldStandardReport
 
         metrics = ValidationMetrics(
             accuracy=0.95,
@@ -279,8 +279,8 @@ class TestClinicalValidator:
 
     def test_generate_report_failing(self, clinical_validator):
         """Test report generation for failing validation."""
-        from src.gait.validation.metrics import ValidationMetrics
-        from src.gait.validation.anomaly_detector import AnomalyReport
+        from gait.validation.metrics import ValidationMetrics
+        from gait.validation.anomaly_detector import AnomalyReport
 
         metrics = ValidationMetrics(
             accuracy=0.70,
@@ -312,7 +312,7 @@ class TestClinicalValidator:
 
     def test_report_printing(self, clinical_validator):
         """Test human-readable report generation."""
-        from src.gait.validation.metrics import ValidationMetrics
+        from gait.validation.metrics import ValidationMetrics
 
         metrics = ValidationMetrics(
             accuracy=0.90,
@@ -448,3 +448,4 @@ class TestValidationIntegration:
         assert report.report_id == "integration_test"
         assert report.data_quality_score > 0
         assert report.certification_level in ["clinical", "research", "failed"]
+

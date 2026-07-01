@@ -1,4 +1,4 @@
-"""Multi-camera frame alignment — produces time-synchronized SyncedFrameSet objects.
+﻿"""Multi-camera frame alignment â€” produces time-synchronized SyncedFrameSet objects.
 
 align_frames() expects exactly three cameras: "anterior", "sagittal", "posterior".
 Pairs frames from all cameras by timestamp within a configurable tolerance.
@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Dict, Generator, Iterable, Iterator, List
 
-from src.gait.common.interfaces import Frame
-from src.gait.common.logging_utils import get_logger
-from src.gait.common.types import FrameSyncError, SyncedFrameSet
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.interfaces import Frame
+from gait.common.logging_utils import get_logger
+from gait.common.types import FrameSyncError, SyncedFrameSet
+from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
@@ -73,10 +73,10 @@ def align_frames(
                 if abs(delta) <= tolerance_ms:
                     break
                 if delta < -tolerance_ms:
-                    # Camera is behind anchor — advance it
+                    # Camera is behind anchor â€” advance it
                     buffers[cam] = next(iterators[cam], None)
                 else:
-                    # Camera is ahead of anchor — anchor frame has no match
+                    # Camera is ahead of anchor â€” anchor frame has no match
                     break
 
             if buffers[cam] is not None:
@@ -119,3 +119,4 @@ def flatten_synced_frames(synced_sets: Iterable[SyncedFrameSet]) -> List[Frame]:
     for synced in synced_sets:
         result.extend(synced.frames.values())
     return result
+

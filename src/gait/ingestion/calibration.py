@@ -1,4 +1,4 @@
-"""Static calibration trial processing — extract personal anatomical offsets.
+﻿"""Static calibration trial processing â€” extract personal anatomical offsets.
 
 A calibration trial captures 3+ seconds of standing posture (or the first 3 seconds
 of any uploaded video in rest state). Joint angles measured in this neutral standing
@@ -17,8 +17,8 @@ import math
 from dataclasses import dataclass
 from typing import List, Optional
 
-from src.gait.common.interfaces import Frame, Keypoint
-from src.gait.common.logging_utils import get_logger
+from gait.common.interfaces import Frame, Keypoint
+from gait.common.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,7 @@ def extract_calibration_offsets(
 
     Args:
         frames: List of video frames (should be standing posture, no walking).
-        pose_keypoints: Dictionary mapping frame index → keypoint data.
+        pose_keypoints: Dictionary mapping frame index â†’ keypoint data.
                        Expected keys: left_knee, right_knee, left_hip, right_hip,
                        left_ankle, right_ankle, etc. (as Keypoint objects).
         duration_sec: Duration to sample for baseline (default 3.0 seconds).
@@ -157,7 +157,7 @@ def extract_calibration_offsets(
 def _compute_ankle_dorsiflexion(kp: dict) -> Optional[float]:
     """Compute ankle dorsiflexion angle from keypoints.
 
-    Dorsiflexion = angle between shin (knee→ankle) and foot (ankle→toe/metatarsal).
+    Dorsiflexion = angle between shin (kneeâ†’ankle) and foot (ankleâ†’toe/metatarsal).
     Positive = toe raised (dorsiflexion), negative = toe down (plantarflexion).
     """
     try:
@@ -181,7 +181,7 @@ def _compute_ankle_dorsiflexion(kp: dict) -> Optional[float]:
 
 
 def _compute_knee_flexion(kp: dict) -> Optional[float]:
-    """Compute knee flexion angle from hip→knee→ankle."""
+    """Compute knee flexion angle from hipâ†’kneeâ†’ankle."""
     try:
         hip = kp.get("left_hip")
         knee = kp.get("left_knee")
@@ -203,7 +203,7 @@ def _compute_knee_flexion(kp: dict) -> Optional[float]:
 
 
 def _compute_hip_flexion(kp: dict) -> Optional[float]:
-    """Compute hip flexion angle from pelvis→hip→knee."""
+    """Compute hip flexion angle from pelvisâ†’hipâ†’knee."""
     try:
         pelvis_mid = kp.get("midpoint_hips")
         if not pelvis_mid:
@@ -258,7 +258,7 @@ def _compute_pelvic_tilt(kp: dict) -> Optional[float]:
 
 
 def _compute_trunk_lean(kp: dict) -> Optional[float]:
-    """Compute trunk forward lean from shoulder→hip alignment vs. vertical."""
+    """Compute trunk forward lean from shoulderâ†’hip alignment vs. vertical."""
     try:
         left_hip = kp.get("left_hip")
         left_shoulder = kp.get("left_shoulder")
@@ -279,7 +279,7 @@ def _compute_trunk_lean(kp: dict) -> Optional[float]:
 
 
 def _compute_rearfoot_angle(kp: dict, side: str = "left") -> Optional[float]:
-    """Compute rearfoot angle (varus/valgus) from ankle→heel alignment."""
+    """Compute rearfoot angle (varus/valgus) from ankleâ†’heel alignment."""
     try:
         prefix = f"{side}_"
         ankle = kp.get(f"{prefix}ankle")
@@ -302,3 +302,4 @@ def _mean_or_zero(values: List[float]) -> float:
     if not values:
         return 0.0
     return sum(values) / len(values)
+

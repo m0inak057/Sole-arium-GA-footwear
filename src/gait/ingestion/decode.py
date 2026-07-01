@@ -1,4 +1,4 @@
-"""Video decoding — converts a video file into a stream of Frame objects.
+﻿"""Video decoding â€” converts a video file into a stream of Frame objects.
 
 VideoFileSource implements the VideoSource ABC so hardware cameras can be
 swapped in (by implementing LiveCameraSource) without touching any pipeline
@@ -17,11 +17,11 @@ from typing import Generator, Tuple
 import cv2
 import numpy as np
 
-from src.gait.common.geometry import frame_index_to_timestamp_ms
-from src.gait.common.interfaces import Frame, VideoSource
-from src.gait.common.logging_utils import get_logger
-from src.gait.common.types import VideoDecodeError
-from src.gait.pipeline.config import IngestionConfig
+from gait.common.geometry import frame_index_to_timestamp_ms
+from gait.common.interfaces import Frame, VideoSource
+from gait.common.logging_utils import get_logger
+from gait.common.types import VideoDecodeError
+from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ logger = get_logger(__name__)
 class VideoFileSource(VideoSource):
     """Read a video file and yield Frame objects.
 
-    Implements VideoSource ABC — hardware cameras need only provide a
+    Implements VideoSource ABC â€” hardware cameras need only provide a
     LiveCameraSource implementation; all pipeline code is unchanged.
     """
 
@@ -44,7 +44,7 @@ class VideoFileSource(VideoSource):
         self._config = config
         self._cap: cv2.VideoCapture | None = None
 
-    # ── Context manager ────────────────────────────────────────────────────
+    # â”€â”€ Context manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def __enter__(self) -> "VideoFileSource":
         self.open()
@@ -53,7 +53,7 @@ class VideoFileSource(VideoSource):
     def __exit__(self, *_) -> None:
         self.close()
 
-    # ── VideoSource ABC ────────────────────────────────────────────────────
+    # â”€â”€ VideoSource ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def open(self) -> None:
         """Open the video file. Raises VideoDecodeError if not found or unreadable."""
@@ -71,7 +71,7 @@ class VideoFileSource(VideoSource):
             self._cap = None
 
     def get_frames(self) -> Generator[Frame, None, None]:
-        """Yield Frame objects one at a time — never buffers the full video.
+        """Yield Frame objects one at a time â€” never buffers the full video.
 
         Raises VideoDecodeError when consecutive decode failures exceed
         IngestionConfig.max_consecutive_decode_failure_pct of total frames.
@@ -117,7 +117,7 @@ class VideoFileSource(VideoSource):
             timestamp_ms = frame_index_to_timestamp_ms(frame_index, int(fps))
 
             yield Frame(
-                image=np.copy(bgr),  # copy — caller must not corrupt upstream buffer
+                image=np.copy(bgr),  # copy â€” caller must not corrupt upstream buffer
                 timestamp_ms=timestamp_ms,
                 camera_view=self._camera_view,
                 frame_index=frame_index,
@@ -143,7 +143,7 @@ class VideoFileSource(VideoSource):
         h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         return (w, h)
 
-    # ── Private ────────────────────────────────────────────────────────────
+    # â”€â”€ Private â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _warn_if_mismatch(self) -> None:
         actual_fps = self.get_fps()
@@ -168,3 +168,4 @@ class VideoFileSource(VideoSource):
                     "expected": f"{exp_w}x{exp_h}",
                 },
             )
+
