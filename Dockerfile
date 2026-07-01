@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
     libopenblas0 \
+    # Video codec support — required for cv2.VideoCapture to decode H.264/H.265 on Linux
+    ffmpeg \
+    libavcodec-extra \
     # Database and utilities
     postgresql-client \
     redis-tools \

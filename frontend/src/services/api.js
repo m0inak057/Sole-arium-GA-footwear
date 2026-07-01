@@ -35,7 +35,7 @@ export async function uploadVideos(sessionId, anteriorFile, sagittalFile, poster
     await client.post(
       `/sessions/${sessionId}/uploads?camera_view=${view}`,
       form,
-      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }
+      { headers: { 'Content-Type': undefined }, timeout: 120000 }
     )
   }
 }

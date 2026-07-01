@@ -37,9 +37,7 @@ CREATE TABLE IF NOT EXISTS gait.sessions (
     session_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'created',
     -- created | uploaded | processing | complete | needs_rerecord | failed
-    notes TEXT,
-    INDEX(patient_id),
-    INDEX(status)
+    notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS gait.videos (
@@ -56,9 +54,7 @@ CREATE TABLE IF NOT EXISTS gait.videos (
     resolution_w INT,
     resolution_h INT,
     format VARCHAR(20),
-    upload_complete BOOLEAN DEFAULT FALSE,
-    INDEX(session_id),
-    INDEX(camera_view)
+    upload_complete BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS gait.profiles (
@@ -70,9 +66,7 @@ CREATE TABLE IF NOT EXISTS gait.profiles (
     profile_json JSONB NOT NULL,
     confidence_score DECIMAL(3, 2),
     quality_flags JSONB,
-    processed_at TIMESTAMP WITH TIME ZONE,
-    INDEX(session_id),
-    INDEX((profile_json -> 'spatiotemporal' -> 'cadence_spm'))
+    processed_at TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS gait.gait_cycles (
@@ -85,9 +79,7 @@ CREATE TABLE IF NOT EXISTS gait.gait_cycles (
     frame_start INT,
     frame_end INT,
     duration_ms DECIMAL(8, 2),
-    cycle_json JSONB,
-    INDEX(profile_id),
-    INDEX((foot, cycle_number))
+    cycle_json JSONB
 );
 
 CREATE TABLE IF NOT EXISTS gait.processing_tasks (
@@ -100,10 +92,7 @@ CREATE TABLE IF NOT EXISTS gait.processing_tasks (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     -- pending | running | completed | failed
     error_message TEXT,
-    processing_time_sec DECIMAL(10, 2),
-    INDEX(session_id),
-    INDEX(status),
-    INDEX(celery_task_id)
+    processing_time_sec DECIMAL(10, 2)
 );
 
 CREATE TABLE IF NOT EXISTS logs.audit_logs (
@@ -116,10 +105,7 @@ CREATE TABLE IF NOT EXISTS logs.audit_logs (
     profile_id UUID,
     details JSONB,
     ip_address INET,
-    user_agent TEXT,
-    INDEX(event_type),
-    INDEX(created_at),
-    INDEX(user_id)
+    user_agent TEXT
 );
 
 CREATE TABLE IF NOT EXISTS gait.quality_metrics (
@@ -128,9 +114,7 @@ CREATE TABLE IF NOT EXISTS gait.quality_metrics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     metric_name VARCHAR(100) NOT NULL,
     metric_value DECIMAL(10, 4),
-    notes TEXT,
-    INDEX(profile_id),
-    INDEX(metric_name)
+    notes TEXT
 );
 
 -- Create indexes for common queries

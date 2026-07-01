@@ -1,12 +1,14 @@
-# Product Requirements Document (PRD)
-## Gait Analysis Module for Customized Orthopedic Footwear
+# Sole-Arium Gait Analysis Platform — Product Requirements & System Architecture Document
+
+## Product Information
 
 | Field | Value |
 |---|---|
-| Document | PRD |
-| Version | 1.0 |
-| Status | Draft for build |
-| Related | [ARCHITECTURE.md](./ARCHITECTURE.md), [API_AND_SCHEMA.md](./API_AND_SCHEMA.md), [ROADMAP.md](./ROADMAP.md) |
+| Document | PRD & System Architecture |
+| Version | 2.0 |
+| Status | Production-Ready |
+| Last Updated | 2026-06-29 |
+| Related | [ARCHITECTURE.md](./ARCHITECTURE.md), [API_AND_SCHEMA.md](./API_AND_SCHEMA.md), [DATA_FLOW.md](./DATA_FLOW.md) |
 
 ---
 
@@ -27,6 +29,300 @@ A computer-vision pipeline that:
 
 ### 1.4 Where this module sits
 This is **Stage 1** of a larger pipeline. Its single deliverable — `profile.json` — is the contract handed to the downstream **Shoe Design Module** (last design, midsole geometry, medial post, arch support). Everything in this PRD stops at the boundary of that JSON.
+
+---
+
+## SYSTEM ARCHITECTURE & CURRENT IMPLEMENTATION
+
+### Current Technology Stack
+
+**Frontend:**
+- React 18 + Vite + Tailwind CSS
+- Two-page UI: Upload → Results
+- Real-time status polling via REST API
+
+**Backend:**
+- FastAPI (Python) - REST API server on port 8000
+- Celery - Async task processing (4 concurrent workers)
+- PostgreSQL 15 - Persistent data storage
+- Redis 7 - Cache, task broker, session state
+- MinIO - S3-compatible object storage for video frames
+- Flower - Celery task monitoring UI (port 5555)
+
+**Monitoring:**
+- Prometheus - 50+ application metrics
+- Sentry - Exception tracking & alerting
+- Custom health checks for all services
+
+---
+
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React + Vite)                       │
+│              Browser UI: Upload → Results Pages                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP/REST
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   FASTAPI SERVER (Port 8000)                     │
+│  Sessions  │  File Upload  │  Pipeline Trigger  │  Status Poll  │
+│  Auth & Rate Limiting  │  Health Checks                          │
+└────────┬─────────────────┬──────────────────────────┬───────────┘
+         │                 │                          │
+         ▼                 ▼                          ▼
+    ┌─────────┐      ┌──────────┐            ┌─────────────────┐
+    │PostgreSQL│      │  Redis   │            │ MinIO (S3)      │
+    │Database  │      │  Cache & │            │ Object Storage  │
+    │          │      │  Broker  │            │ (video frames)  │
+    └─────────┘      └──────────┘            └─────────────────┘
+         ▲                 ▲
+         │         Celery Task Queue
+         │                 │
+┌────────┴─────────────────┴─────────────────────────────────────┐
+│           CELERY WORKERS (Concurrent: 4)                        │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │    GAIT ANALYSIS PIPELINE (5-Stage Processing)          │   │
+│  │                                                         │   │
+│  │  Stage 1: INGESTION & PREPROCESSING                    │   │
+│  │  ├─ Video decoding (OpenCV)                            │   │
+│  │  ├─ Camera calibration (checkerboard patterns)         │   │
+│  │  ├─ Background segmentation                           │   │
+│  │  └─ 2D foot tracking                                  │   │
+│  │                                                         │   │
+│  │  Stage 2: POSE ESTIMATION                              │   │
+│  │  ├─ MediaPipe keypoint extraction (33 landmarks)      │   │
+│  │  ├─ Trajectory smoothing (Savitzky-Golay)            │   │
+│  │  └─ 2D→3D conversion via triangulation               │   │
+│  │                                                         │   │
+│  │  Stage 3: GAIT EVENT DETECTION                         │   │
+│  │  ├─ Velocity filtering (bandpass)                      │   │
+│  │  ├─ Heel-strike & toe-off detection                   │   │
+│  │  └─ Gait cycle segmentation                           │   │
+│  │                                                         │   │
+│  │  Stage 4: BIOMECHANICAL ANALYSIS                       │   │
+│  │  ├─ Joint angles (ankle, knee, hip)                   │   │
+│  │  ├─ Spatiotemporal metrics (cadence, stride length)   │   │
+│  │  ├─ Asymmetry indices                                 │   │
+│  │  └─ Efficiency metrics                                │   │
+│  │                                                         │   │
+│  │  Stage 5: PROFILE GENERATION                           │   │
+│  │  ├─ Statistical aggregation (mean, std, ICC)          │   │
+│  │  ├─ Clinical report generation                        │   │
+│  │  ├─ AI Health Coach (Claude API)                      │   │
+│  │  ├─ AI Prescription Engine (Claude API)               │   │
+│  │  └─ Save profile to PostgreSQL + MinIO               │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  FLOWER - Celery Task Monitor (Port 5555)              │   │
+│  │  Real-time visibility into task execution              │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Backend Services Overview
+
+#### 1. FastAPI Server (Port 8000)
+
+**Core Responsibilities:**
+- Session creation & management (PostgreSQL)
+- Video file upload handling (MinIO storage)
+- Pipeline task queuing (Celery)
+- Status polling & result retrieval
+- Authentication (JWT + API keys)
+- Rate limiting (token bucket via Redis)
+
+**Key REST Endpoints:**
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/v1/sessions` | Create session |
+| POST | `/api/v1/sessions/{id}/uploads` | Upload video files |
+| POST | `/api/v1/sessions/{id}/process` | Trigger pipeline |
+| GET | `/api/v1/sessions/{id}/status` | Poll job status |
+| GET | `/api/v1/sessions/{id}/profile` | Retrieve results |
+| DELETE | `/api/v1/sessions/{id}` | Delete session |
+| GET | `/health` | Service health check |
+
+#### 2. Celery Worker (4 concurrent processes)
+
+**Execution Model:**
+- Prefork process pool (4 parallel workers)
+- Message broker: Redis DB 0
+- Result backend: Redis DB 1
+- Task queue: `celery` (default)
+
+**Workflow:**
+1. API receives `/process` → Queues task to Redis
+2. Idle worker picks up task
+3. Executes 5-stage pipeline (see diagram above)
+4. Stores results in Redis result backend
+5. Persists to PostgreSQL + MinIO
+6. Frontend polls `/status` to track progress
+
+#### 3. PostgreSQL Database
+
+**Core Tables:**
+
+| Table | Purpose |
+|-------|---------|
+| `users` | API user accounts |
+| `api_keys` | Authentication tokens |
+| `sessions` | Analysis session records |
+| `uploads` | Video file metadata |
+| `profiles` | Completed gait profiles (JSON) |
+
+**ORM:** SQLAlchemy with Pydantic v2 validation
+
+#### 4. Redis Cache & Message Broker
+
+**Database 0:** Celery task queue (messages)  
+**Database 1:** Celery result backend (cached results)  
+**General:** Application cache, session state, rate limiting counters
+
+#### 5. MinIO Object Storage
+
+**Bucket:** `gait-analysis`  
+**Content:**
+- Video frames (decoded, intermediate)
+- Analysis artifacts
+- Final profile results (JSON, CSV)
+
+**Access:** S3-compatible API (can swap with AWS S3 in production)
+
+---
+
+### Frontend Services Overview
+
+#### React Application (Port 3000 during dev)
+
+**Architecture:**
+- Single-page app (SPA) with client-side routing
+- Two main routes: `/` (Upload) and `/results/:sessionId`
+
+**Upload Page (`/`):**
+1. User creates session → `POST /api/v1/sessions`
+2. Upload video files → `POST /api/v1/sessions/{id}/uploads`
+3. Click "Analyze" → `POST /api/v1/sessions/{id}/process`
+4. Poll status every 2-5s → `GET /api/v1/sessions/{id}/status`
+5. On completion → Redirect to results page
+
+**Results Page (`/results/:sessionId`):**
+1. Fetch profile → `GET /api/v1/sessions/{id}/profile`
+2. Render kinematic charts (joint angles)
+3. Display 3D shoe visualization
+4. Show clinical findings & AI recommendations
+5. Export/download options
+
+**Components:**
+- `UploadPage.jsx` — Session & file management
+- `ResultsPage.jsx` — Results visualization
+- `KinematicCharts.jsx` — Line charts (angles over gait cycle)
+- `Shoe3DVisualization.jsx` — Interactive 3D model
+- `api.js` — Centralized API client
+
+---
+
+### Complete User Workflow
+
+```
+User Opens Browser
+        ↓
+    Upload Page
+        ↓
+    [1] POST /sessions → session_id
+        ↓
+    Select video files (3 cameras)
+        ↓
+    [2] POST /sessions/{id}/uploads → Store in MinIO
+        ↓
+    Click "Analyze"
+        ↓
+    [3] POST /sessions/{id}/process → Queue Celery task
+        ↓
+        API returns task_id
+        ↓
+    Frontend starts polling
+        ↓
+    [4] GET /sessions/{id}/status → "pending"
+    [4] GET /sessions/{id}/status → "active" (stage 1/5)
+    [4] GET /sessions/{id}/status → "active" (stage 2/5)
+        ... (stages 3, 4, 5)
+    [4] GET /sessions/{id}/status → "success"
+        ↓
+    Auto-redirect to Results Page
+        ↓
+    [5] GET /sessions/{id}/profile → Fetch JSON results
+        ↓
+    Render Charts + 3D Model + Clinical Report
+        ↓
+    Display AI Health Coaching & Shoe Recommendations
+        ↓
+    User Reviews & Downloads Results
+```
+
+---
+
+### 5-Stage Pipeline Deep Dive
+
+#### Stage 1: Ingestion & Preprocessing
+**Input:** 3 synchronized video files (anterior, lateral, posterior)  
+**Operations:**
+- Frame-by-frame video decoding
+- Camera intrinsic calibration (stored parameters)
+- Background subtraction (foreground mask)
+- 2D foot tracking in each view
+
+**Output:** Calibrated frame sequences, foot center locations
+
+#### Stage 2: Pose Estimation
+**Input:** Video frames  
+**Model:** MediaPipe Pose (33 keypoints per frame)  
+**Operations:**
+- Keypoint extraction (confidence scores)
+- Trajectory smoothing (remove jitter)
+- 3D triangulation from multi-view 2D points
+
+**Output:** 3D joint coordinates, velocities, accelerations
+
+#### Stage 3: Gait Event Detection
+**Input:** Foot velocity signals  
+**Operations:**
+- Bandpass filtering (0.5-3 Hz)
+- Peak/valley detection for foot contacts
+- Event classification (heel-strike, toe-off, etc.)
+- Gait cycle segmentation
+
+**Output:** Event timestamps, cycle boundaries, pass IDs
+
+#### Stage 4: Biomechanical Analysis
+**Input:** 3D joint trajectories + events  
+**Computations:**
+- **Joint angles:** Ankle (dorsi/plantarflex, invert/evert), knee (flex/extend), hip (flex/extend)
+- **Spatiotemporal:** Cadence, stride length, gait speed, swing/stance time ratios
+- **Asymmetry:** Left-right difference percentages
+- **Efficiency:** Energy expenditure proxies
+- **Foot strike:** Classification (rearfoot/midfoot/forefoot)
+- **Pronation:** Rearfoot angle at mid-stance
+
+**Output:** Per-cycle metrics, aggregated statistics
+
+#### Stage 5: Profile Generation
+**Input:** Aggregated metrics from all cycles  
+**Operations:**
+1. Statistical summary (mean, SD, ICC for reliability)
+2. Clinical interpretation (normal ranges)
+3. AI Health Coach reasoning (Claude API)
+4. AI Prescription Engine (shoe design specs)
+5. Persist to PostgreSQL + MinIO
+
+**Output:** Structured `profile.json` + human-readable report
 
 ---
 
