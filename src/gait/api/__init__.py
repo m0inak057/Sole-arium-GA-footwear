@@ -1,4 +1,4 @@
-﻿"""FastAPI application and API routes modules."""
+"""FastAPI application and API routes modules."""
 from gait.api.main import app
 from gait.api.models import SessionStatus
 from gait.api.session_store import SessionStore, get_session_store

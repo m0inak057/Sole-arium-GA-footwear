@@ -1,4 +1,4 @@
-﻿"""Unit tests for monitoring (metrics and health checks)."""
+"""Unit tests for monitoring (metrics and health checks)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

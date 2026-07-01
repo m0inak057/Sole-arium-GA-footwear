@@ -1,4 +1,4 @@
-﻿"""Unit tests for VideoFileSource (src.gait.ingestion.decode)."""
+"""Unit tests for VideoFileSource (src.gait.ingestion.decode)."""
 
 import logging
 
@@ -23,7 +23,7 @@ def cfg():
 
 @pytest.fixture
 def tiny_video(tmp_path):
-    """10-frame 320Ã—240 video at 30 fps with per-frame colour variation."""
+    """10-frame 320é—240 video at 30 fps with per-frame colour variation."""
     path = tmp_path / "test.avi"
     writer = cv2.VideoWriter(
         str(path), cv2.VideoWriter_fourcc(*"XVID"), float(FPS), (W, H)

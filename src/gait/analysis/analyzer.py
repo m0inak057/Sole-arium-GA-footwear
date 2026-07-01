@@ -1,4 +1,4 @@
-﻿"""StandardBiomechanicalAnalyzer â€” orchestrates per-cycle parameter computation."""
+"""StandardBiomechanicalAnalyzer â€” orchestrates per-cycle parameter computation."""
 from __future__ import annotations
 
 import statistics

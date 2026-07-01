@@ -1,4 +1,4 @@
-﻿"""Background subtraction â€” isolates the subject from a static background.
+"""Background subtraction â€” isolates the subject from a static background.
 
 Each camera must have its own BackgroundSubtractor instance â€” sagittal and
 posterior cameras see different backgrounds and sharing one MOG2 model across

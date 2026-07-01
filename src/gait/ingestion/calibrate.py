@@ -1,4 +1,4 @@
-﻿"""Camera calibration â€” loads intrinsic parameters and undistorts frames.
+"""Camera calibration â€” loads intrinsic parameters and undistorts frames.
 
 Two distinct outcomes for a missing vs. malformed calibration file:
   - Missing file  â†’ WARNING + returns None â†’ pipeline runs in passthrough mode.

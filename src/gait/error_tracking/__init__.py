@@ -1,4 +1,4 @@
-﻿"""Error tracking module (Sentry integration)."""
+"""Error tracking module (Sentry integration)."""
 from gait.error_tracking.sentry_config import (
     SentryConfig,
     add_sentry_breadcrumb,

@@ -1,4 +1,4 @@
-﻿"""FastAPI dependency injection for authentication."""
+"""FastAPI dependency injection for authentication."""
 from __future__ import annotations
 
 from typing import Optional

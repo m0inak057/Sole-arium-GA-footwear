@@ -1,4 +1,4 @@
-﻿"""Unit tests for StandardProfileBuilder and StandardGatingEngine."""
+"""Unit tests for StandardProfileBuilder and StandardGatingEngine."""
 from __future__ import annotations
 
 from typing import Any, Dict

@@ -1,4 +1,4 @@
-﻿"""Unit tests for pipeline configuration loaders.
+"""Unit tests for pipeline configuration loaders.
 
 Tests that:
 1. Configs load from YAML

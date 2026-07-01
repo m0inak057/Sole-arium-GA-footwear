@@ -1,4 +1,4 @@
-﻿"""Test that frontal_plane_excursion outputs real asymmetric values left vs right."""
+"""Test that frontal_plane_excursion outputs real asymmetric values left vs right."""
 from __future__ import annotations
 
 import pytest

@@ -1,4 +1,4 @@
-﻿"""PoseEstimator â€” orchestrates detector + 1-Euro smoother for a session."""
+"""PoseEstimator â€” orchestrates detector + 1-Euro smoother for a session."""
 from __future__ import annotations
 
 import time

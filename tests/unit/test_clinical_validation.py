@@ -1,4 +1,4 @@
-﻿"""Unit tests for Phase E clinical validation."""
+"""Unit tests for Phase E clinical validation."""
 from __future__ import annotations
 
 import numpy as np

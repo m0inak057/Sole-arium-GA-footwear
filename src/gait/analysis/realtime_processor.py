@@ -1,4 +1,4 @@
-﻿"""Real-time gait analysis with streaming frame processing."""
+"""Real-time gait analysis with streaming frame processing."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

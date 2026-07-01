@@ -1,4 +1,4 @@
-﻿"""Unit tests for background subtraction (src.gait.ingestion.segment_bg)."""
+"""Unit tests for background subtraction (src.gait.ingestion.segment_bg)."""
 
 import numpy as np
 import pytest

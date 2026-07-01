@@ -1,4 +1,4 @@
-﻿"""Shared utilities, types, and constants for the gait analysis pipeline."""
+"""Shared utilities, types, and constants for the gait analysis pipeline."""
 
 from gait.common.types import (
     CameraCalibration,

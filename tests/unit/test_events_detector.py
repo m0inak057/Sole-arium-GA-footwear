@@ -1,4 +1,4 @@
-﻿"""Unit tests for VelocityBasedEventDetector and its helpers.
+"""Unit tests for VelocityBasedEventDetector and its helpers.
 
 Synthetic keypoint trajectories are generated mathematically so tests require
 no video files and no external models.

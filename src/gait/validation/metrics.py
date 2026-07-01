@@ -1,4 +1,4 @@
-﻿"""Clinical validation metrics and performance evaluation."""
+"""Clinical validation metrics and performance evaluation."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -44,7 +44,7 @@ def intraclass_correlation(rater_a: np.ndarray, rater_b: np.ndarray) -> float:
 
     For n subjects each measured once by two raters:
 
-        data  : nÃ—2 matrix  (rows = subjects, columns = raters)
+        data  : né—2 matrix  (rows = subjects, columns = raters)
         MSB   : between-subjects mean square
         MSC   : between-raters (columns) mean square
         MSE   : residual error mean square

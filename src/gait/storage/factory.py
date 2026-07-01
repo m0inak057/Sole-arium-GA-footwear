@@ -1,4 +1,4 @@
-﻿"""Storage factory for creating storage backends."""
+"""Storage factory for creating storage backends."""
 from __future__ import annotations
 
 import os

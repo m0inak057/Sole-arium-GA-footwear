@@ -1,4 +1,4 @@
-﻿"""MinIO storage backend (S3-compatible object storage)."""
+"""MinIO storage backend (S3-compatible object storage)."""
 from __future__ import annotations
 
 from typing import Optional

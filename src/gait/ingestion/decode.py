@@ -1,4 +1,4 @@
-﻿"""Video decoding â€” converts a video file into a stream of Frame objects.
+"""Video decoding â€” converts a video file into a stream of Frame objects.
 
 VideoFileSource implements the VideoSource ABC so hardware cameras can be
 swapped in (by implementing LiveCameraSource) without touching any pipeline

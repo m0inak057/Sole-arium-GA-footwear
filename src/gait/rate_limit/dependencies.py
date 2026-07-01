@@ -1,4 +1,4 @@
-﻿"""Rate limiting dependencies for FastAPI."""
+"""Rate limiting dependencies for FastAPI."""
 from __future__ import annotations
 
 from typing import Optional

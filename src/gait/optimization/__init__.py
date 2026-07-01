@@ -1,4 +1,4 @@
-﻿"""Performance optimization modules."""
+"""Performance optimization modules."""
 from gait.optimization.cache_manager import (
     ComputationCache,
     CacheEntry,

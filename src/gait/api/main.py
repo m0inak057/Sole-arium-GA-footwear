@@ -1,4 +1,4 @@
-﻿"""FastAPI application â€” Gait Analysis REST API.
+"""FastAPI application â€” Gait Analysis REST API.
 
 Endpoints:
   GET  /health                                 â†’ health check

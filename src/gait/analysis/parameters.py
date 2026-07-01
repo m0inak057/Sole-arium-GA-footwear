@@ -1,4 +1,4 @@
-﻿"""Pure biomechanical parameter functions â€” no I/O, no state.
+"""Pure biomechanical parameter functions â€” no I/O, no state.
 
 All functions take keypoints / cycle data in and return numbers or strings out.
 Classifiers rely exclusively on thresholds from AnalysisConfig; nothing is
@@ -291,7 +291,7 @@ def classify_arch(ahi: float, cfg: AnalysisConfig) -> str:
 
 
 def compute_symmetry_index(left_val: float, right_val: float) -> float:
-    """SI = |L - R| / mean(L, R) Ã— 100.
+    """SI = |L - R| / mean(L, R) é— 100.
 
     Returns 0.0 when mean is effectively zero (both sides are zero).
     """

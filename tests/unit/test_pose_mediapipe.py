@@ -1,4 +1,4 @@
-﻿"""Unit tests for MediaPipePoseDetector (src.gait.pose.mediapipe_detector).
+"""Unit tests for MediaPipePoseDetector (src.gait.pose.mediapipe_detector).
 
 MediaPipe model inference is mocked â€” no GPU/camera/internet required.
 The mock patches `mp` in the mediapipe_detector module so that

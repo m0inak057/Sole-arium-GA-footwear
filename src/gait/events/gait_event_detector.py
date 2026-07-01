@@ -1,4 +1,4 @@
-﻿"""Gait event detection (heel strike, toe off)."""
+"""Gait event detection (heel strike, toe off)."""
 from __future__ import annotations
 
 import statistics
@@ -186,7 +186,7 @@ def assign_pass_ids(
     """Group cycles into walking passes and stamp each with a pass_id.
 
     A new walking pass begins when the gap between the end of one cycle and
-    the start of the next exceeds ``pass_gap_multiplier Ã— median_cycle_duration``
+    the start of the next exceeds ``pass_gap_multiplier é— median_cycle_duration``
     in frames â€” a signature of the subject stopping, turning around, and
     resuming.  Cycles are sorted by frame_start before comparison so the
     function is order-independent.

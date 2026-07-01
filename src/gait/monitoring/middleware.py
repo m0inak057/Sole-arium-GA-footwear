@@ -1,4 +1,4 @@
-﻿"""Middleware for instrumenting HTTP requests with metrics."""
+"""Middleware for instrumenting HTTP requests with metrics."""
 from __future__ import annotations
 
 import time

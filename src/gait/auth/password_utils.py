@@ -1,4 +1,4 @@
-﻿"""Password hashing and verification utilities."""
+"""Password hashing and verification utilities."""
 from __future__ import annotations
 
 import bcrypt

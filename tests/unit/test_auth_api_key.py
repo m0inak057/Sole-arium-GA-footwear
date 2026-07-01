@@ -1,4 +1,4 @@
-﻿"""Unit tests for API key management and validation."""
+"""Unit tests for API key management and validation."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

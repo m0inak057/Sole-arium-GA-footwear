@@ -1,4 +1,4 @@
-﻿"""Unit tests for rate limiting."""
+"""Unit tests for rate limiting."""
 from __future__ import annotations
 
 import time

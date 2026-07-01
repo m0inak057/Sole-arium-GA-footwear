@@ -1,4 +1,4 @@
-﻿"""Unit tests for ROI crop (src.gait.ingestion.roi)."""
+"""Unit tests for ROI crop (src.gait.ingestion.roi)."""
 
 import numpy as np
 import pytest

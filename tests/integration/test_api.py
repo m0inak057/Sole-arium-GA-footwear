@@ -1,4 +1,4 @@
-﻿"""Integration tests for the Gait Analysis FastAPI endpoints.
+"""Integration tests for the Gait Analysis FastAPI endpoints.
 
 Uses FastAPI's synchronous TestClient (via httpx).  Celery is never actually
 invoked: we override `get_pipeline_task` with a fake task that stores a

@@ -1,4 +1,4 @@
-﻿"""StandardProfileBuilder â€” assembles GaitPatientProfile from aggregated parameters.
+"""StandardProfileBuilder â€” assembles GaitPatientProfile from aggregated parameters.
 
 The builder:
   1. Extracts L/R aggregated parameters from the parameters dict.

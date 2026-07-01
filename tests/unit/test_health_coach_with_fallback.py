@@ -1,4 +1,4 @@
-﻿"""Test GaitHealthCoach with comprehensive fallback validation.
+"""Test GaitHealthCoach with comprehensive fallback validation.
 
 These tests verify:
 1. Agent success path (happy path)

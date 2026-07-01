@@ -1,4 +1,4 @@
-﻿"""StandardGatingEngine â€” quality gating based on clean gait cycle count."""
+"""StandardGatingEngine â€” quality gating based on clean gait cycle count."""
 from __future__ import annotations
 
 from collections import defaultdict

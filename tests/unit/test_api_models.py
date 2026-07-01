@@ -1,4 +1,4 @@
-﻿"""Unit tests for API Pydantic models (src.gait.api.models)."""
+"""Unit tests for API Pydantic models (src.gait.api.models)."""
 from __future__ import annotations
 
 from datetime import datetime

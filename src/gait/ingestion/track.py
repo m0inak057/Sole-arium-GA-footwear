@@ -1,4 +1,4 @@
-﻿"""Person tracking â€” locks onto the subject across frames using IoU matching.
+"""Person tracking â€” locks onto the subject across frames using IoU matching.
 
 SimpleIoUTracker strategy:
   1. Extract foreground blobs via cv2.connectedComponentsWithStats.

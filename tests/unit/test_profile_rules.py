@@ -1,4 +1,4 @@
-﻿"""Unit tests for RuleBasedRecommendationEngine (src.gait.profile.rules_engine)."""
+"""Unit tests for RuleBasedRecommendationEngine (src.gait.profile.rules_engine)."""
 from __future__ import annotations
 
 from gait.pipeline.config import RecommendationRule, RecommendationRulesConfig

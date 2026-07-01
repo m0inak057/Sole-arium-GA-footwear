@@ -1,4 +1,4 @@
-﻿"""API key management and validation."""
+"""API key management and validation."""
 from __future__ import annotations
 
 import hashlib

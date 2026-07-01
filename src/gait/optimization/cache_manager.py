@@ -1,4 +1,4 @@
-﻿"""Intelligent caching for gait analysis computations."""
+"""Intelligent caching for gait analysis computations."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

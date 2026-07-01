@@ -1,4 +1,4 @@
-﻿"""GaitHealthCoach â€” Claude-powered personalized health assessment with deterministic fallback.
+"""GaitHealthCoach â€” Claude-powered personalized health assessment with deterministic fallback.
 
 This agent uses Claude Opus 4.8 (with streaming + adaptive thinking) to generate
 personalized health assessments from biomechanical data. Strict validation ensures

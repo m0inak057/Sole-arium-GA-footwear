@@ -1,4 +1,4 @@
-﻿"""JWT token generation and validation."""
+"""JWT token generation and validation."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

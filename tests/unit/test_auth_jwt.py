@@ -1,4 +1,4 @@
-﻿"""Unit tests for JWT token handling."""
+"""Unit tests for JWT token handling."""
 from __future__ import annotations
 
 import time

@@ -1,4 +1,4 @@
-﻿"""IngestionPreprocessor â€” orchestrates the full 4-step ingestion pipeline.
+"""IngestionPreprocessor â€” orchestrates the full 4-step ingestion pipeline.
 
 Pipeline per frame (for each camera in each SyncedFrameSet):
   1. Undistort       â€” CameraCalibrator.apply()

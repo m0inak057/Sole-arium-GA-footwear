@@ -1,4 +1,4 @@
-﻿"""Unit tests for pure biomechanical parameter functions (src.gait.analysis.parameters)."""
+"""Unit tests for pure biomechanical parameter functions (src.gait.analysis.parameters)."""
 from __future__ import annotations
 
 import math

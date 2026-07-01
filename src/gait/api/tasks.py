@@ -1,4 +1,4 @@
-﻿"""Celery application and background task definitions.
+"""Celery application and background task definitions.
 
 The Celery worker is launched via:
     celery -A src.gait.api.tasks worker --loglevel=info --concurrency=4

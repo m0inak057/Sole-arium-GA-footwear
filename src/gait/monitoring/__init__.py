@@ -1,4 +1,4 @@
-﻿"""Monitoring module (Prometheus metrics and health checks)."""
+"""Monitoring module (Prometheus metrics and health checks)."""
 from gait.monitoring.dependencies import get_health_check_result, get_metrics_endpoint
 from gait.monitoring.health import (
     HealthCheck,

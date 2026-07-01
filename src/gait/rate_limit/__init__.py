@@ -1,4 +1,4 @@
-﻿"""Rate limiting module."""
+"""Rate limiting module."""
 from gait.rate_limit.base import (
     RateLimitConfig,
     RateLimitError,

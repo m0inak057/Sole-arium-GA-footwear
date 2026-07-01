@@ -1,4 +1,4 @@
-﻿"""Unit tests for gait analysis (Phase B)."""
+"""Unit tests for gait analysis (Phase B)."""
 from __future__ import annotations
 
 import numpy as np

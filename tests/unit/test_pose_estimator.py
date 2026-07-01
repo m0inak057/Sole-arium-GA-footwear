@@ -1,4 +1,4 @@
-﻿"""Unit tests for PoseEstimator and create_pose_detector (src.gait.pose.estimator).
+"""Unit tests for PoseEstimator and create_pose_detector (src.gait.pose.estimator).
 
 The MediaPipe detector is replaced with a FakeDetector so no model inference
 runs. The smoother is real â€” its behaviour is covered separately in

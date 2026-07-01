@@ -1,4 +1,4 @@
-﻿"""Cache dependencies for FastAPI."""
+"""Cache dependencies for FastAPI."""
 from __future__ import annotations
 
 from typing import Optional

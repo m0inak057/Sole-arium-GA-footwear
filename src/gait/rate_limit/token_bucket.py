@@ -1,4 +1,4 @@
-﻿"""Token bucket rate limiter implementation."""
+"""Token bucket rate limiter implementation."""
 from __future__ import annotations
 
 import time

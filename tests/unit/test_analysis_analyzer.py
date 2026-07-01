@@ -1,4 +1,4 @@
-﻿"""Unit tests for StandardBiomechanicalAnalyzer (src.gait.analysis.analyzer)."""
+"""Unit tests for StandardBiomechanicalAnalyzer (src.gait.analysis.analyzer)."""
 from __future__ import annotations
 
 from typing import Dict

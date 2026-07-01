@@ -1,4 +1,4 @@
-﻿"""Unit tests for gait patient profile schema.
+"""Unit tests for gait patient profile schema.
 
 Tests that:
 1. Schema validates correct profiles

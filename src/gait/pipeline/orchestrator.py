@@ -1,4 +1,4 @@
-﻿"""GaitPipeline â€” end-to-end pipeline orchestrator.
+"""GaitPipeline â€” end-to-end pipeline orchestrator.
 
 Stitches together the five pipeline stages:
   1. Ingestion & preprocessing  (IngestionPreprocessor)

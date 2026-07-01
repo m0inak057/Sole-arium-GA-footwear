@@ -1,4 +1,4 @@
-﻿"""Unit tests for database models (src.gait.db.models)."""
+"""Unit tests for database models (src.gait.db.models)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

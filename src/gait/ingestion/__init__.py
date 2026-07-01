@@ -1,4 +1,4 @@
-﻿"""Video preprocessing and ingestion modules.
+"""Video preprocessing and ingestion modules.
 
 Phase B+C public surface â€” import from here, not from sub-modules directly.
 """

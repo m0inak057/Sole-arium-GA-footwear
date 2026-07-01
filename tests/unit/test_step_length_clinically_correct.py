@@ -1,4 +1,4 @@
-﻿"""Test clinically correct step length computation with interleaved L/R heel strikes."""
+"""Test clinically correct step length computation with interleaved L/R heel strikes."""
 from __future__ import annotations
 
 import pytest
@@ -70,9 +70,9 @@ class TestClinicalStepLengthComputation:
 
         # Verify absolute values match manual arithmetic
         assert abs(step_length_left_m - 1.1333) < 0.001, \
-            f"Expected ~1.13m (113.33px Ã— 0.01), got {step_length_left_m:.4f}m"
+            f"Expected ~1.13m (113.33px é— 0.01), got {step_length_left_m:.4f}m"
         assert abs(step_length_right_m - 2.55) < 0.001, \
-            f"Expected 2.55m (255px Ã— 0.01), got {step_length_right_m:.4f}m"
+            f"Expected 2.55m (255px é— 0.01), got {step_length_right_m:.4f}m"
 
     def test_step_length_left_dominant_gait(self):
         """Test where left foot dominates (takes longer steps)."""

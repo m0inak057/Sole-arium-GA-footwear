@@ -1,4 +1,4 @@
-﻿"""Vectorized operations for fast batch processing."""
+"""Vectorized operations for fast batch processing."""
 from __future__ import annotations
 
 from dataclasses import dataclass

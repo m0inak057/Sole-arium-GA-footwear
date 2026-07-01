@@ -1,4 +1,4 @@
-﻿"""Unit tests for Phase C advanced analysis (3D, metrics, real-time, reporting)."""
+"""Unit tests for Phase C advanced analysis (3D, metrics, real-time, reporting)."""
 from __future__ import annotations
 
 import numpy as np

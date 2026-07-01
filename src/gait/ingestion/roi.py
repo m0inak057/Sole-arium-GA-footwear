@@ -1,4 +1,4 @@
-﻿"""ROI cropping â€” extract the region of interest around the tracked person.
+"""ROI cropping â€” extract the region of interest around the tracked person.
 
 crop_roi() is a pure function: given a Frame and a PersonTrack, it expands
 the track bbox by margin_px on all sides (clamped to image bounds) and

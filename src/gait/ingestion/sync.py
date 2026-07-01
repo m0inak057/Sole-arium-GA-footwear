@@ -1,4 +1,4 @@
-﻿"""Multi-camera frame alignment â€” produces time-synchronized SyncedFrameSet objects.
+"""Multi-camera frame alignment â€” produces time-synchronized SyncedFrameSet objects.
 
 align_frames() expects exactly three cameras: "anterior", "sagittal", "posterior".
 Pairs frames from all cameras by timestamp within a configurable tolerance.

@@ -1,4 +1,4 @@
-﻿"""Ingestion-stage data transfer objects and typed exceptions.
+"""Ingestion-stage data transfer objects and typed exceptions.
 
 DTOs crossing stage boundaries use these types so every handoff is
 statically verifiable. Exceptions form a typed hierarchy so callers can

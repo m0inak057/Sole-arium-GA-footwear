@@ -1,4 +1,4 @@
-﻿"""In-memory session state store.
+"""In-memory session state store.
 
 Thread-safe via a simple threading.Lock.  For production at scale, swap this
 out for a Redis- or PostgreSQL-backed store â€” the interface is identical.

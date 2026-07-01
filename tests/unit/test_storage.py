@@ -1,4 +1,4 @@
-﻿"""Unit tests for storage backends (src.gait.storage)."""
+"""Unit tests for storage backends (src.gait.storage)."""
 from __future__ import annotations
 
 from unittest.mock import MagicMock, Mock, patch

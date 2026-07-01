@@ -1,4 +1,4 @@
-﻿"""Biomechanical analysis and parameter computation modules."""
+"""Biomechanical analysis and parameter computation modules."""
 from gait.analysis.biomechanics import BiomechanicsAnalyzer, BiomechanicalParams
 from gait.events.gait_event_detector import GaitEventDetector, GaitEvent
 from gait.analysis.three_d_reconstruction import (

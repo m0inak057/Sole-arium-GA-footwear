@@ -1,4 +1,4 @@
-﻿"""Session repository â€” database-backed alternative to in-memory SessionStore.
+"""Session repository â€” database-backed alternative to in-memory SessionStore.
 
 Thread-safe and suitable for multi-instance deployments.
 Replaces src.gait.api.session_store.SessionStore for production use.

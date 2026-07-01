@@ -1,4 +1,4 @@
-﻿"""Tests for the prescription_spec feature.
+"""Tests for the prescription_spec feature.
 
 Covers:
 1. Correct last_shape for overpronation (straight), oversupination (curved), neutral (semi_curved)

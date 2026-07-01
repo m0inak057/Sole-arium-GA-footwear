@@ -1,4 +1,4 @@
-﻿"""Prometheus metrics for application monitoring."""
+"""Prometheus metrics for application monitoring."""
 from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Histogram, Summary

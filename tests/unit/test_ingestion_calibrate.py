@@ -1,4 +1,4 @@
-﻿"""Unit tests for camera calibration (src.gait.ingestion.calibrate)."""
+"""Unit tests for camera calibration (src.gait.ingestion.calibrate)."""
 
 import numpy as np
 import pytest

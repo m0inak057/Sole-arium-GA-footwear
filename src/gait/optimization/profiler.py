@@ -1,4 +1,4 @@
-﻿"""Performance profiling and bottleneck detection."""
+"""Performance profiling and bottleneck detection."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

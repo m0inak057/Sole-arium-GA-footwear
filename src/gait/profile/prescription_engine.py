@@ -1,4 +1,4 @@
-﻿"""PrescriptionEngine â€” rule-based orthotist/shoe-designer specification generator.
+"""PrescriptionEngine â€” rule-based orthotist/shoe-designer specification generator.
 
 Reads the ``prescription_rules`` section from ``rules.yaml`` and applies them
 in ascending priority order to the same ``rule_params`` dict that drives the

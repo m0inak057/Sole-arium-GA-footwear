@@ -1,4 +1,4 @@
-﻿"""1-Euro filter for temporal smoothing of keypoint trajectories.
+"""1-Euro filter for temporal smoothing of keypoint trajectories.
 
 Reference: Casiez et al. (2012) "1â‚¬ Filter: A Simple Speed-based Low-pass Filter
 for Noisy Input in Interactive Systems", CHI 2012.

@@ -1,4 +1,4 @@
-﻿"""Authentication module (JWT, API keys, passwords)."""
+"""Authentication module (JWT, API keys, passwords)."""
 from gait.auth.api_key_manager import APIKeyValidator, generate_api_key, hash_api_key
 from gait.auth.dependencies import (
     create_jwt_handler,

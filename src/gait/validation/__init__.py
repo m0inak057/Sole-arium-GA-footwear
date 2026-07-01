@@ -1,4 +1,4 @@
-﻿"""Clinical validation and gold standard comparison modules."""
+"""Clinical validation and gold standard comparison modules."""
 from gait.validation.metrics import (
     ValidationMetrics,
     ErrorMetrics,

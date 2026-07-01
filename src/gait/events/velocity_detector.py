@@ -1,4 +1,4 @@
-﻿"""Velocity-based gait event detector.
+"""Velocity-based gait event detector.
 
 Algorithm (position peak detection):
 - Heel-strike (HS): local maximum of heel.y â€” heel at lowest point in frame

@@ -1,4 +1,4 @@
-﻿"""JSON-structured logging utilities for the gait analysis pipeline.
+"""JSON-structured logging utilities for the gait analysis pipeline.
 
 Usage:
     from gait.common.logging_utils import get_logger, log_stage_timing

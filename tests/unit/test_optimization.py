@@ -1,4 +1,4 @@
-﻿"""Unit tests for Phase D performance optimization."""
+"""Unit tests for Phase D performance optimization."""
 from __future__ import annotations
 
 import numpy as np

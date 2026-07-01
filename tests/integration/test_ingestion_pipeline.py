@@ -1,4 +1,4 @@
-﻿"""Integration tests for the full ingestion pipeline (IngestionPreprocessor).
+"""Integration tests for the full ingestion pipeline (IngestionPreprocessor).
 
 Uses cv2.VideoWriter to create synthetic videos. No hardware cameras required.
 The system now requires exactly 3 cameras: anterior, sagittal, posterior.

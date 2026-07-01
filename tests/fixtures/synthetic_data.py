@@ -1,4 +1,4 @@
-﻿"""Synthetic data generators for testing without hardware.
+"""Synthetic data generators for testing without hardware.
 
 Generates realistic synthetic gait data:
 - Keypoint trajectories

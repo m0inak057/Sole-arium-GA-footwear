@@ -1,4 +1,4 @@
-﻿"""Unit tests for password hashing and verification."""
+"""Unit tests for password hashing and verification."""
 from __future__ import annotations
 
 import pytest
@@ -95,7 +95,7 @@ class TestPasswordVerification:
 
     def test_verify_password_unicode(self):
         """Test password with unicode characters."""
-        password = "p@sswÃ¶rdâ„¢"
+        password = "p@sswörd™"
         hashed = hash_password(password)
         assert verify_password(password, hashed) is True
         assert verify_password("p@ssword", hashed) is False  # Different without unicode

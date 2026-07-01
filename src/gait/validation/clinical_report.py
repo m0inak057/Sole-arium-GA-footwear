@@ -1,4 +1,4 @@
-﻿"""Clinical validation report generation."""
+"""Clinical validation report generation."""
 from __future__ import annotations
 
 from dataclasses import dataclass

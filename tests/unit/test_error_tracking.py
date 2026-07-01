@@ -1,4 +1,4 @@
-﻿"""Unit tests for error tracking (Sentry)."""
+"""Unit tests for error tracking (Sentry)."""
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

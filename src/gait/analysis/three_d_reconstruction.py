@@ -1,4 +1,4 @@
-﻿"""Multi-view 3D keypoint reconstruction from synchronized cameras."""
+"""Multi-view 3D keypoint reconstruction from synchronized cameras."""
 from __future__ import annotations
 
 from dataclasses import dataclass

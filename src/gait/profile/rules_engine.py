@@ -1,4 +1,4 @@
-﻿"""RuleBasedRecommendationEngine â€” applies rules.yaml to generate health assessments.
+"""RuleBasedRecommendationEngine â€” applies rules.yaml to generate health assessments.
 
 Rules are sorted by priority ascending (lower first). Higher-priority rules
 come last and can override earlier defects/improvements.  `needs_human_review`

@@ -1,4 +1,4 @@
-﻿"""Static calibration trial processing â€” extract personal anatomical offsets.
+"""Static calibration trial processing â€” extract personal anatomical offsets.
 
 A calibration trial captures 3+ seconds of standing posture (or the first 3 seconds
 of any uploaded video in rest state). Joint angles measured in this neutral standing

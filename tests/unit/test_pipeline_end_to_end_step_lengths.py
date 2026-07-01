@@ -1,4 +1,4 @@
-﻿"""End-to-end test verifying step lengths flow through full pipeline to profile output."""
+"""End-to-end test verifying step lengths flow through full pipeline to profile output."""
 from __future__ import annotations
 
 import numpy as np

@@ -1,4 +1,4 @@
-﻿"""Patient profile generation and schema modules."""
+"""Patient profile generation and schema modules."""
 from gait.profile.builder import StandardProfileBuilder, create_profile_builder
 from gait.profile.gating import StandardGatingEngine, create_gating_engine
 from gait.profile.rules_engine import (

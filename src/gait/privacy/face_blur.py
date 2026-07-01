@@ -1,4 +1,4 @@
-﻿"""Face blurring for DPDP Act 2023 compliance.
+"""Face blurring for DPDP Act 2023 compliance.
 
 Detects faces in each video frame using OpenCV's Haar cascade classifier
 and applies Gaussian blur over each bounding box before writing the output
@@ -48,7 +48,7 @@ def blur_faces_in_video(input_path: str, output_path: str) -> bool:
     """Detect and blur all faces in a video file.
 
     Opens the input video, runs Haar face detection on every frame, applies
-    Gaussian blur (kernel 99Ã—99, Ïƒ=30) over each detected bounding box, and
+    Gaussian blur (kernel 99é—99, Ïƒ=30) over each detected bounding box, and
     writes the result to *output_path* at the same fps and resolution.
 
     Args:

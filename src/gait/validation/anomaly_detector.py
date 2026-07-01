@@ -1,4 +1,4 @@
-﻿"""Anomaly detection for out-of-range and suspicious gait patterns."""
+"""Anomaly detection for out-of-range and suspicious gait patterns."""
 from __future__ import annotations
 
 from dataclasses import dataclass

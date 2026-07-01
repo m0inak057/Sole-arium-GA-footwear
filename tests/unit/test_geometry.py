@@ -1,4 +1,4 @@
-﻿"""Unit tests for src.gait.common.geometry â€” all pure functions, no I/O."""
+"""Unit tests for src.gait.common.geometry â€” all pure functions, no I/O."""
 
 import pytest
 import numpy as np

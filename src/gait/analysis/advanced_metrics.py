@@ -1,4 +1,4 @@
-﻿"""Advanced gait metrics: symmetry, efficiency, stability."""
+"""Advanced gait metrics: symmetry, efficiency, stability."""
 from __future__ import annotations
 
 from dataclasses import dataclass

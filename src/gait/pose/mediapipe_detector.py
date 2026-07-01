@@ -1,4 +1,4 @@
-﻿"""MediaPipe Pose detector â€” wraps mp.solutions.pose for the pipeline."""
+"""MediaPipe Pose detector â€” wraps mp.solutions.pose for the pipeline."""
 from __future__ import annotations
 
 import contextlib

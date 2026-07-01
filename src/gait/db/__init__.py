@@ -1,4 +1,4 @@
-﻿"""Database models and repositories."""
+"""Database models and repositories."""
 from gait.db.models import APIKey, Base, Profile, Session, Upload, User, create_database_url, init_db
 
 __all__ = [

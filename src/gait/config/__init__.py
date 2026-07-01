@@ -1,4 +1,4 @@
-﻿"""Configuration module."""
+"""Configuration module."""
 from gait.config.settings import Settings, get_settings
 
 __all__ = [

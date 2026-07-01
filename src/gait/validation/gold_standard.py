@@ -1,4 +1,4 @@
-﻿"""Gold standard comparison and validation against reference measurements."""
+"""Gold standard comparison and validation against reference measurements."""
 from __future__ import annotations
 
 from dataclasses import dataclass

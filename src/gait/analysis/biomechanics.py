@@ -1,4 +1,4 @@
-﻿"""Biomechanical parameter computation from gait cycles."""
+"""Biomechanical parameter computation from gait cycles."""
 from __future__ import annotations
 
 from dataclasses import dataclass

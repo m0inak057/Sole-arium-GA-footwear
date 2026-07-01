@@ -1,4 +1,4 @@
-﻿"""StaticTrialProcessor â€” calibrates per-subject joint-angle offsets.
+"""StaticTrialProcessor â€” calibrates per-subject joint-angle offsets.
 
 The processor accepts ~3 seconds of quiet-standing frames, averages keypoint
 positions across those frames (discarding low-confidence detections), and

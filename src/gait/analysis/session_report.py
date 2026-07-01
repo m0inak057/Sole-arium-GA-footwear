@@ -1,4 +1,4 @@
-﻿"""Session-level gait analysis reporting and recommendations."""
+"""Session-level gait analysis reporting and recommendations."""
 from __future__ import annotations
 
 from dataclasses import dataclass

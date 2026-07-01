@@ -1,4 +1,4 @@
-﻿"""Fast execution paths for common operations."""
+"""Fast execution paths for common operations."""
 from __future__ import annotations
 
 from dataclasses import dataclass

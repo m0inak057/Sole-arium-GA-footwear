@@ -1,4 +1,4 @@
-﻿"""Monitoring dependencies for FastAPI."""
+"""Monitoring dependencies for FastAPI."""
 from __future__ import annotations
 
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest

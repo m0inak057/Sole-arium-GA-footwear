@@ -1,4 +1,4 @@
-﻿"""PrescriptionAgent â€” Claude-powered orthotist specification refinement.
+"""PrescriptionAgent â€” Claude-powered orthotist specification refinement.
 
 Takes the rule-based PrescriptionSpec and asks Claude Opus 4.8 (streaming +
 adaptive thinking) to refine it given the full biomechanical picture.

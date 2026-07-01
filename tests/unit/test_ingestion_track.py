@@ -1,4 +1,4 @@
-﻿"""Unit tests for person tracking (src.gait.ingestion.track)."""
+"""Unit tests for person tracking (src.gait.ingestion.track)."""
 
 import logging
 
@@ -67,14 +67,14 @@ class TestFirstFrameInit:
         assert track is None
 
     def test_blob_below_min_area_filtered_before_init(self):
-        # 5Ã—5 = 25 pxÂ², well below min_blob_area_px2=100
+        # 5é—5 = 25 pxÂ², well below min_blob_area_px2=100
         tracker = SimpleIoUTracker(make_cfg(min_blob_area_px2=100))
         track = tracker.update(make_frame(0), mask_with_rect(10, 10, 5, 5))
         assert track is None
 
     def test_largest_blob_chosen_on_init(self):
         tracker = SimpleIoUTracker(make_cfg(min_blob_area_px2=10))
-        # Two blobs: small one (10Ã—10=100) and large one (100Ã—100=10000)
+        # Two blobs: small one (10é—10=100) and large one (100é—100=10000)
         mask = empty_mask()
         mask[10:20, 10:20] = 255   # small
         mask[200:300, 200:300] = 255  # large

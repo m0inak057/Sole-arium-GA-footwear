@@ -1,4 +1,4 @@
-﻿"""Unit tests for OneEuroSmoother (src.gait.pose.smoother)."""
+"""Unit tests for OneEuroSmoother (src.gait.pose.smoother)."""
 from __future__ import annotations
 
 import math

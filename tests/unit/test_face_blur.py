@@ -1,4 +1,4 @@
-﻿"""Tests for face blurring (DPDP Act 2023 compliance).
+"""Tests for face blurring (DPDP Act 2023 compliance).
 
 Covers:
   1. blur_faces_in_video with a frame containing a face-like region â†’ True
@@ -37,7 +37,7 @@ def _write_single_frame_video(path: Path, frame: np.ndarray) -> None:
 
 
 def _make_face_like_frame() -> np.ndarray:
-    """Return a 320Ã—240 BGR frame with a skin-toned oval that the Haar cascade
+    """Return a 320é—240 BGR frame with a skin-toned oval that the Haar cascade
     may or may not detect â€” but crucially, the function must still run without
     crashing and return a written output video.
 

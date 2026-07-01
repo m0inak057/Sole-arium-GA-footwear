@@ -1,4 +1,4 @@
-﻿"""S3 storage backend using boto3."""
+"""S3 storage backend using boto3."""
 from __future__ import annotations
 
 from io import BytesIO
