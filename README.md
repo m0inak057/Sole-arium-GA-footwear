@@ -25,54 +25,99 @@ This system captures synchronized video from multiple camera angles, applies pos
 
 ## Quick Start
 
-### Prerequisites
+### ⚡ Automatic Setup (One Command)
 
-- **Python:** 3.11+
-- **System dependencies:** FFmpeg (video decoding), libopenblas (NumPy acceleration)
-- **Optional:** Docker & Docker Compose for containerized setup
+**Linux/macOS:**
+```bash
+git clone <repo-url>
+cd Orthopedic_Footwear_GA
+./startup.sh
+```
 
-### Installation
+**Windows:**
+```cmd
+git clone <repo-url>
+cd Orthopedic_Footwear_GA
+startup.bat
+```
 
-#### Local Development (Without Docker)
+This script automatically:
+- ✓ Checks prerequisites (Docker, Node.js)
+- ✓ Creates `.env` file
+- ✓ Builds Docker images
+- ✓ Starts all services
+- ✓ Installs frontend dependencies
+- ✓ Starts the frontend dev server
+
+Open **http://localhost:5173** when done!
+
+### ⚙️ Manual Setup (3 steps)
+
+**Alternative if you prefer manual control:**
 
 ```bash
-# Clone repository
 git clone <repo-url>
-cd gait-analysis
+cd Orthopedic_Footwear_GA
+cp .env.example .env
+docker compose build
+docker compose up -d
+```
+
+Then in another terminal:
+```bash
+cd frontend && npm install && npm run dev
+```
+
+👉 **For detailed instructions and troubleshooting, see [SETUP.md](./SETUP.md)**
+
+### Prerequisites
+
+- **Docker & Docker Compose:** [install Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- **Node.js 18+:** [install Node.js](https://nodejs.org/)
+- **Git:** for cloning
+
+### Services & Endpoints
+
+Once running, services are accessible at:
+
+| Service | URL | Status |
+|---------|-----|--------|
+| **Frontend** | http://localhost:5173 | React dev server |
+| **API** | http://localhost:8000 | FastAPI + Swagger docs |
+| **MinIO (S3)** | http://localhost:9001 | File storage UI |
+| **Celery Flower** | http://localhost:5555 | Task monitoring |
+| **PostgreSQL** | localhost:5444 | Database |
+| **Redis** | localhost:6380 | Cache & broker |
+
+### Alternative: Local Python Development (Advanced)
+
+If you prefer not to use Docker:
+
+```bash
+git clone <repo-url>
+cd Orthopedic_Footwear_GA
 
 # Create virtual environment
 python3.11 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies
-make install-dev
+pip install -e ".[dev]"
+
+# Still need Docker for database, cache, storage
+# Or set up PostgreSQL, Redis, MinIO separately
 
 # Install pre-commit hooks
-make pre-commit-install
+pre-commit install
 
-# Verify installation
-make lint type-check test
+# Run tests
+pytest tests/
 ```
 
-#### Docker Compose (Recommended for Full Stack)
-
+Services still need to be running (PostgreSQL, Redis, MinIO) — easiest via Docker:
 ```bash
-# Start all services (API, Worker, PostgreSQL, Redis, MinIO)
-make docker-up
-
-# View logs
-make docker-logs
-
-# Stop services
-make docker-down
+docker compose up -d postgres redis minio
 ```
-
-**Services accessible at:**
-- **API:** http://localhost:8000
-- **PostgreSQL:** localhost:5432
-- **Redis:** localhost:6379
-- **MinIO (S3):** http://localhost:9000
-- **Celery Flower (monitoring):** http://localhost:5555
 
 ---
 
