@@ -15,6 +15,7 @@ class SessionStatus(str, Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    RERECORD = "RERECORD"   # Pipeline ran but detected insufficient gait cycles
 
 
 class TrialConditionEnum(str, Enum):
@@ -39,6 +40,20 @@ class AnthropometricsIn(BaseModel):
     foot_width_mm: LRMeasurement = Field(
         ..., description="Foot width in millimetres per foot"
     )
+    age_years: Optional[int] = Field(
+        None, ge=0, le=150, description="Patient age in years (optional; used for age-based rule conditions)"
+    )
+    dominant_foot: str = Field(
+        "right", description="Patient's dominant foot: 'left' or 'right'"
+    )
+
+    @field_validator("dominant_foot")
+    @classmethod
+    def validate_dominant_foot(cls, v: str) -> str:
+        allowed = {"left", "right"}
+        if v not in allowed:
+            raise ValueError(f"dominant_foot must be one of {sorted(allowed)}, got {v!r}")
+        return v
 
 
 # ── Request models ─────────────────────────────────────────────────────────────

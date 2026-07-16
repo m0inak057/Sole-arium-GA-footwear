@@ -71,6 +71,7 @@ class GaitCycle:
     stance_duration_ms: Optional[float] = None
     swing_duration_ms: Optional[float] = None
     pass_id: int = 0  # Walking-pass index assigned by assign_pass_ids()
+    quality_flag: str = "COMPLETE"  # "COMPLETE" or "PARTIAL_CYCLE" (single HS + following TO, no closing HS)
 
 
 class VideoSource(ABC):

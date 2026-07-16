@@ -5,6 +5,14 @@ Replaces src.gait.api.session_store.SessionStore for production use.
 """
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Not imported by the live API: gait.api.main.get_session_store() returns
+# RedisSessionStore (gait.api.session_store), not this SQLAlchemy-backed
+# SessionRepository. Kept as an alternative persistence strategy for a
+# Postgres-of-record deployment. To activate: swap get_session_store() to
+# construct SessionRepository(db_session) with an injected SQLAlchemy Session,
+# and update main.py's SessionStore type alias accordingly.
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 

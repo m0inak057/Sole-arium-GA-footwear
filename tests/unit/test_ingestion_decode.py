@@ -133,7 +133,7 @@ class TestMismatchWarnings:
     # We temporarily re-enable propagation for the duration of each assertion.
 
     def _enable_propagation(self, monkeypatch):
-        logger_obj = logging.getLogger("src.gait.ingestion.decode")
+        logger_obj = logging.getLogger("gait.ingestion.decode")
         monkeypatch.setattr(logger_obj, "propagate", True)
 
     def test_fps_mismatch_logs_warning(self, tiny_video, caplog, monkeypatch):

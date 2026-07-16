@@ -1,11 +1,15 @@
-"""MediaPipe Pose detector â€” wraps mp.solutions.pose for the pipeline."""
+"""MediaPipe Pose detector - wraps mediapipe.tasks.vision.PoseLandmarker for the pipeline."""
 from __future__ import annotations
 
 import contextlib
+import urllib.request
+from pathlib import Path
 from typing import Dict, List
 
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python as mp_tasks
+from mediapipe.tasks.python import vision as mp_vision
 
 from gait.common.interfaces import Frame, Keypoint, KeypointFrame, PoseDetector
 from gait.common.logging_utils import get_logger
@@ -13,7 +17,9 @@ from gait.pipeline.config import PoseConfig
 
 logger = get_logger(__name__)
 
-# MediaPipe BlazePose: 33 landmarks, index â†’ name
+_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+
+# MediaPipe BlazePose: 33 landmarks, index -> name
 _LANDMARK_NAMES: Dict[int, str] = {
     0: "nose",
     1: "left_eye_inner",
@@ -52,24 +58,50 @@ _LANDMARK_NAMES: Dict[int, str] = {
 
 
 class MediaPipePoseDetector(PoseDetector):
-    """Thin wrapper around MediaPipe Pose for sequential video frames.
+    """Thin wrapper around MediaPipe Pose Landmarker Tasks API for sequential video frames.
 
-    Keeps MediaPipe in video mode (static_image_mode=False) so it can
-    maintain inter-frame tracking state. Consequently, batch_detect must
-    process frames in order and cannot be parallelised.
+    Uses the new MediaPipe Tasks API (mediapipe >= 0.10.0). Maintains inter-frame
+    tracking state through the Landmarker. batch_detect processes frames in order
+    to preserve tracking state and cannot be parallelised.
     """
 
     def __init__(self, config: PoseConfig) -> None:
         self._config = config
-        self._pose = mp.solutions.pose.Pose(
-            static_image_mode=False,
-            model_complexity=1,
-            enable_segmentation=False,
-            min_detection_confidence=config.confidence_threshold,
-            min_tracking_confidence=config.confidence_threshold,
-        )
 
-    # â”€â”€ context manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # Ensure model file exists, download if necessary
+        model_path = Path(config.model_path)
+        if not model_path.exists():
+            self._download_model(model_path)
+
+        # Create PoseLandmarker with Tasks API
+        options = mp_vision.PoseLandmarkerOptions(
+            base_options=mp_tasks.BaseOptions(model_asset_path=str(model_path)),
+            running_mode=mp_vision.RunningMode.VIDEO,
+        )
+        self._landmarker = mp_vision.PoseLandmarker.create_from_options(options)
+        self._last_timestamp_ms = -1  # Track for monotonic timestamp check
+
+    def _download_model(self, model_path: Path) -> None:
+        """Download the pose_landmarker_lite.task model if it does not exist."""
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "pose_model_downloading",
+            extra={"model_url": _MODEL_URL, "destination": str(model_path)},
+        )
+        try:
+            urllib.request.urlretrieve(_MODEL_URL, model_path)
+            logger.info(
+                "pose_model_downloaded",
+                extra={"path": str(model_path), "size_bytes": model_path.stat().st_size},
+            )
+        except Exception as exc:
+            logger.error(
+                "pose_model_download_failed",
+                extra={"error": str(exc)},
+            )
+            raise
+
+    # ── context manager ────────────────────────────────────────────────────────
 
     def __enter__(self) -> "MediaPipePoseDetector":
         return self
@@ -79,31 +111,61 @@ class MediaPipePoseDetector(PoseDetector):
 
     def close(self) -> None:
         with contextlib.suppress(Exception):
-            self._pose.close()
+            self._landmarker.close()
 
-    # â”€â”€ PoseDetector ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── PoseDetector ABC ───────────────────────────────────────────────────────
 
     def detect(self, frame: Frame) -> KeypointFrame:
-        """Detect pose keypoints in one frame.
+        """Detect pose keypoints in one frame using MediaPipe Tasks API.
 
         Returns a KeypointFrame with an empty keypoints dict and confidence=0.0
         when MediaPipe finds no pose or all landmarks are below threshold.
         """
         h, w = frame.image.shape[:2]
         rgb = cv2.cvtColor(frame.image, cv2.COLOR_BGR2RGB)
-        results = self._pose.process(rgb)
+
+        # Convert to MediaPipe Image format (RGB, uint8)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+        # MediaPipe VIDEO mode requires strictly monotonically increasing
+        # timestamps per detector instance. Each detector instance is fed only
+        # one camera's frames in original temporal order (see
+        # PoseEstimator.run), so this should never trigger in normal
+        # operation. Kept as a defensive guard: nudge forward by 1ms instead
+        # of crashing the task on any out-of-order input.
+        current_timestamp_ms = int(frame.timestamp_ms)
+        if current_timestamp_ms <= self._last_timestamp_ms:
+            corrected_timestamp_ms = self._last_timestamp_ms + 1
+            logger.warning(
+                "pose_timestamp_nonmonotonic_corrected",
+                extra={
+                    "last_timestamp_ms": self._last_timestamp_ms,
+                    "original_timestamp_ms": current_timestamp_ms,
+                    "corrected_timestamp_ms": corrected_timestamp_ms,
+                    "camera_view": frame.camera_view,
+                },
+            )
+            current_timestamp_ms = corrected_timestamp_ms
+
+        self._last_timestamp_ms = current_timestamp_ms
+
+        # Detect pose landmarks in video mode (requires timestamp in milliseconds)
+        results = self._landmarker.detect_for_video(mp_image, current_timestamp_ms)
 
         keypoints: Dict[str, Keypoint] = {}
         if results.pose_landmarks:
-            for idx, lm in enumerate(results.pose_landmarks.landmark):
-                if lm.visibility < self._config.confidence_threshold:
+            # pose_landmarks is a list of Landmark objects; we use the first (and only) pose
+            pose = results.pose_landmarks[0]
+            for idx, lm in enumerate(pose):
+                # presence field indicates confidence in this landmark (0.0 to 1.0)
+                if lm.presence < self._config.confidence_threshold:
                     continue
                 name = _LANDMARK_NAMES.get(idx, f"landmark_{idx}")
                 keypoints[name] = Keypoint(
                     x=float(lm.x * w),
                     y=float(lm.y * h),
                     z=float(lm.z * w) if self._config.use_3d_lifting else None,
-                    confidence=float(lm.visibility),
+                    confidence=float(lm.presence),
                     name=name,
                 )
 
@@ -124,6 +186,5 @@ class MediaPipePoseDetector(PoseDetector):
         )
 
     def batch_detect(self, frames: List[Frame]) -> List[KeypointFrame]:
-        """Run detect sequentially â€” preserves MediaPipe inter-frame tracking."""
+        """Run detect sequentially - preserves MediaPipe inter-frame tracking."""
         return [self.detect(f) for f in frames]
-

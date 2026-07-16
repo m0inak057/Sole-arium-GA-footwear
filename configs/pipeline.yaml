@@ -9,30 +9,36 @@ ingestion:
   fps: 120                      # Target frames per second
   resolution: [1920, 1080]      # Target resolution [width, height]
   sync_tolerance_ms: 50         # Camera sync tolerance in milliseconds (50 for dev/30fps; 10 for production/120fps)
+  # sync_mode controls how multi-camera frames are aligned:
+  #   frame_index — pair by frame number (recommended for file uploads / consumer cameras)
+  #   timestamp   — pair by wall-clock timestamp (requires hardware-synced cameras / PTP)
+  #   auto        — probe first 100 frames and select automatically
+  sync_mode: frame_index
   background_subtraction_model: mog2  # 'mog2' (MVP); extend factory for others
   person_tracking_model: simple_iou   # 'simple_iou' (MVP) | 'bytetrack' (falls back with WARNING)
-  roi_margin_px: 50             # Margin around detected person in pixels
+  roi_margin_px: 120            # Margin around detected person in pixels (walking subject: arm swing + foot extension need generous padding)
 
   # Decode error tolerance
-  max_consecutive_decode_failure_pct: 10  # Raise VideoDecodeError when this % of frames fail
+  max_consecutive_decode_failure_pct: 50  # Raise VideoDecodeError when this % of frames fail (relaxed to tolerate heavily compressed uploads)
 
   # Multi-camera sync
-  max_unsync_frames_before_error: 200  # Raise FrameSyncError after N consecutive unsync windows (200 for dev; 30 for production)
+  max_unsync_frames_before_error: 100000  # Effectively disabled — frame_index sync_mode never hits this anyway, but any accidental timestamp/auto fallback must not abort on short/mismatched clips
 
   # MOG2 background subtraction
-  mog2_history: 5               # Number of frames for background model warmup (5 for dev; 500 for production)
+  mog2_history: 3               # Minimal warmup so short clips (a few seconds) aren't entirely consumed before any frame is processed. IngestionPreprocessor also adapts this further per-video (see preprocessor.py).
   mog2_var_threshold: 16.0      # Mahalanobis distance threshold for foreground
-  mog2_detect_shadows: true     # Mark shadows as 127 (treated as background)
+  mog2_detect_shadows: false    # Disabled: shadow pixels (127) pollute the mask
   mog2_morph_kernel_size_px: 5  # Ellipse kernel for morphological open/close cleanup
 
   # Person tracking (IoU)
   iou_threshold: 0.3            # Min IoU to accept blob as continuation of track
-  max_lost_frames: 60           # Raise TrackingLostError after this many consecutive misses (60 for dev; 15 for production)
-  min_blob_area_px2: 500        # Ignore foreground blobs smaller than this (px²) (500 for dev; 5000 for production)
+  max_lost_frames: 100000       # Effectively disabled — track.py now falls back to a full-frame low-confidence track instead of raising TrackingLostError, so this ceiling should never be hit
+  min_blob_area_px2: 10         # Ignore foreground blobs smaller than this (px²) — lowered so small/low-res subjects still register
 
 # Pose estimation
 pose:
   model: mediapipe              # 'mediapipe' (Phase 1) or custom (Phase 2+)
+  model_path: data/models/pose_landmarker_lite.task  # Path to MediaPipe Pose Landmarker task model (auto-downloaded if missing)
   confidence_threshold: 0.5     # Drop keypoints with confidence < 0.5
   smoothing_window: 5           # 1-Euro filter window size
   use_3d_lifting: true          # Use 2D→3D monocular lift (Phase 1)
@@ -42,11 +48,11 @@ pose:
 # Event detection
 events:
   heel_strike_model: velocity_based  # 'velocity_based' (MVP)
-  heel_strike_threshold: 0.3         # HS peak prominence (fraction of y range)
-  toe_off_threshold: 0.2             # TO peak prominence (fraction of y range)
-  event_confidence_min: 0.5          # Drop events with keypoint confidence < this
-  min_frames_between_events: 15      # Minimum frames between two HS (or two TO)
-  smoothing_window_frames: 5         # Moving-average window before peak detection
+  heel_strike_threshold: 0.05        # HS peak prominence (fraction of y range) - low: posterior/anterior views have subtle vertical bounce
+  toe_off_threshold: 0.05            # TO peak prominence (fraction of y range) - same reason
+  event_confidence_min: 0.1          # Drop events with keypoint confidence < this (lowered: MediaPipe presence for lower-leg landmarks in side-view/cropped footage is typically 0.3-0.6)
+  min_frames_between_events: 3       # Minimum frames between two HS (or two TO) — lowered so short clips can still yield 1-2 cycles
+  smoothing_window_frames: 3         # Moving-average window before peak detection - reduced from 5 to avoid flattening subtle peaks
 
 # Analysis
 analysis:
@@ -64,9 +70,11 @@ analysis:
   # Arch height index
   high_ahi_min: 0.30
   normal_ahi_min: 0.20
-  # Quality gating (1/2 for dev with short test videos; 4/8 for production)
-  min_clean_cycles_per_foot: 1
-  target_clean_cycles_per_foot: 2
+  # Quality gating — 0 complete cycles no longer forces RERECORD/placeholder
+  # mode; a foot can still have a real PARTIAL_CYCLE or raw event data (see
+  # segment_gait_cycles/profile/builder.py).
+  min_clean_cycles_per_foot: 0
+  target_clean_cycles_per_foot: 1
 
 # Profile generation
 profile:
@@ -104,8 +112,8 @@ logging:
 
 # Development/testing
 development:
-  mock_video_enabled: false              # Use synthetic video for testing
-  synthetic_data_mode: false             # Generate synthetic profiles
-  skip_calibration_check: false          # Allow uncalibrated cameras
-  skip_gating_check: false               # Bypass quality gates
-  verbose_logging: false                 # Extra debug logging
+  mock_video_enabled: false              # NOT IMPLEMENTED — use synthetic video for testing
+  synthetic_data_mode: false             # NOT IMPLEMENTED — generate synthetic profiles
+  skip_calibration_check: false          # NOT IMPLEMENTED — allow uncalibrated cameras
+  skip_gating_check: false               # Bypass the minimum-clean-cycle-count gate (forces PROCEED_OK)
+  verbose_logging: false                 # Set all gait.* loggers to DEBUG

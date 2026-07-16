@@ -1,3 +1,5 @@
+// This component has been superseded by Shoe3DVisualization. It is kept for
+// reference but is not rendered anywhere in the app.
 import React from 'react'
 
 function getColors(spec) {

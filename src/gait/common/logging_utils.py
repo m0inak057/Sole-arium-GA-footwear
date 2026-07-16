@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from typing import Generator, Optional
 
 try:
-    from pythonjsonlogger import jsonlogger  # type: ignore[import]
+    from pythonjsonlogger import json as jsonlogger # type: ignore[import]
 
     _JSON_AVAILABLE = True
 except ImportError:  # pragma: no cover

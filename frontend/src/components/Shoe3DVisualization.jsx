@@ -234,9 +234,9 @@ export default function Shoe3DVisualization({ prescription_spec }) {
 
           const badge = {
             heel:     `Shore ${midsole.medial_shore_c || 55}C`,
-            arch:     arch.stiffness || 'Custom',
+            arch:     arch.type || 'Custom',
             forefoot: 'Stability zone',
-            toe:      last.toe_depth || 'Standard depth',
+            toe:      last.toe_box || 'Standard depth',
           }[zone.id]
 
           return (

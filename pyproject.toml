@@ -17,7 +17,7 @@ keywords = ["gait-analysis", "biomechanics", "orthopedics", "video-analysis"]
 dependencies = [
     # Computer Vision
     "opencv-python>=4.8.0",
-    "mediapipe>=0.10.13",
+    "mediapipe==0.10.14",
 
     # ML & Data Processing
     "numpy>=1.24.0",

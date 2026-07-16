@@ -327,9 +327,25 @@ class TestSegmentGaitCycles:
         kfs, _, to_events = self._make_triplet([], [10])
         assert det.segment_gait_cycles(kfs, [], to_events, "L") == []
 
-    def test_single_hs_returns_empty(self):
+    def test_single_hs_with_following_to_forms_partial_cycle(self):
+        # A single heel strike can't form a complete HS->TO->HS cycle, but
+        # with a toe-off after it, a PARTIAL_CYCLE is anchored instead of
+        # discarding the data entirely.
         det = VelocityBasedEventDetector(make_cfg())
         kfs, hs_events, to_events = self._make_triplet([10], [20])
+        cycles = det.segment_gait_cycles(kfs, hs_events, to_events, "L")
+        assert len(cycles) == 1
+        assert cycles[0].quality_flag == "PARTIAL_CYCLE"
+        assert cycles[0].confidence == pytest.approx(0.3)
+        assert cycles[0].frame_start == 10
+        assert cycles[0].frame_end == 20
+        assert cycles[0].swing_frames == []
+        assert cycles[0].swing_duration_ms is None
+
+    def test_single_hs_without_following_to_returns_empty(self):
+        # Toe-off before the heel strike can't anchor a partial cycle either.
+        det = VelocityBasedEventDetector(make_cfg())
+        kfs, hs_events, to_events = self._make_triplet([10], [5])
         assert det.segment_gait_cycles(kfs, hs_events, to_events, "L") == []
 
     def test_two_hs_one_to_gives_one_cycle(self):

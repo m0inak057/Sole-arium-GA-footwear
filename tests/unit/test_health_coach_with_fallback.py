@@ -9,6 +9,7 @@ These tests verify:
 """
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,6 +18,23 @@ from gait.agents.health_coach import GaitHealthCoach
 from gait.profile.builder import create_profile_builder
 from gait.profile.schema import HealthAssessment
 from gait.pipeline.config import load_pipeline_config, load_recommendation_rules
+
+
+def _mock_stream_response(mock_client, response_data):
+    """Helper to mock Anthropic messages.stream with adaptive thinking."""
+    if isinstance(response_data, Exception):
+        mock_client.messages.stream.side_effect = response_data
+        return
+    text_content = response_data if isinstance(response_data, str) else json.dumps(response_data)
+    mock_stream = MagicMock()
+    mock_stream.get_final_message.return_value = MagicMock(
+        content=[MagicMock(type="text", text=text_content)]
+    )
+    mock_context_manager = MagicMock()
+    mock_context_manager.__enter__ = MagicMock(return_value=mock_stream)
+    mock_context_manager.__exit__ = MagicMock(return_value=False)
+    mock_client.messages.stream.return_value = mock_context_manager
+
 
 
 @pytest.mark.unit
@@ -31,9 +49,7 @@ class TestHealthCoachFallback:
         """
         # Mock LLM that returns malformed JSON
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text='{"incomplete": "json without closing brace')]
-        )
+        _mock_stream_response(mock_client, '{"incomplete": "json without closing brace')
 
         coach = GaitHealthCoach(mock_client)
 
@@ -197,12 +213,7 @@ class TestHealthCoachFallback:
         }
 
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=str(valid_response))]
-        )
-
-        import json
-        mock_client.messages.create.return_value.content[0].text = json.dumps(valid_response)
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -326,7 +337,7 @@ class TestHealthCoachFallback:
         """Test that LLM timeout/exception triggers clean fallback."""
         # Mock LLM that raises an exception
         mock_client = MagicMock()
-        mock_client.messages.create.side_effect = TimeoutError("LLM request timed out")
+        _mock_stream_response(mock_client, TimeoutError("LLM request timed out"))
 
         coach = GaitHealthCoach(mock_client)
 
@@ -451,11 +462,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -509,11 +517,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -568,11 +573,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -615,11 +617,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -662,11 +661,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 
@@ -702,11 +698,8 @@ class TestHealthCoachFallback:
             "improvement_plan": [],
         }
 
-        import json
         mock_client = MagicMock()
-        mock_client.messages.create.return_value = MagicMock(
-            content=[MagicMock(text=json.dumps(valid_response))]
-        )
+        _mock_stream_response(mock_client, valid_response)
 
         coach = GaitHealthCoach(mock_client)
 

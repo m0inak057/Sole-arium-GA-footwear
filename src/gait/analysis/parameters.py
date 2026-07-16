@@ -15,11 +15,84 @@ Gait sign conventions:
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from gait.common.geometry import signed_angle_deg
-from gait.common.interfaces import GaitCycle, Keypoint
+import numpy as np
+
+from gait.common.geometry import compute_midpoint, signed_angle_deg
+from gait.common.interfaces import GaitCycle, GaitEvent, Keypoint, KeypointFrame
+from gait.common.logging_utils import get_logger
 from gait.pipeline.config import AnalysisConfig
+
+logger = get_logger(__name__)
+
+# Minimum measurements required before trusting a calibration estimate over
+# the next fallback in the chain.
+_MIN_SCALE_MEASUREMENTS = 3
+_FALLBACK_SCALE_M_PER_PX = 0.01
+
+# Minimum valid midstance frames required to trust a rearfoot alignment estimate.
+_MIN_REARFOOT_ALIGNMENT_FRAMES = 3
+_REARFOOT_ALIGNMENT_MIN_CONFIDENCE = 0.1
+# Fraction-of-stance window used to avoid heel-strike / toe-off artifacts.
+_REARFOOT_ALIGNMENT_STANCE_WINDOW = (0.2, 0.8)
+
+
+# â”€â”€ Camera scale calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+def estimate_scale_m_per_px(
+    keypoint_frames: List[KeypointFrame],
+    hs_frame_indices_l: List[int],
+    foot_length_mm: Optional[float],
+    height_cm: Optional[float],
+) -> Tuple[float, str, int]:
+    """Estimate the camera's pixel-to-metre scale for this session.
+
+    Tries, in order:
+      1. Foot length: mean pixel distance between left_heel and
+         left_foot_index at left-foot heel-strike frames, calibrated against
+         the patient's real foot_length_mm. Requires >= 3 measurements.
+      2. Body height: mean pixel distance between nose and left_ankle across
+         all frames, calibrated against the patient's real height_cm.
+      3. A hardcoded last-resort default (0.01 m/px) if neither anthropometric
+         value or enough keypoint data is available.
+
+    Returns (scale_m_per_px, method, n_measurements) where method is one of
+    "foot_length", "body_height", "fallback_default".
+    """
+    kf_by_index: Dict[int, KeypointFrame] = {kf.frame_index: kf for kf in keypoint_frames}
+
+    if foot_length_mm:
+        foot_lengths_px: List[float] = []
+        for idx in hs_frame_indices_l:
+            kf = kf_by_index.get(idx)
+            if kf is None:
+                continue
+            heel = kf.keypoints.get("left_heel")
+            toe = kf.keypoints.get("left_foot_index")
+            if heel is not None and toe is not None:
+                foot_lengths_px.append(math.hypot(toe.x - heel.x, toe.y - heel.y))
+
+        if len(foot_lengths_px) >= _MIN_SCALE_MEASUREMENTS:
+            mean_px = sum(foot_lengths_px) / len(foot_lengths_px)
+            if mean_px > 1e-6:
+                return (foot_length_mm / 1000.0) / mean_px, "foot_length", len(foot_lengths_px)
+
+    if height_cm:
+        person_heights_px: List[float] = []
+        for kf in keypoint_frames:
+            nose = kf.keypoints.get("nose")
+            ankle = kf.keypoints.get("left_ankle")
+            if nose is not None and ankle is not None:
+                person_heights_px.append(math.hypot(ankle.x - nose.x, ankle.y - nose.y))
+
+        if len(person_heights_px) >= _MIN_SCALE_MEASUREMENTS:
+            mean_px = sum(person_heights_px) / len(person_heights_px)
+            if mean_px > 1e-6:
+                return (height_cm / 100.0) / mean_px, "body_height", len(person_heights_px)
+
+    return _FALLBACK_SCALE_M_PER_PX, "fallback_default", 0
 
 
 # â”€â”€ Spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -33,7 +106,7 @@ def compute_spatiotemporal(cycle: GaitCycle, fps: float) -> Dict[str, float]:
 
     Returns:
         stance_time_ms, swing_time_ms, gait_cycle_time_ms,
-        stance_pct, swing_pct, cadence_steps_per_min
+        stance_pct, swing_pct, and (for COMPLETE cycles only) cadence_steps_per_min
     """
     stance_ms = cycle.stance_duration_ms or 0.0
     swing_ms = cycle.swing_duration_ms or 0.0
@@ -48,12 +121,24 @@ def compute_spatiotemporal(cycle: GaitCycle, fps: float) -> Dict[str, float]:
     if total_ms > 0:
         result["stance_pct"] = stance_ms / total_ms * 100.0
         result["swing_pct"] = swing_ms / total_ms * 100.0
-        # One HSâ†’HS on same foot = 1 stride = 2 steps
-        result["cadence_steps_per_min"] = 120_000.0 / total_ms
     else:
         result["stance_pct"] = 0.0
         result["swing_pct"] = 0.0
-        result["cadence_steps_per_min"] = 0.0
+
+    # A PARTIAL_CYCLE has no closing heel strike (swing_duration_ms is None),
+    # so total_ms above is stance-only. Deriving cadence from that would
+    # treat the stance phase as if it were a full stride and badly
+    # overestimate it; leave cadence out entirely rather than fabricate it.
+    # The caller (StandardBiomechanicalAnalyzer/orchestrator) falls back to a
+    # heel-strike-interval cadence estimate instead when this key is absent.
+    # Note: swing_duration_ms == 0.0 is a real (if degenerate) COMPLETE cycle
+    # and still gets a cadence value; only None (no closing HS at all) omits it.
+    if cycle.swing_duration_ms is not None:
+        if total_ms > 0:
+            # One HSâ†’HS on same foot = 1 stride = 2 steps
+            result["cadence_steps_per_min"] = 120_000.0 / total_ms
+        else:
+            result["cadence_steps_per_min"] = 0.0
 
     return result
 
@@ -244,7 +329,115 @@ def compute_frontal_plane_excursion(rearfoot_angles_deg: List[float]) -> float:
     return max_angle - initial_angle
 
 
-# â”€â”€ Arch assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def classify_rearfoot_alignment(angle_deg: float) -> str:
+    """Classify a rearfoot alignment angle (posterior camera) into a clinical bucket.
+
+    Positive = eversion (overpronation), negative = inversion (supination).
+    Boundaries follow the clinical thresholds: normal 0-4 deg, mild 4-8 deg
+    (or 0 to -4 deg), severe beyond that.
+    """
+    if angle_deg >= 8.0:
+        return "severe_overpronation"
+    if angle_deg >= 4.0:
+        return "mild_overpronation"
+    if angle_deg >= 0.0:
+        return "normal"
+    if angle_deg >= -4.0:
+        return "mild_supination"
+    return "severe_supination"
+
+
+def compute_rearfoot_alignment_angle(
+    keypoint_frames: List[KeypointFrame],
+    foot: str,
+    cycles: List[GaitCycle],
+) -> Dict[str, Optional[Any]]:
+    """Clinical rearfoot alignment angle from the posterior camera view.
+
+    Measures the signed angle between the lower-leg bisection (upper calf
+    center -> Achilles tendon center) and the heel bisection (upper
+    calcaneus center -> lower calcaneus center), for midstance frames only
+    (20%-80% of each stance phase, to avoid heel-strike/toe-off artifacts).
+
+    Args:
+        keypoint_frames: All keypoint frames for the session (any camera);
+            frames from cameras other than "posterior" are ignored.
+        foot: "L" or "R" — which foot's cycles/landmarks to use.
+        cycles: Gait cycles (any foot) providing each stance phase's frame
+            range; only cycles matching `foot` are used.
+
+    Returns:
+        Dict with keys mean_deg, std_deg, frame_count, classification.
+        mean_deg/std_deg/classification are None when fewer than
+        `_MIN_REARFOOT_ALIGNMENT_FRAMES` valid frames are found.
+    """
+    side = "left" if foot == "L" else "right"
+    posterior_by_index: Dict[int, KeypointFrame] = {
+        kf.frame_index: kf for kf in keypoint_frames if kf.camera_view == "posterior"
+    }
+
+    lo_frac, hi_frac = _REARFOOT_ALIGNMENT_STANCE_WINDOW
+    angles_deg: List[float] = []
+
+    for cycle in cycles:
+        if cycle.foot != foot or not cycle.stance_frames:
+            continue
+        stance = sorted(cycle.stance_frames)
+        n = len(stance)
+        lo = int(n * lo_frac)
+        hi = int(n * hi_frac)
+        for frame_index in stance[lo:hi]:
+            kf = posterior_by_index.get(frame_index)
+            if kf is None:
+                continue
+            kps = kf.keypoints
+            knee = kps.get(f"{side}_knee")
+            ankle = kps.get(f"{side}_ankle")
+            heel = kps.get(f"{side}_heel")
+            toe = kps.get(f"{side}_foot_index")
+            required = (knee, ankle, heel, toe)
+            if any(
+                kp is None or kp.confidence < _REARFOOT_ALIGNMENT_MIN_CONFIDENCE
+                for kp in required
+            ):
+                continue
+
+            calf_mid = compute_midpoint((knee.x, knee.y), (ankle.x, ankle.y))
+            calf_vector = (ankle.x - calf_mid[0], ankle.y - calf_mid[1])
+
+            lower_calcaneus_y = heel.y + (heel.y - toe.y) * 0.3
+            heel_vector = (0.0, lower_calcaneus_y - heel.y)
+
+            angle = signed_angle_deg(calf_vector, heel_vector)
+            # Same left/right sign convention as compute_rearfoot_angle:
+            # positive = eversion for the left foot; negate for the right.
+            if foot == "R":
+                angle = -angle
+            angles_deg.append(angle)
+
+    if len(angles_deg) < _MIN_REARFOOT_ALIGNMENT_FRAMES:
+        logger.warning(
+            "rearfoot_alignment_insufficient_data",
+            extra={"foot": foot, "valid_frame_count": len(angles_deg)},
+        )
+        return {
+            "mean_deg": None,
+            "std_deg": None,
+            "frame_count": len(angles_deg),
+            "classification": None,
+        }
+
+    mean_deg = float(np.mean(angles_deg))
+    std_deg = float(np.std(angles_deg))
+    return {
+        "mean_deg": mean_deg,
+        "std_deg": std_deg,
+        "frame_count": len(angles_deg),
+        "classification": classify_rearfoot_alignment(mean_deg),
+    }
+
+
+# â”€â”€ Arch assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def compute_arch_height_index(
@@ -285,6 +478,59 @@ def classify_arch(ahi: float, cfg: AnalysisConfig) -> str:
     if ahi >= cfg.normal_ahi_min:
         return "normal"
     return "low"
+
+
+def compute_step_width(
+    frontal_frames: List[KeypointFrame],
+    scale_m_per_px: float,
+) -> Optional[float]:
+    """Mean step width (m): lateral (horizontal) distance between left_heel and
+    right_heel, from a frontal camera view (anterior or posterior) where left/
+    right separation is actually visible (sagittal view can't resolve this).
+
+    Returns None if left_heel and right_heel are never simultaneously present.
+    """
+    distances_px: List[float] = []
+    for kf in frontal_frames:
+        left = kf.keypoints.get("left_heel")
+        right = kf.keypoints.get("right_heel")
+        if left is not None and right is not None:
+            distances_px.append(abs(left.x - right.x))
+
+    if not distances_px:
+        return None
+
+    return (sum(distances_px) / len(distances_px)) * scale_m_per_px
+
+
+def compute_double_support_pct(
+    heel_strikes_l: List[GaitEvent],
+    heel_strikes_r: List[GaitEvent],
+    stride_time_ms: Optional[float],
+) -> Optional[float]:
+    """Estimate double-support phase as a percentage of the gait cycle.
+
+    Double support occurs twice per cycle (loading response + pre-swing), each
+    lasting roughly the time offset between one foot's heel strike and the
+    other foot's next heel strike. Estimated as
+    (2 x mean_step_time_offset_ms / stride_time_ms) x 100.
+
+    Returns None if there isn't at least one L->R or R->L heel-strike pair, or
+    stride_time_ms is unavailable/non-positive (caller should fall back to
+    `100 - swing_pct_L` in that case).
+    """
+    all_hs = sorted(list(heel_strikes_l) + list(heel_strikes_r), key=lambda e: e.timestamp_ms)
+    step_time_diffs_ms = [
+        b.timestamp_ms - a.timestamp_ms
+        for a, b in zip(all_hs, all_hs[1:])
+        if a.foot != b.foot and b.timestamp_ms > a.timestamp_ms
+    ]
+
+    if not step_time_diffs_ms or not stride_time_ms or stride_time_ms <= 0:
+        return None
+
+    mean_step_time_diff_ms = sum(step_time_diffs_ms) / len(step_time_diffs_ms)
+    return (2.0 * mean_step_time_diff_ms / stride_time_ms) * 100.0
 
 
 # â”€â”€ Symmetry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

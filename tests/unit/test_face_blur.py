@@ -198,7 +198,13 @@ class TestCeleryTaskFaceBlur:
         assert result["profile"]["face_blur_applied"] is False
 
     def test_face_blur_runs_when_flag_true(self, tmp_path):
-        """Celery task calls blur and sets face_blur_applied correctly when flag is True."""
+        """Celery task calls blur and sets face_blur_applied correctly when flag is True.
+
+        face_blur_applied now reflects whether processing *succeeded* on at
+        least one camera, not whether a face happened to be visible in that
+        footage â€” a camera can succeed and still find no face (sagittal/
+        posterior views typically don't show it).
+        """
         from gait.api.tasks import run_gait_pipeline
 
         mock_config = MagicMock()
@@ -210,11 +216,15 @@ class TestCeleryTaskFaceBlur:
             "session_timestamp": "2026-06-18T10:00:00Z",
         }
 
-        blur_results = {"anterior": True, "sagittal": False, "posterior": False}
+        blur_results = {
+            "anterior": {"success": True, "face_found": True, "error": None},
+            "sagittal": {"success": True, "face_found": False, "error": None},
+            "posterior": {"success": True, "face_found": False, "error": None},
+        }
 
         with patch("gait.api.tasks.load_pipeline_config", return_value=mock_config), \
              patch("gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
-             patch("gait.api.tasks.blur_all_session_videos", return_value=blur_results), \
+             patch("gait.api.tasks.blur_all_session_videos_detailed", return_value=blur_results), \
              patch.object(run_gait_pipeline, "update_state"):
 
             mock_pipeline = MagicMock()
@@ -229,6 +239,45 @@ class TestCeleryTaskFaceBlur:
             )
 
         assert result["profile"]["face_blur_applied"] is True
+        assert result["profile"]["face_blur_partial"] is False
+
+    def test_face_blur_partial_when_some_cameras_fail(self, tmp_path):
+        """face_blur_partial is True when some cameras succeed and others fail."""
+        from gait.api.tasks import run_gait_pipeline
+
+        mock_config = MagicMock()
+        mock_config.features.face_blur_pipeline = True
+
+        mock_profile = {
+            "schema_version": "profile/v1",
+            "patient_id": "P_TEST",
+            "session_timestamp": "2026-06-18T10:00:00Z",
+        }
+
+        blur_results = {
+            "anterior": {"success": True, "face_found": True, "error": None},
+            "sagittal": {"success": False, "face_found": False, "error": "boom"},
+            "posterior": {"success": False, "face_found": False, "error": "boom"},
+        }
+
+        with patch("gait.api.tasks.load_pipeline_config", return_value=mock_config), \
+             patch("gait.api.tasks.GaitPipeline") as mock_pipeline_cls, \
+             patch("gait.api.tasks.blur_all_session_videos_detailed", return_value=blur_results), \
+             patch.object(run_gait_pipeline, "update_state"):
+
+            mock_pipeline = MagicMock()
+            mock_pipeline.run.return_value = mock_profile.copy()
+            mock_pipeline_cls.return_value = mock_pipeline
+
+            result = run_gait_pipeline.run(
+                session_id="sess-003",
+                video_paths={"anterior": "/tmp/a.avi"},
+                anthropometrics={"height_cm": 172, "mass_kg": 68},
+                patient_id="P_TEST",
+            )
+
+        assert result["profile"]["face_blur_applied"] is True
+        assert result["profile"]["face_blur_partial"] is True
 
 
 @pytest.mark.unit

@@ -71,7 +71,7 @@ class FakeDetector(PoseDetector):
 def fake_factory(kf_list: list[KeypointFrame]):
     """Return a patching context that makes create_pose_detector return a FakeDetector."""
     return patch(
-        "src.gait.pose.estimator.create_pose_detector",
+        "gait.pose.estimator.create_pose_detector",
         return_value=FakeDetector(kf_list),
     )
 

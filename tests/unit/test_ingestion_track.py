@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from gait.common.interfaces import Frame
-from gait.common.types import TrackingLostError
 from gait.ingestion.track import SimpleIoUTracker, create_person_tracker
 from gait.pipeline.config import IngestionConfig
 
@@ -136,12 +135,18 @@ class TestTracking:
         assert tracker._lost_frames == 0
 
     def test_too_many_misses_raises(self):
+        # Name kept for history, but TrackingLostError was intentionally removed:
+        # after max_lost_frames consecutive misses post-init, the tracker now
+        # falls back to a low-confidence full-frame bbox instead of aborting.
         cfg = make_cfg(max_lost_frames=3)
         tracker = SimpleIoUTracker(cfg)
         tracker.update(make_frame(0), mask_with_rect(100, 100, 200, 300))
-        with pytest.raises(TrackingLostError):
-            for i in range(1, 10):
-                tracker.update(make_frame(i), empty_mask())
+        track = None
+        for i in range(1, 10):
+            track = tracker.update(make_frame(i), empty_mask())
+        assert track is not None
+        assert track.bbox == (0, 0, IMG_W, IMG_H)
+        assert track.confidence == pytest.approx(0.1)
 
 
 # â”€â”€ SimpleIoUTracker: reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -183,7 +188,7 @@ class TestCreatePersonTracker:
 
     def test_bytetrack_fallback_logs_warning(self, caplog, monkeypatch):
         # Re-enable propagation so pytest caplog (which hooks the root logger) sees the record
-        monkeypatch.setattr(logging.getLogger("src.gait.ingestion.track"), "propagate", True)
+        monkeypatch.setattr(logging.getLogger("gait.ingestion.track"), "propagate", True)
         with caplog.at_level(logging.WARNING):
             create_person_tracker("bytetrack", make_cfg())
         assert any("bytetrack_not_implemented" in r.getMessage() for r in caplog.records)

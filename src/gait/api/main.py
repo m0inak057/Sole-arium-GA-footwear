@@ -22,11 +22,26 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+from urllib.parse import urlparse, urlunparse
 
-from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile, status
+import redis
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from minio import Minio
+from minio.error import S3Error
 
 from gait.api.models import (
     ComparisonResponse,
@@ -48,7 +63,144 @@ logger = get_logger(__name__)
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "data/uploads"))
 
-# â”€â”€ FastAPI app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── auth ─────────────────────────────────────────────────────────────────────
+
+_raw_api_keys = os.getenv("GAIT_API_KEYS", "")
+API_KEYS: Optional[set] = (
+    {key.strip() for key in _raw_api_keys.split(",") if key.strip()} if _raw_api_keys else None
+)
+if API_KEYS is None:
+    logger.warning("auth_disabled", extra={"reason": "GAIT_API_KEYS not set; all requests allowed"})
+
+
+def check_api_key(x_api_key: Optional[str] = Header(default=None, alias="X-API-Key")) -> None:
+    """Dependency guarding every session/patient-data endpoint.
+
+    No-op when GAIT_API_KEYS is unset (development mode). When set, requires
+    the X-API-Key header to match one of the configured keys.
+    """
+    if API_KEYS is None:
+        return
+    if x_api_key is None or x_api_key not in API_KEYS:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+        )
+
+
+# ── MinIO video storage ──────────────────────────────────────────────────────
+
+MINIO_VIDEO_BUCKET = "gait-videos"
+_minio_client: Optional[Minio] = None
+
+
+def _init_minio_client() -> None:
+    """Initialize the MinIO client and ensure the video bucket exists.
+
+    Best-effort: if MinIO is unreachable at startup, log a warning and leave
+    _minio_client as None so uploads/fetches degrade to local-disk-only.
+    """
+    global _minio_client
+    endpoint = os.getenv("S3_ENDPOINT", "localhost:9000")
+    access_key = os.getenv("S3_ACCESS_KEY", "minioadmin")
+    secret_key = os.getenv("S3_SECRET_KEY", "minioadmin")
+    secure = endpoint.startswith("https://")
+    host = endpoint.replace("https://", "").replace("http://", "")
+
+    try:
+        client = Minio(host, access_key=access_key, secret_key=secret_key, secure=secure)
+        if not client.bucket_exists(MINIO_VIDEO_BUCKET):
+            client.make_bucket(MINIO_VIDEO_BUCKET)
+        _minio_client = client
+        logger.info("minio.ready", extra={"bucket": MINIO_VIDEO_BUCKET, "endpoint": host})
+    except Exception as exc:
+        logger.warning("minio_unavailable", extra={"endpoint": host, "error": str(exc)})
+        _minio_client = None
+
+
+def _upload_video_to_minio(local_path: Path, object_path: str) -> None:
+    """BackgroundTask: mirror an uploaded video to MinIO. Never raises."""
+    if _minio_client is None:
+        return
+    try:
+        _minio_client.fput_object(MINIO_VIDEO_BUCKET, object_path, str(local_path))
+        logger.info("minio.video_uploaded", extra={"object_path": object_path})
+    except Exception as exc:
+        logger.warning(
+            "minio_upload_failed",
+            extra={"object_path": object_path, "error": str(exc)},
+        )
+
+
+# â”€â”€ rate limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+#
+# A plain Redis INCR+EXPIRE fixed-window counter, not the existing
+# gait.rate_limit.TokenBucketLimiter: that limiter's Redis GET returns None on
+# a cold key, so `current_tokens` starts at 0 rather than a full bucket â€”
+# the very first request in a fresh window is rejected, which contradicts
+# "N requests per minute allowed". Fixed-window INCR/EXPIRE has no such
+# cold-start bug and maps directly onto "N per minute per IP".
+#
+# DB 3 is dedicated to rate-limit counters (DB 0=Celery broker, DB 1=Celery
+# results, DB 2=sessions).
+
+_rate_limit_redis: Optional["redis.Redis"] = None
+
+
+def _get_rate_limit_redis() -> Optional["redis.Redis"]:
+    """Lazily build the DB-3 Redis client; returns None if unreachable."""
+    global _rate_limit_redis
+    if _rate_limit_redis is not None:
+        return _rate_limit_redis
+    try:
+        url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        parsed = urlparse(url)
+        db3_url = urlunparse(parsed._replace(path="/3"))
+        client = redis.Redis.from_url(db3_url, decode_responses=True, socket_connect_timeout=5)
+        client.ping()
+        _rate_limit_redis = client
+    except redis.RedisError as exc:
+        logger.warning("rate_limit_redis_unavailable", extra={"error": str(exc)})
+        return None
+    return _rate_limit_redis
+
+
+def _enforce_rate_limit(request: Request, endpoint_name: str, limit: int, window_seconds: int = 60) -> None:
+    """Raise 429 if `client_ip` has made more than `limit` requests to
+    `endpoint_name` in the current `window_seconds` window. Fails open
+    (allows the request) if Redis is unreachable.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    r = _get_rate_limit_redis()
+    if r is None:
+        return
+
+    key = f"ratelimit:{endpoint_name}:{client_ip}"
+    try:
+        count = r.incr(key)
+        if count == 1:
+            r.expire(key, window_seconds)
+    except redis.RedisError as exc:
+        logger.warning("rate_limit_check_failed", extra={"endpoint": endpoint_name, "error": str(exc)})
+        return
+
+    if count > limit:
+        noun = "analysis" if endpoint_name == "process" else "upload"
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Maximum {limit} {noun} requests per minute.",
+        )
+
+
+def rate_limit_process(request: Request) -> None:
+    _enforce_rate_limit(request, "process", limit=10, window_seconds=60)
+
+
+def rate_limit_upload(request: Request) -> None:
+    _enforce_rate_limit(request, "upload", limit=60, window_seconds=60)
+
+
+# â”€â”€ FastAPI app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 app = FastAPI(
     title="Sole-Arium Gait Analysis API",
@@ -69,6 +221,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def _on_startup() -> None:
+    _init_minio_client()
+
+
+# All session/patient-data endpoints require an API key (when GAIT_API_KEYS is
+# set); only /health and /api/v1/ stay open. Registered as a router-level
+# dependency so individual endpoint signatures never mention auth.
+protected_router = APIRouter(dependencies=[Depends(check_api_key)])
 
 
 # â”€â”€ task dependency (injectable for tests) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -114,13 +277,23 @@ def _sync_task_status(state: SessionState, store: SessionStore) -> SessionState:
 
         if result.state == "SUCCESS":
             payload = result.result or {}
-            profile = payload.get("profile")
-            store.update_status(
-                state.session_id,
-                SessionStatus.COMPLETED,
-                profile=profile,
-                progress_pct=100.0,
-            )
+            task_status = payload.get("status")
+
+            if task_status == "RERECORD":
+                # Insufficient gait cycles — not a crash, a data-quality failure.
+                store.update_status(
+                    state.session_id,
+                    SessionStatus.RERECORD,
+                    error_message=payload.get("reason", "Insufficient gait data — please re-record."),
+                )
+            else:
+                profile = payload.get("profile")
+                store.update_status(
+                    state.session_id,
+                    SessionStatus.COMPLETED,
+                    profile=profile,
+                    progress_pct=100.0,
+                )
             state = store.get(state.session_id) or state  # refresh
 
         elif result.state in ("FAILURE", "REVOKED"):
@@ -223,7 +396,7 @@ async def api_info() -> Dict[str, str]:
 # â”€â”€ sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-@app.post(
+@protected_router.post(
     "/api/v1/sessions",
     response_model=SessionResponse,
     status_code=status.HTTP_201_CREATED,
@@ -260,15 +433,17 @@ async def create_session(
     )
 
 
-@app.post(
+@protected_router.post(
     "/api/v1/sessions/{session_id}/uploads",
     response_model=UploadResponse,
     status_code=status.HTTP_200_OK,
     tags=["Sessions"],
+    dependencies=[Depends(rate_limit_upload)],
 )
 async def upload_video(
     session_id: str,
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     camera_view: str = Query(default="sagittal", description="Camera view for this file"),
     store: SessionStore = Depends(get_session_store),
 ) -> UploadResponse:
@@ -297,6 +472,11 @@ async def upload_video(
     store.add_uploaded_file(session_id, str(dest_path))
     store.update_status(session_id, SessionStatus.UPLOADING)
 
+    # Local disk write above is what the request's success depends on; MinIO
+    # mirroring happens after the response is sent and never fails the request.
+    object_path = f"{session_id}/{camera_view}/{dest_path.name}"
+    background_tasks.add_task(_upload_video_to_minio, dest_path, object_path)
+
     logger.info(
         "upload.received",
         extra={
@@ -316,11 +496,12 @@ async def upload_video(
     )
 
 
-@app.post(
+@protected_router.post(
     "/api/v1/sessions/{session_id}/process",
     response_model=StatusResponse,
     status_code=status.HTTP_202_ACCEPTED,
     tags=["Sessions"],
+    dependencies=[Depends(rate_limit_process)],
 )
 async def process_session(
     session_id: str,
@@ -383,7 +564,7 @@ async def process_session(
     )
 
 
-@app.get(
+@protected_router.get(
     "/api/v1/sessions/{session_id}/status",
     response_model=StatusResponse,
     tags=["Sessions"],
@@ -411,7 +592,7 @@ async def get_status(
     )
 
 
-@app.get(
+@protected_router.get(
     "/api/v1/sessions/{session_id}/profile",
     response_model=ProfileResponse,
     tags=["Sessions"],
@@ -434,6 +615,19 @@ async def get_profile(
             detail=state.error_message or "Pipeline processing failed.",
         )
 
+    if state.status == SessionStatus.RERECORD:
+        # Return a 200 with a structured profile payload so the frontend
+        # can render a clear "please re-record" state instead of an error.
+        return ProfileResponse(
+            session_id=session_id,
+            patient_id=state.patient_id,
+            status=state.status,
+            profile={
+                "__rerecord__": True,
+                "reason": state.error_message or "Insufficient gait data — please re-record.",
+            },
+        )
+
     return ProfileResponse(
         session_id=session_id,
         patient_id=state.patient_id,
@@ -442,7 +636,7 @@ async def get_profile(
     )
 
 
-@app.get(
+@protected_router.get(
     "/api/v1/sessions/{session_id}/videos/{camera_view}",
     tags=["Sessions"],
 )
@@ -450,10 +644,11 @@ async def get_video(
     session_id: str,
     camera_view: str,
     store: SessionStore = Depends(get_session_store),
-) -> FileResponse:
+):
     """Serve an uploaded video file for synchronized browser playback.
 
-    Supports range requests so the browser can seek within the video.
+    Tries local disk first (supports range requests for seeking); if the
+    local file is missing, falls back to MinIO before returning 404.
     """
     _require_session(session_id, store)
 
@@ -465,21 +660,36 @@ async def get_video(
         )
 
     video_dir = UPLOAD_DIR / session_id / camera_view
-    if not video_dir.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No video found for session {session_id!r}, view {camera_view!r}",
-        )
+    if video_dir.exists():
+        for pattern in ("*.mp4", "*.mov", "*.avi", "*.MP4", "*.MOV", "*.AVI"):
+            matches = list(video_dir.glob(pattern))
+            if matches:
+                video_path = matches[0]
+                media_type, _ = mimetypes.guess_type(str(video_path))
+                return FileResponse(
+                    path=video_path,
+                    media_type=media_type or "video/mp4",
+                    headers={"Cache-Control": "no-cache"},
+                )
 
-    for pattern in ("*.mp4", "*.mov", "*.avi", "*.MP4", "*.MOV", "*.AVI"):
-        matches = list(video_dir.glob(pattern))
-        if matches:
-            video_path = matches[0]
-            media_type, _ = mimetypes.guess_type(str(video_path))
-            return FileResponse(
-                path=video_path,
-                media_type=media_type or "video/mp4",
-                headers={"Cache-Control": "no-cache"},
+    # Local disk miss — fall back to MinIO.
+    if _minio_client is not None:
+        try:
+            object_prefix = f"{session_id}/{camera_view}/"
+            objects = list(_minio_client.list_objects(MINIO_VIDEO_BUCKET, prefix=object_prefix))
+            if objects:
+                object_name = objects[0].object_name
+                response = _minio_client.get_object(MINIO_VIDEO_BUCKET, object_name)
+                media_type, _ = mimetypes.guess_type(object_name)
+                return StreamingResponse(
+                    response,
+                    media_type=media_type or "video/mp4",
+                    headers={"Cache-Control": "no-cache"},
+                )
+        except S3Error as exc:
+            logger.warning(
+                "minio_video_fetch_failed",
+                extra={"session_id": session_id, "camera_view": camera_view, "error": str(exc)},
             )
 
     raise HTTPException(
@@ -488,7 +698,7 @@ async def get_video(
     )
 
 
-@app.delete(
+@protected_router.delete(
     "/api/v1/sessions/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["Sessions"],
@@ -510,7 +720,7 @@ async def delete_session(
     logger.info("session.deleted", extra={"session_id": session_id})
 
 
-@app.get(
+@protected_router.get(
     "/api/v1/sessions/{session_id}/comparison",
     response_model=ComparisonResponse,
     tags=["Sessions"],
@@ -581,4 +791,7 @@ async def get_comparison(
         shod=shod,
         delta=_build_delta(barefoot, shod),
     )
+
+
+app.include_router(protected_router)
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchProfile } from '../services/api.js'
+import { fetchProfile, fetchVideoBlobUrl } from '../services/api.js'
 import KinematicCharts from '../components/KinematicCharts.jsx'
 import Shoe3DVisualization from '../components/Shoe3DVisualization.jsx'
 
@@ -108,12 +108,46 @@ function VideoPlayer({ sessionId }) {
   const [progress, setProgress] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  // Per-camera blob URL + load state. Native <video src="..."> can't send the
+  // X-API-Key header the backend now requires, so each video is fetched via
+  // api.js (which does send it) and converted to a blob: URL instead.
+  const [videoUrls, setVideoUrls] = useState({})
+  const [videoStatus, setVideoStatus] = useState({})
 
   const cameras = [
     { label: 'Anterior (Front)', key: 'anterior' },
     { label: 'Sagittal (Side)', key: 'sagittal' },
     { label: 'Posterior (Back)', key: 'posterior' },
   ]
+
+  useEffect(() => {
+    if (!sessionId) return
+    let cancelled = false
+    const createdUrls = []
+
+    setVideoUrls({})
+    setVideoStatus(Object.fromEntries(cameras.map(cam => [cam.key, 'loading'])))
+
+    cameras.forEach(async (cam) => {
+      try {
+        const blobUrl = await fetchVideoBlobUrl(sessionId, cam.key)
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl)
+          return
+        }
+        createdUrls.push(blobUrl)
+        setVideoUrls(prev => ({ ...prev, [cam.key]: blobUrl }))
+        setVideoStatus(prev => ({ ...prev, [cam.key]: 'ready' }))
+      } catch (e) {
+        if (!cancelled) setVideoStatus(prev => ({ ...prev, [cam.key]: 'error' }))
+      }
+    })
+
+    return () => {
+      cancelled = true
+      createdUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [sessionId])
 
   const handlePlayPause = () => {
     const videos = videoRefs.current.filter(Boolean)
@@ -164,15 +198,30 @@ function VideoPlayer({ sessionId }) {
         {cameras.map((cam, i) => (
           <div key={cam.key} className="text-center">
             <p className="text-xs font-medium text-gray-500 mb-1">{cam.label}</p>
-            <video
-              ref={el => videoRefs.current[i] = el}
-              className="w-full rounded-lg bg-gray-900 aspect-video object-contain"
-              src={sessionId ? `/api/v1/sessions/${sessionId}/videos/${cam.key}` : undefined}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              muted
-              playsInline
-            />
+            {videoStatus[cam.key] === 'error' ? (
+              <div className="w-full rounded-lg bg-gray-900 aspect-video flex flex-col items-center justify-center gap-2 text-slate-500">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                <p className="text-xs">Video unavailable</p>
+              </div>
+            ) : videoStatus[cam.key] !== 'ready' ? (
+              <div className="w-full rounded-lg bg-gray-900 aspect-video animate-pulse flex items-center justify-center">
+                <svg className="w-8 h-8 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+            ) : (
+              <video
+                ref={el => videoRefs.current[i] = el}
+                className="w-full rounded-lg bg-gray-900 aspect-video object-contain"
+                src={videoUrls[cam.key]}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                muted
+                playsInline
+              />
+            )}
           </div>
         ))}
       </div>
@@ -397,7 +446,114 @@ function ShoreCBar({ medial, lateral }) {
   )
 }
 
-function PrescriptionSpecSection({ spec }) {
+// ── Wedging & Alignment (Section C, between Arch Support and Outsole) ────────
+
+function alignmentZone(angleDeg) {
+  if (angleDeg == null || isNaN(angleDeg)) return { label: 'Unknown', cls: 'bg-gray-300', text: 'text-gray-500' }
+  if (angleDeg > 8 || angleDeg < -4) return { label: 'Severe', cls: 'bg-red-500', text: 'text-red-700' }
+  if (angleDeg > 4 || angleDeg < 0) return { label: 'Mild', cls: 'bg-amber-500', text: 'text-amber-700' }
+  return { label: 'Normal', cls: 'bg-green-500', text: 'text-green-700' }
+}
+
+function RearfootAlignmentDial({ side, angleDeg }) {
+  const zone = alignmentZone(angleDeg)
+  // Map -10..+10 deg onto a 0-100% bar position.
+  const clamped = angleDeg == null ? 0 : Math.max(-10, Math.min(10, angleDeg))
+  const pct = angleDeg == null ? 50 : ((clamped + 10) / 20) * 100
+
+  return (
+    <div className="bg-white rounded-lg border border-blue-100 p-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold text-gray-600">{side} Foot</span>
+        <span className={`text-xs font-bold ${zone.text}`}>
+          {angleDeg != null ? `${angleDeg.toFixed(1)}°` : '—'} ({zone.label})
+        </span>
+      </div>
+      <div className="relative h-3 rounded-full bg-gradient-to-r from-red-300 via-green-300 to-red-300 overflow-hidden">
+        <div
+          className={`absolute top-0 bottom-0 w-1.5 rounded-full ${zone.cls} border border-white shadow`}
+          style={{ left: `calc(${pct}% - 3px)` }}
+        />
+      </div>
+      <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+        <span>-10° Supination</span>
+        <span>0°</span>
+        <span>+10° Eversion</span>
+      </div>
+    </div>
+  )
+}
+
+function WedgeSummary({ side, wedgeType, wedgeDegree, wedgePlacement }) {
+  const hasWedge = !!wedgeType
+  return (
+    <div className="bg-white rounded-lg border border-blue-100 p-3">
+      <p className="text-xs font-semibold text-gray-600 mb-1">{side} Wedge</p>
+      {hasWedge ? (
+        <>
+          <p className="text-sm font-bold text-gray-800 capitalize">
+            {wedgeType} &middot; {wedgeDegree != null ? `${wedgeDegree}°` : '—'}
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">{wedgePlacement || '—'}</p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-500">No wedge required</p>
+      )}
+    </div>
+  )
+}
+
+function WedgingAlignmentSection({ wedging, rearfootAlignment }) {
+  if (!wedging && !rearfootAlignment) return null
+
+  const angleL = rearfootAlignment?.angle_deg?.L ?? null
+  const angleR = rearfootAlignment?.angle_deg?.R ?? null
+
+  const cushionSide = wedging?.primary_cushioning_side || 'balanced'
+  const cushionLabel = { left: 'Left', right: 'Right', balanced: 'Balanced' }[cushionSide] || 'Balanced'
+  const cushionExplain = {
+    left: 'The left foot needs more cushioning to offset the measured alignment deviation.',
+    right: 'The right foot needs more cushioning to offset the measured alignment deviation.',
+    balanced: 'Both feet show acceptable alignment; cushioning is distributed evenly.',
+  }[cushionSide]
+
+  return (
+    <SpecCard title="Wedging & Alignment" colorScheme="blue">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <RearfootAlignmentDial side="Left" angleDeg={angleL} />
+        <RearfootAlignmentDial side="Right" angleDeg={angleR} />
+        <WedgeSummary
+          side="Left"
+          wedgeType={wedging?.left_wedge_type}
+          wedgeDegree={wedging?.left_wedge_degree_deg}
+          wedgePlacement={wedging?.left_wedge_placement}
+        />
+        <WedgeSummary
+          side="Right"
+          wedgeType={wedging?.right_wedge_type}
+          wedgeDegree={wedging?.right_wedge_degree_deg}
+          wedgePlacement={wedging?.right_wedge_placement}
+        />
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-blue-100 flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-xs text-gray-500">Primary cushioning side</span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+          {cushionLabel}
+        </span>
+      </div>
+      <p className="text-xs text-gray-500 mt-1">{cushionExplain}</p>
+
+      {wedging?.clinical_rationale && (
+        <p className="text-xs text-gray-600 mt-3 pt-2 border-t border-blue-100 italic">
+          {wedging.clinical_rationale}
+        </p>
+      )}
+    </SpecCard>
+  )
+}
+
+function PrescriptionSpecSection({ spec, wedging, rearfootAlignment }) {
   const [show3D, setShow3D] = useState(false)
 
   if (!spec) {
@@ -467,6 +623,9 @@ function PrescriptionSpecSection({ spec }) {
             <SpecRow label="Post density">{arch.medial_post_shore_c} Shore C</SpecRow>
           )}
         </SpecCard>
+
+        {/* Card 3b — Wedging & Alignment (measured posterior-camera rearfoot angle) */}
+        <WedgingAlignmentSection wedging={wedging} rearfootAlignment={rearfootAlignment} />
 
         {/* Card 4 — Outsole */}
         <SpecCard title="Outsole" colorScheme="slate">
@@ -709,6 +868,55 @@ function SummaryFooter({ profile, sessionId }) {
   )
 }
 
+// ── Video Quality Banner ─────────────────────────────────────────────────────
+function VideoQualityBanner({ profile }) {
+  if (!profile) return null
+
+  const vq = profile.video_quality || {}
+  const qm = profile.quality_metrics || {}
+  const ra = profile.rearfoot_alignment || {}
+  const duration = vq.duration_sec
+  const width = vq.width
+  const height = vq.height
+  const cycleL = qm.cycle_count_L
+  const cycleR = qm.cycle_count_R
+  const rearfootFrameCountL = ra.frame_count?.L
+  const rearfootFrameCountR = ra.frame_count?.R
+
+  const shortVideo = typeof duration === 'number' && duration < 5
+  const lowRes = typeof width === 'number' && typeof height === 'number' && Math.min(width, height) < 360
+  const fewCycles = (typeof cycleL === 'number' && cycleL < 4) || (typeof cycleR === 'number' && cycleR < 4)
+  const flaggedByBackend = vq.is_low_quality === true || qm.is_low_confidence === true
+  const rearfootUnmeasurable =
+    (typeof rearfootFrameCountL !== 'number' || rearfootFrameCountL < 3) &&
+    (typeof rearfootFrameCountR !== 'number' || rearfootFrameCountR < 3)
+
+  if (!shortVideo && !lowRes && !fewCycles && !flaggedByBackend && !rearfootUnmeasurable) return null
+
+  return (
+    <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-900/30 to-orange-900/20 px-5 py-4 flex items-start gap-3 shadow-sm">
+      <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <div className="text-sm text-amber-200 leading-relaxed space-y-1.5">
+        {(shortVideo || lowRes || fewCycles || flaggedByBackend) && (
+          <p>
+            <span className="font-semibold">Note:</span> This analysis was performed on a short or
+            low-resolution video. Results may be less accurate than analyses performed with higher
+            quality recordings. For clinical use, we recommend videos of at least 10 seconds at 720p
+            or higher.
+          </p>
+        )}
+        {rearfootUnmeasurable && (
+          <p>
+            <span className="font-semibold">Note:</span> Rearfoot alignment could not be measured — insufficient posterior camera data.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── ResultsPage ───────────────────────────────────────────────────────────────
 export default function ResultsPage() {
   const { sessionId } = useParams()
@@ -746,6 +954,67 @@ export default function ResultsPage() {
           <p className="text-sm text-red-400 mb-4">{error}</p>
           <button onClick={() => navigate('/')} className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-sm font-semibold rounded-xl hover:from-emerald-500 hover:to-green-500 transition-all shadow-md shadow-emerald-500/30">
             Start New Analysis
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Re-record state ───────────────────────────────────────────────────────────
+  if (profile?.__rerecord__) {
+    return (
+      <div className="max-w-2xl mx-auto py-16">
+        <div className="rounded-2xl border border-amber-600/40 bg-gradient-to-br from-amber-900/40 to-orange-900/30 p-8 shadow-xl shadow-amber-500/10 text-center">
+          <div className="flex justify-center mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+              <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-amber-300 mb-2">Re-Record Required</h2>
+          <p className="text-sm text-slate-400 mb-5">Session {sessionId}</p>
+
+          <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 mb-6 text-left">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">What went wrong</p>
+            <p className="text-sm text-amber-200 leading-relaxed">
+              {profile.reason || 'The pipeline could not detect enough walking cycles from the uploaded video. This usually means the subject was not clearly visible, the camera angle was obstructed, or the video was too short.'}
+            </p>
+          </div>
+
+          <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 mb-6 text-left">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Tips for a successful recording</p>
+            <ul className="space-y-2 text-sm text-slate-300">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5 flex-shrink-0">✓</span>
+                Ensure the subject walks completely through the camera frame at a steady pace
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5 flex-shrink-0">✓</span>
+                Record at least 10 seconds of continuous walking (3–5 full strides)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5 flex-shrink-0">✓</span>
+                Make sure the camera is steady and the subject is well-lit
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5 flex-shrink-0">✓</span>
+                Do not obstruct the camera with objects or other people
+              </li>
+            </ul>
+          </div>
+
+          <button
+            id="rerecord-start-new-btn"
+            onClick={() => navigate('/')}
+            className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-semibold rounded-xl transition-all shadow-lg shadow-amber-500/30 hover:shadow-xl"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Upload New Recording
           </button>
         </div>
       </div>
@@ -814,7 +1083,11 @@ export default function ResultsPage() {
               <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm shadow-purple-500/30">C</span>
               <span className="text-base font-bold text-white">Shoe Prescription</span>
             </div>
-            <PrescriptionSpecSection spec={profile?.prescription_spec ?? null} />
+            <PrescriptionSpecSection
+              spec={profile?.prescription_spec ?? null}
+              wedging={profile?.wedging_prescription ?? null}
+              rearfootAlignment={profile?.rearfoot_alignment ?? null}
+            />
           </div>
         )}
       </div>
@@ -833,6 +1106,9 @@ export default function ResultsPage() {
 
       {/* Glossary */}
       <GlossarySection />
+
+      {/* Video quality disclaimer — non-blocking, shown after all results */}
+      <VideoQualityBanner profile={profile} />
     </div>
   )
 }

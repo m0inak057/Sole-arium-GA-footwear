@@ -12,7 +12,7 @@ code. The only public surface the pipeline uses is the context-manager form:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Generator, Tuple
+from typing import Generator, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -24,6 +24,13 @@ from gait.common.types import VideoDecodeError
 from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
+
+# cv2.CAP_PROP_ORIENTATION_META reports the container rotation tag in degrees.
+_ROTATE_CODE_BY_ANGLE = {
+    90: cv2.ROTATE_90_CLOCKWISE,
+    270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+    180: cv2.ROTATE_180,
+}
 
 
 class VideoFileSource(VideoSource):
@@ -43,6 +50,9 @@ class VideoFileSource(VideoSource):
         self._camera_view = camera_view
         self._config = config
         self._cap: cv2.VideoCapture | None = None
+        # cv2 rotate code (e.g. cv2.ROTATE_90_CLOCKWISE) to normalize a
+        # portrait-recorded stream to landscape, or None if no rotation needed.
+        self._rotate_code: Optional[int] = None
 
     # â”€â”€ Context manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -62,6 +72,7 @@ class VideoFileSource(VideoSource):
         self._cap = cv2.VideoCapture(str(self._path))
         if not self._cap.isOpened():
             raise VideoDecodeError(f"cv2 could not open video: {self._path}")
+        self._rotate_code = self._detect_rotation()
         self._warn_if_mismatch()
 
     def close(self) -> None:
@@ -116,6 +127,9 @@ class VideoFileSource(VideoSource):
             consecutive_failures = 0
             timestamp_ms = frame_index_to_timestamp_ms(frame_index, int(fps))
 
+            if self._rotate_code is not None:
+                bgr = cv2.rotate(bgr, self._rotate_code)
+
             yield Frame(
                 image=np.copy(bgr),  # copy â€” caller must not corrupt upstream buffer
                 timestamp_ms=timestamp_ms,
@@ -137,13 +151,55 @@ class VideoFileSource(VideoSource):
         return actual if actual > 0 else float(self._config.fps)
 
     def get_resolution(self) -> Tuple[int, int]:
+        """Return (width, height) as frames are actually yielded â€” i.e. after
+        rotation normalization, so a 90/270Â° rotated stream reports swapped
+        dimensions matching what get_frames() produces."""
         if self._cap is None:
             return (self._config.resolution[0], self._config.resolution[1])
         w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if self._rotate_code in (cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_90_COUNTERCLOCKWISE):
+            return (h, w)
         return (w, h)
 
     # â”€â”€ Private â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    def _detect_rotation(self) -> Optional[int]:
+        """Detect stream rotation and return the cv2.rotate() code to apply.
+
+        Tries the container rotation tag (CAP_PROP_ORIENTATION_META) first.
+        If that is unavailable or reports no rotation, falls back to
+        inferring from the stream's reported dimensions: a frame taller than
+        it is wide is almost certainly a portrait recording that needs
+        rotating to landscape before pose estimation.
+        """
+        meta_angle = 0
+        try:
+            meta_angle = int(self._cap.get(cv2.CAP_PROP_ORIENTATION_META))
+        except Exception:
+            meta_angle = 0
+
+        if meta_angle in _ROTATE_CODE_BY_ANGLE:
+            logger.info(
+                "rotation_metadata_detected",
+                extra={"camera_view": self._camera_view, "angle": meta_angle},
+            )
+            return _ROTATE_CODE_BY_ANGLE[meta_angle]
+
+        w = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if h > w:
+            logger.info(
+                "auto_portrait_correction",
+                extra={
+                    "camera_view": self._camera_view,
+                    "reported_width": w,
+                    "reported_height": h,
+                },
+            )
+            return cv2.ROTATE_90_CLOCKWISE
+
+        return None
 
     def _warn_if_mismatch(self) -> None:
         actual_fps = self.get_fps()

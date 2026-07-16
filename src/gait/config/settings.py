@@ -1,6 +1,14 @@
 """Application settings from environment variables."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Not imported by any live code path. Config is instead read ad hoc via
+# os.getenv() scattered across gait.api.main, gait.api.tasks, gait.storage,
+# and gait.api.session_store — this pydantic-settings class duplicates that
+# but nothing constructs or injects it. To activate: replace those os.getenv()
+# call sites with Depends(get_settings) (FastAPI) / get_settings() (Celery)
+# and pass the resulting Settings through instead of reading env vars directly.
+
 from typing import Optional
 
 from pydantic_settings import BaseSettings

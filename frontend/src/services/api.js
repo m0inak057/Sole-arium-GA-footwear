@@ -1,23 +1,22 @@
 import axios from 'axios'
 
 const BASE = '/api/v1'
+const API_KEY = import.meta.env.VITE_API_KEY
 
 const client = axios.create({
   baseURL: BASE,
   timeout: 30000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
+  },
 })
 
-export async function createSession(patientId) {
+export async function createSession(patientId, anthropometrics) {
   const { data } = await client.post('/sessions', {
     patient_id: patientId,
     trial_condition: 'barefoot',
-    anthropometrics: {
-      height_cm: 170,
-      mass_kg: 70,
-      foot_length_mm: { L: 260, R: 260 },
-      foot_width_mm: { L: 95, R: 95 },
-    },
+    anthropometrics,
   })
   return data
 }
@@ -48,6 +47,13 @@ export async function triggerProcessing(sessionId) {
 export async function pollStatus(sessionId) {
   const { data } = await client.get(`/sessions/${sessionId}/status`)
   return data
+}
+
+export async function fetchVideoBlobUrl(sessionId, cameraView) {
+  const response = await client.get(`/sessions/${sessionId}/videos/${cameraView}`, {
+    responseType: 'blob',
+  })
+  return URL.createObjectURL(response.data)
 }
 
 export async function fetchProfile(sessionId) {

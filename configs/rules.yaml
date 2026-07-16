@@ -321,6 +321,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: lateral
+      wedge_degree_deg: 3.0
       clinician_notes: []
 
   # Oversupination — full-length cushion, lateral reinforcement, curved last
@@ -346,6 +348,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: lateral
+      wedge_degree_deg: 5.0
       clinician_notes: []
 
   # Neutral — balanced semi-curved spec
@@ -371,6 +375,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: null
+      wedge_degree_deg: 0.0
       clinician_notes: []
 
   # Mild pronation — semi-curved, firmer medial
@@ -396,6 +402,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: medial
+      wedge_degree_deg: 3.0
       clinician_notes: []
 
   # Flat arch (rigid) — any low arch before overpronation override.
@@ -437,6 +445,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: medial
+      wedge_degree_deg: 5.0
       clinician_notes: []
 
   # Flexible flat arch (low arch + overpronation) — overrides both
@@ -465,6 +475,8 @@ prescription_rules:
       upper_construction: standard
       upper_material: leather
       extra_depth: false
+      wedge_type: medial
+      wedge_degree_deg: 5.0
       clinician_notes:
         - "Add rigid midfoot shank to control arch collapse under load"
 
@@ -523,4 +535,51 @@ prescription_rules:
     then:
       clinician_notes:
         - "Confirm leg length discrepancy before applying heel lift"
+
+  # -- Rearfoot alignment cross-reference rules (posterior camera) ----------
+  # These complement the per-foot wedging_prescription computed programmatically
+  # in _compute_wedging_prescription(); they refine the shared prescription_spec
+  # (arch support / wedge fields) when the measured rearfoot alignment
+  # classification (dominant foot) confirms a specific arch-type combination.
+
+  # Severe overpronation confirmed by rearfoot alignment + low arch -
+  # aggressive arch support (+4mm above the 18mm standard height).
+  - id: prx_rearfoot_severe_overpronation_low_arch
+    priority: 82
+    when:
+      rearfoot_alignment_classification: severe_overpronation
+      arch: low
+    then:
+      wedge_type: medial
+      wedge_degree_deg: 5.0
+      arch_support_height_mm: 22.0
+      clinician_notes:
+        - "Rearfoot alignment confirms severe overpronation with low arch - aggressive arch support (+4mm above standard) and 5deg medial wedge prescribed"
+
+  # Severe supination confirmed by rearfoot alignment + high arch -
+  # reduced arch support (-2mm below the 18mm standard height).
+  - id: prx_rearfoot_severe_supination_high_arch
+    priority: 82
+    when:
+      rearfoot_alignment_classification: severe_supination
+      arch: high
+    then:
+      wedge_type: lateral
+      wedge_degree_deg: 5.0
+      arch_support_height_mm: 16.0
+      clinician_notes:
+        - "Rearfoot alignment confirms severe supination with high arch - reduced arch support (-2mm below standard) and 5deg lateral wedge prescribed"
+
+  # Mild overpronation confirmed by rearfoot alignment + normal arch -
+  # medial wedge only; arch support left at whatever the base rules set.
+  - id: prx_rearfoot_mild_overpronation_normal_arch
+    priority: 82
+    when:
+      rearfoot_alignment_classification: mild_overpronation
+      arch: normal
+    then:
+      wedge_type: medial
+      wedge_degree_deg: 3.0
+      clinician_notes:
+        - "Rearfoot alignment confirms mild overpronation with normal arch - medial wedge only, arch support unchanged"
 

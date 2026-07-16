@@ -1,6 +1,10 @@
 """Abstract cache interface."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.cache package — see gait/cache/__init__.py for why this
+# exists and what activating it would take.
+
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, TypeVar
 

@@ -14,12 +14,13 @@ from gait.analysis.parameters import (
     compute_foot_progression_angle,
     compute_foot_strike_angle,
     compute_frontal_plane_excursion,
+    compute_rearfoot_alignment_angle,
     compute_rearfoot_angle,
     compute_spatiotemporal,
     compute_step_length,
     compute_symmetry_index,
 )
-from gait.common.interfaces import BiomechanicalAnalyzer, GaitCycle
+from gait.common.interfaces import BiomechanicalAnalyzer, GaitCycle, KeypointFrame
 from gait.common.logging_utils import get_logger
 from gait.pipeline.config import AnalysisConfig
 
@@ -122,13 +123,20 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
         return params
 
     def aggregate_parameters(
-        self, cycles: List[GaitCycle], foot: str
+        self,
+        cycles: List[GaitCycle],
+        foot: str,
+        posterior_frames: Optional[List[KeypointFrame]] = None,
     ) -> Dict[str, Any]:
         """Aggregate per-cycle parameters across all cycles for one foot.
 
         Numeric parameters â†’ mean and std.
         Classification parameters â†’ statistical mode.
         Includes cycle_count and quality_flag.
+
+        `posterior_frames`, when supplied, are used to additionally compute
+        the clinical rearfoot alignment angle (posterior-camera-only metric,
+        independent of the sagittal-camera rearfoot_angle already above).
         """
         if not cycles:
             return {"foot": foot, "cycle_count": 0, "quality_flag": "RERECORD"}
@@ -155,6 +163,13 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
             vals = [p[key] for p in all_params if key in p]
             if vals:
                 agg[key] = statistics.mode(vals)
+
+        if posterior_frames:
+            alignment = compute_rearfoot_alignment_angle(posterior_frames, foot, cycles)
+            agg["rearfoot_alignment_angle_deg_mean"] = alignment["mean_deg"]
+            agg["rearfoot_alignment_angle_deg_std"] = alignment["std_deg"]
+            agg["rearfoot_alignment_frame_count"] = alignment["frame_count"]
+            agg["rearfoot_alignment_classification"] = alignment["classification"]
 
         agg["quality_flag"] = _quality_flag(len(cycles), self._cfg)
         return agg

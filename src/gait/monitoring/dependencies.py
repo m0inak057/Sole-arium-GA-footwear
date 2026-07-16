@@ -1,6 +1,10 @@
 """Monitoring dependencies for FastAPI."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.monitoring package — see gait/monitoring/__init__.py for
+# why this exists and what activating it would take.
+
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
 
 from gait.common.logging_utils import get_logger

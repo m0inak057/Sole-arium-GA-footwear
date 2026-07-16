@@ -130,7 +130,11 @@ class FootProgressionClassification(str, Enum):
 class Spatiotemporal(BaseModel):
     """Spatiotemporal gait parameters."""
 
-    cadence_spm: float = Field(..., description="Cadence in steps per minute")
+    cadence_spm: Optional[float] = Field(
+        None,
+        description="Cadence in steps per minute; null when neither per-cycle nor "
+        "heel-strike-interval data was sufficient to estimate it",
+    )
     speed_mps: float = Field(..., description="Walking speed in meters per second")
     stride_length_m: float = Field(..., description="Stride length in meters")
     step_width_m: float = Field(..., description="Step width in meters")
@@ -551,6 +555,23 @@ class GaitPatientProfile(BaseModel):
             "Orthotist/shoe-designer-facing manufacturing specification. "
             "Populated for every session with a valid health_assessment. "
             "Audience: orthotists and shoe designers only — do not surface directly to patients."
+        ),
+    )
+    wedging_prescription: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Per-foot wedging (medial/lateral) and cushioning-side prescription derived "
+            "from the measured rearfoot alignment angle (posterior camera). Fields: "
+            "left_wedge_type, left_wedge_degree_deg, left_wedge_placement, "
+            "right_wedge_type, right_wedge_degree_deg, right_wedge_placement, "
+            "primary_cushioning_side, clinical_rationale."
+        ),
+    )
+    rearfoot_alignment: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Measured rearfoot alignment angle (posterior camera) per foot: "
+            "angle_deg, classification, frame_count, each keyed by L/R."
         ),
     )
 

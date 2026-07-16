@@ -9,6 +9,15 @@ Tables:
 """
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Not imported by the live pipeline: the raw SQL in gait.api.tasks
+# (_persist_profile_to_db, via psycopg2) and scripts/init-db.sql define and
+# populate gait.sessions/gait.videos/gait.profiles directly, bypassing this
+# SQLAlchemy ORM layer entirely. Only gait.db.session_repo (also unused) and
+# this module's own tests import it. To activate: replace the raw psycopg2
+# SQL in tasks.py with SQLAlchemy sessions bound to these models, and call
+# init_db()/create_database_url() against DATABASE_URL at startup.
+
 from datetime import datetime, timezone
 from typing import Optional
 

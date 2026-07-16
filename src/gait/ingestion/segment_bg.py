@@ -65,14 +65,21 @@ class MOG2BackgroundSubtractor(BackgroundSubtractor):
 
     def apply(self, frame: Frame) -> Tuple[Frame, np.ndarray]:
         """Apply MOG2 + morphological cleanup and zero out the background."""
-        raw_mask = self._subtractor.apply(frame.image)
+        # Fixed low learning rate: the default (-1 = auto ~= 1/history) adapts
+        # far too fast when mog2_history is small (short clips), absorbing a
+        # slow-moving or briefly-static subject into the background model
+        # within a handful of frames and starving the tracker of any blob.
+        raw_mask = self._subtractor.apply(frame.image, learningRate=0.01)
 
-        # Shadow pixels are 127 â€” treat as background
-        binary_mask = np.where(raw_mask == 255, np.uint8(255), np.uint8(0))
+        # Shadow pixels are marked 127 by MOG2 when detectShadows=True; threshold
+        # to a clean binary mask so shadows are treated as background, not foreground.
+        _, binary_mask = cv2.threshold(raw_mask, 200, 255, cv2.THRESH_BINARY)
 
-        # Close small holes, then remove small isolated blobs
-        clean_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, self._kernel)
-        clean_mask = cv2.morphologyEx(clean_mask, cv2.MORPH_OPEN, self._kernel)
+        # Remove small noise blobs, then dilate to bridge gaps in the person
+        # silhouette (fragmented limbs otherwise form several small components,
+        # each individually below min_blob_area_px2).
+        clean_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, self._kernel)
+        clean_mask = cv2.morphologyEx(clean_mask, cv2.MORPH_DILATE, self._kernel)
 
         fg_image = np.copy(frame.image)
         fg_image[clean_mask == 0] = 0

@@ -1,6 +1,10 @@
 """Prometheus metrics for application monitoring."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.monitoring package — see gait/monitoring/__init__.py for
+# why this exists and what activating it would take.
+
 from prometheus_client import Counter, Gauge, Histogram, Summary
 
 from gait.common.logging_utils import get_logger

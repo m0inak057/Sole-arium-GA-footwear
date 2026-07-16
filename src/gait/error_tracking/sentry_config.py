@@ -1,6 +1,10 @@
 """Sentry error tracking configuration."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.error_tracking package — see gait/error_tracking/__init__.py
+# for why this exists and what activating it would take.
+
 from typing import Optional
 
 import sentry_sdk

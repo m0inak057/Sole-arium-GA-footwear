@@ -1,6 +1,10 @@
 """Cache dependencies for FastAPI."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.cache package — see gait/cache/__init__.py for why this
+# exists and what activating it would take.
+
 from typing import Optional
 
 from gait.cache.base import Cache, CacheConfig

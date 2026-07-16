@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS gait.videos (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     filename VARCHAR(255) NOT NULL,
     file_path TEXT NOT NULL,
+    -- local disk path (primary copy)
+    minio_path TEXT,
+    -- object path in the gait-videos MinIO bucket, e.g. "{session_id}/{camera_view}/{filename}"
     camera_view VARCHAR(50) NOT NULL,
     -- 'sagittal', 'posterior', 'plantar'
     file_size_bytes BIGINT,

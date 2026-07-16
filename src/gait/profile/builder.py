@@ -37,6 +37,27 @@ from gait.profile.rules_engine import RuleBasedRecommendationEngine, create_reco
 
 logger = get_logger(__name__)
 
+# Population-average placeholders used when a foot has zero usable gait
+# cycles. These let the pipeline still produce a profile instead of
+# aborting; every metric filled from here is tagged low-confidence via
+# quality_flag/is_placeholder so the frontend can warn the clinician.
+_POPULATION_AVERAGE_DEFAULTS: Dict[str, Any] = {
+    "cadence_steps_per_min_mean": 110.0,
+    "stance_pct_mean": 60.0,
+    "swing_pct_mean": 40.0,
+    "foot_strike_angle_deg_mean": 0.0,
+    "rearfoot_angle_deg_mean": 2.0,
+    "frontal_plane_excursion_deg_mean": 6.0,
+    "arch_height_index_mean": 0.25,
+    "foot_strike_type": "rearfoot",
+    "arch_type": "normal",
+    "pronation_type": "neutral",
+    "step_length_left_m": 0.6,
+    "step_length_right_m": 0.6,
+    "foot_progression_angle_left_deg": 5.0,
+    "foot_progression_angle_right_deg": 5.0,
+}
+
 # â”€â”€ pronation severity (higher = more pronated; used to pick dominant foot) â”€â”€â”€
 
 _PRONATION_RANK: Dict[str, int] = {
@@ -122,6 +143,7 @@ def _derive_rule_parameters(
         "pronation_type": dominant.get("pronation_type", "neutral"),
         "arch_type": dominant.get("arch_type", "normal"),
         "foot_strike_type": dominant.get("foot_strike_type", "rearfoot"),
+        "rearfoot_alignment_classification": dominant.get("rearfoot_alignment_classification"),
     }
     combined.update(extra)
     return combined
@@ -280,6 +302,55 @@ class StandardProfileBuilder(ProfileBuilder):
         params_l: Dict[str, Any] = parameters.get("L", {})
         params_r: Dict[str, Any] = parameters.get("R", {})
 
+        # ── zero-cycle fallback ─────────────────────────────────────────────
+        # aggregate_parameters() returns {cycle_count: 0, quality_flag: "RERECORD"}
+        # when no *complete* cycle was formed for a foot. That used to always
+        # mean "nothing was detected", but the event detector can now anchor
+        # a PARTIAL_CYCLE on a single heel-strike + following toe-off, and a
+        # foot can also have real toe-off (or heel-strike) events without
+        # enough to form any cycle at all. Population-average placeholders
+        # should only be used when there is truly nothing real to report —
+        # zero heel strikes AND zero toe offs. When some real (if partial)
+        # data exists, keep it as-is rather than overwriting it with fake
+        # population numbers; flag it as PARTIAL_DATA_NO_CYCLE instead.
+        low_confidence_feet: List[str] = []
+        partial_data_feet: List[str] = []
+        for foot_key, foot_params in (("L", params_l), ("R", params_r)):
+            n = foot_params.get("cycle_count", 0)
+            hs_count = foot_params.get("heel_strike_count", 0)
+            to_count = foot_params.get("toe_off_count", 0)
+            if n == 0 and hs_count == 0 and to_count == 0:
+                logger.warning(
+                    "builder.zero_cycle_placeholder",
+                    extra={"foot": foot_key, "cycle_count": n, "patient_id": patient_id},
+                )
+                for key, default in _POPULATION_AVERAGE_DEFAULTS.items():
+                    foot_params.setdefault(key, default)
+                foot_params["quality_flag"] = "LOW_CONFIDENCE_PLACEHOLDER"
+                foot_params["is_placeholder"] = True
+                low_confidence_feet.append(foot_key)
+            elif n == 0:
+                # Real heel-strike and/or toe-off events exist, but not enough
+                # to anchor even a partial cycle (e.g. toe-offs with no heel
+                # strike to pair them to). Report what's real; don't fabricate
+                # the rest.
+                logger.warning(
+                    "builder.partial_data_no_cycle",
+                    extra={
+                        "foot": foot_key,
+                        "heel_strike_count": hs_count,
+                        "toe_off_count": to_count,
+                        "patient_id": patient_id,
+                    },
+                )
+                foot_params["quality_flag"] = "PARTIAL_DATA_NO_CYCLE"
+                foot_params["is_placeholder"] = False
+                partial_data_feet.append(foot_key)
+
+        has_partial_cycle = bool(
+            params_l.get("has_partial_cycle") or params_r.get("has_partial_cycle")
+        )
+
         # â”€â”€ symmetry flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         symmetry_flags = _compute_symmetry_flags(
             params_l, params_r, self._cfg.symmetry_flag_threshold_pct
@@ -304,10 +375,20 @@ class StandardProfileBuilder(ProfileBuilder):
         needs_human_review = bool(health_data.pop("needs_human_review", False))
 
         # â”€â”€ spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        cadence = _mean_of(
-            params_l.get("cadence_steps_per_min_mean"),
-            params_r.get("cadence_steps_per_min_mean"),
-        )
+        # Cadence: prefer real per-cycle timing (mean of L/R cadence_steps_per_min_mean,
+        # which is only populated for COMPLETE cycles â€” see compute_spatiotemporal).
+        # If neither foot has that, fall back to the heel-strike-interval estimate
+        # (needs >=2 heel strikes combined across both feet â€” see
+        # GaitPipeline._compute_cadence_from_heel_strikes). If that's also
+        # unavailable, leave cadence as None (null in the profile) rather than
+        # a population-average guess â€” a missing value is honest; a fabricated
+        # one is not.
+        cadence_l = params_l.get("cadence_steps_per_min_mean")
+        cadence_r = params_r.get("cadence_steps_per_min_mean")
+        if cadence_l is not None or cadence_r is not None:
+            cadence = _mean_of(cadence_l, cadence_r)
+        else:
+            cadence = parameters.get("cadence_from_heel_strikes_spm")
         spatiotemporal = {
             "cadence_spm": cadence,
             "speed_mps": parameters.get("speed_mps", 0.0),
@@ -363,6 +444,22 @@ class StandardProfileBuilder(ProfileBuilder):
             "frontal_plane_excursion_right_deg": fpe_r,
         }
 
+        # â”€â”€ rearfoot alignment (posterior camera; feeds wedging_prescription) â”€â”€â”€â”€
+        rearfoot_alignment = {
+            "angle_deg": {
+                "L": params_l.get("rearfoot_alignment_angle_deg_mean"),
+                "R": params_r.get("rearfoot_alignment_angle_deg_mean"),
+            },
+            "classification": {
+                "L": params_l.get("rearfoot_alignment_classification"),
+                "R": params_r.get("rearfoot_alignment_classification"),
+            },
+            "frame_count": {
+                "L": params_l.get("rearfoot_alignment_frame_count", 0),
+                "R": params_r.get("rearfoot_alignment_frame_count", 0),
+            },
+        }
+
         # â”€â”€ arch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         arch = {
             "type": {
@@ -378,19 +475,30 @@ class StandardProfileBuilder(ProfileBuilder):
         # â”€â”€ quality metrics (internal; not for shoe-design) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         qf_l = params_l.get("quality_flag", "RERECORD")
         qf_r = params_r.get("quality_flag", "RERECORD")
-        if qf_l == "RERECORD" or qf_r == "RERECORD":
+        if qf_l in ("RERECORD", "LOW_CONFIDENCE_PLACEHOLDER", "PARTIAL_DATA_NO_CYCLE") or qf_r in (
+            "RERECORD",
+            "LOW_CONFIDENCE_PLACEHOLDER",
+            "PARTIAL_DATA_NO_CYCLE",
+        ):
             needs_human_review = True
+
+        # partial_data: true whenever any biomechanical value in this profile
+        # came from a PARTIAL_CYCLE (single HS + following TO, no closing HS)
+        # or from a foot with real events but no cycle at all. The frontend's
+        # low-quality banner is already driven by is_low_confidence, which
+        # this also feeds into.
+        partial_data = has_partial_cycle or bool(partial_data_feet)
 
         quality_metrics = {
             "quality_flag_L": qf_l,
             "quality_flag_R": qf_r,
             "cycle_count_L": params_l.get("cycle_count", 0),
             "cycle_count_R": params_r.get("cycle_count", 0),
+            "is_low_confidence": bool(low_confidence_feet) or partial_data,
+            "low_confidence_feet": low_confidence_feet,
+            "partial_data": partial_data,
+            "partial_data_feet": partial_data_feet,
             "phase1_placeholder_fields": [
-                "speed_mps",
-                "stride_length_m",
-                "step_width_m",
-                "double_support_pct",
                 "time_to_peak_eversion_pct_stance",
             ],
         }
@@ -403,7 +511,7 @@ class StandardProfileBuilder(ProfileBuilder):
         }
 
         # â”€â”€ prescription spec â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        from gait.profile.prescription_engine import PrescriptionEngine
+        from gait.profile.prescription_engine import PrescriptionEngine, _compute_wedging_prescription
         from gait.pipeline.config import load_recommendation_rules
 
         prx_rules_config = (
@@ -426,6 +534,7 @@ class StandardProfileBuilder(ProfileBuilder):
             step_length_right_m=step_len_r,
             patient_id=patient_id,
         )
+        wedging_prescription = _compute_wedging_prescription(params_l, params_r, anthropometrics)
 
         profile: Dict[str, Any] = {
             "schema_version": "profile/v1",
@@ -444,6 +553,8 @@ class StandardProfileBuilder(ProfileBuilder):
             "agent_decisions": agent_decisions,
             "face_blur_applied": face_blur_applied,
             "prescription_spec": prescription_spec.model_dump(),
+            "wedging_prescription": wedging_prescription,
+            "rearfoot_alignment": rearfoot_alignment,
         }
 
         logger.info(

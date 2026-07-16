@@ -37,6 +37,29 @@ _PRESCRIPTION_DEFAULTS: Dict[str, Any] = {
     "upper_construction": "standard",
     "upper_material": "leather",
     "extra_depth": False,
+    "wedge_type": None,
+    "wedge_degree_deg": None,
+}
+
+# Rearfoot alignment classification -> (wedge_type, wedge_degree_deg, placement_kind).
+# Degrees are the midpoint of each clinical range (2-4 -> 3, 4-6 -> 5).
+_WEDGE_BY_CLASSIFICATION: Dict[str, tuple] = {
+    "normal": (None, 0.0, None),
+    "mild_overpronation": ("medial", 3.0, "heel"),
+    "severe_overpronation": ("medial", 5.0, "full_length"),
+    "mild_supination": ("lateral", 3.0, "heel"),
+    "severe_supination": ("lateral", 5.0, "full_length"),
+}
+
+_WEDGE_PLACEMENT_LABEL: Dict[str, str] = {
+    "heel": "heel wedge only (posterior 1/3 of shoe)",
+    "full_length": "full-length wedge",
+}
+
+# Short adjective form for the clinical_rationale sentence, e.g. "5° full-length medial wedge".
+_WEDGE_PLACEMENT_ADJECTIVE: Dict[str, str] = {
+    "heel": "heel",
+    "full_length": "full-length",
 }
 
 
@@ -162,6 +185,95 @@ def _derive_primary_condition(rule_params: Dict[str, Any]) -> str:
     if not parts:
         return "Normal biomechanical profile"
     return ", ".join(parts).capitalize()
+
+
+def _compute_wedging_prescription(
+    params_l: Dict[str, Any],
+    params_r: Dict[str, Any],
+    anthropometrics: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Derive per-foot wedging and cushioning prescription from the measured
+    rearfoot alignment classification (posterior-camera-only metric).
+
+    ``anthropometrics`` is accepted for a consistent call signature and
+    possible future use (e.g. mass-based wedge stiffness) but is not
+    currently used to alter the wedge geometry.
+
+    Returns all-null wedge fields and ``primary_cushioning_side="balanced"``
+    when neither foot has a rearfoot alignment classification available
+    (old profiles, or insufficient posterior-camera data).
+    """
+    del anthropometrics  # not used yet; kept for signature parity/future use
+
+    result: Dict[str, Any] = {
+        "left_wedge_type": None,
+        "left_wedge_degree_deg": None,
+        "left_wedge_placement": None,
+        "right_wedge_type": None,
+        "right_wedge_degree_deg": None,
+        "right_wedge_placement": None,
+        "primary_cushioning_side": "balanced",
+        "clinical_rationale": "",
+    }
+
+    classifications = {
+        "left": params_l.get("rearfoot_alignment_classification"),
+        "right": params_r.get("rearfoot_alignment_classification"),
+    }
+    angles = {
+        "left": params_l.get("rearfoot_alignment_angle_deg_mean"),
+        "right": params_r.get("rearfoot_alignment_angle_deg_mean"),
+    }
+
+    if classifications["left"] is None and classifications["right"] is None:
+        result["clinical_rationale"] = (
+            "Rearfoot alignment could not be measured for either foot "
+            "(insufficient posterior camera data); wedging cannot be "
+            "prescribed from measured alignment."
+        )
+        return result
+
+    rationale_parts: List[str] = []
+    for side_key, side_label in (("left", "Left"), ("right", "Right")):
+        classification = classifications[side_key]
+        if classification is None:
+            continue
+
+        wedge_type, wedge_degree, placement_kind = _WEDGE_BY_CLASSIFICATION.get(
+            classification, (None, 0.0, None)
+        )
+        result[f"{side_key}_wedge_type"] = wedge_type
+        result[f"{side_key}_wedge_degree_deg"] = wedge_degree
+        result[f"{side_key}_wedge_placement"] = _WEDGE_PLACEMENT_LABEL.get(placement_kind)
+
+        angle = angles[side_key]
+        if classification == "normal":
+            rationale_parts.append(f"{side_label} foot shows normal rearfoot alignment; no wedging required.")
+        elif angle is not None:
+            direction = "eversion" if angle >= 0 else "inversion"
+            severity = classification.replace("_", " ")
+            placement_adj = _WEDGE_PLACEMENT_ADJECTIVE.get(placement_kind, "")
+            rationale_parts.append(
+                f"{side_label} foot shows {abs(angle):.1f}° {direction} indicating {severity}. "
+                f"A {wedge_degree:.0f}° {placement_adj} {wedge_type} wedge is recommended "
+                "to restore neutral alignment."
+            )
+
+    # Cushioning side: overpronation (either foot) needs medial cushioning;
+    # supination (either foot, if no overpronation) needs lateral cushioning;
+    # otherwise balanced.
+    all_classifications = [c for c in classifications.values() if c is not None]
+    if any("overpronation" in c for c in all_classifications):
+        result["primary_cushioning_side"] = "medial"
+    elif any("supination" in c for c in all_classifications):
+        result["primary_cushioning_side"] = "lateral"
+    else:
+        result["primary_cushioning_side"] = "balanced"
+
+    result["clinical_rationale"] = " ".join(rationale_parts) if rationale_parts else (
+        "Rearfoot alignment within normal limits; balanced cushioning recommended."
+    )
+    return result
 
 
 # â”€â”€ Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

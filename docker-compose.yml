@@ -66,6 +66,7 @@ services:
     container_name: gait-api
     environment:
       APP_ENV: development
+      PYTHONPATH: /app/src
       DATABASE_URL: postgresql://gait_user:gait_password@postgres:5432/gait_analysis
       REDIS_URL: redis://:redis_password@redis:6379/0
       CELERY_BROKER_URL: redis://:redis_password@redis:6379/0
@@ -74,10 +75,12 @@ services:
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
       S3_BUCKET_NAME: gait-analysis
+      GAIT_API_KEYS: "dev-key-change-in-production"
     ports:
       - "8000:8000"
     volumes:
       - ./src:/app/src
+      - ./src/gait:/usr/local/lib/python3.11/dist-packages/gait
       - ./configs:/app/configs
       - ./data:/app/data
       - ./logs:/app/logs
@@ -100,6 +103,7 @@ services:
     container_name: gait-worker
     environment:
       APP_ENV: development
+      PYTHONPATH: /app/src
       DATABASE_URL: postgresql://gait_user:gait_password@postgres:5432/gait_analysis
       REDIS_URL: redis://:redis_password@redis:6379/0
       CELERY_BROKER_URL: redis://:redis_password@redis:6379/0
@@ -110,6 +114,7 @@ services:
       S3_BUCKET_NAME: gait-analysis
     volumes:
       - ./src:/app/src
+      - ./src/gait:/usr/local/lib/python3.11/dist-packages/gait
       - ./configs:/app/configs
       - ./data:/app/data
       - ./logs:/app/logs

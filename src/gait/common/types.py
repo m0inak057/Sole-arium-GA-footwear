@@ -152,3 +152,23 @@ class TrackingLostError(IngestionError):
     IngestionConfig.max_lost_frames consecutive frames without recovery.
     """
 
+
+class InsufficientGaitDataError(RuntimeError):
+    """Pipeline produced zero usable gait cycles for one or both feet.
+
+    Raised by StandardProfileBuilder when ``aggregate_parameters`` returns
+    ``cycle_count: 0`` for either foot.  The Celery task catches this and
+    returns ``{"status": "RERECORD", ...}`` instead of a profile, prompting
+    the clinician to capture a new video.
+    """
+
+    def __init__(self, foot: str, cycle_count: int) -> None:
+        self.foot = foot
+        self.cycle_count = cycle_count
+        super().__init__(
+            f"Insufficient gait data for foot '{foot}': "
+            f"got {cycle_count} usable cycles (need ≥ 1). "
+            "Please re-record the session with the subject walking clearly "
+            "through the camera frame."
+        )
+

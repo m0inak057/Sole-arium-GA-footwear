@@ -1,9 +1,21 @@
-"""Multi-camera frame alignment â€” produces time-synchronized SyncedFrameSet objects.
+"""Multi-camera frame alignment — produces time-synchronized SyncedFrameSet objects.
+
+Two sync modes are supported (controlled by IngestionConfig.sync_mode):
+
+  "timestamp"   — (production / hardware-sync) Pairs frames from all cameras by
+                  wall-clock timestamp within sync_tolerance_ms.  Requires all
+                  cameras to share a common clock (PTP/NTP or hardware trigger).
+
+  "frame_index" — (file-upload / dev / consumer cameras) Pairs frames by position:
+                  frame N of camera A is synced with frame N of camera B and C.
+                  All timestamps in the output are taken from the anchor camera;
+                  this mode never raises FrameSyncError due to timing differences.
+
+  "auto"        — Tries timestamp mode first.  If < 50% of the first 100 anchor
+                  frames pass the tolerance check, it falls back to frame_index
+                  mode and logs a WARNING.  Safest default for mixed environments.
 
 align_frames() expects exactly three cameras: "anterior", "sagittal", "posterior".
-Pairs frames from all cameras by timestamp within a configurable tolerance.
-The first camera (alphabetically: "anterior") is the anchor;
-frames from other cameras are advanced to match it.
 """
 
 from __future__ import annotations
@@ -17,35 +29,102 @@ from gait.pipeline.config import IngestionConfig
 
 logger = get_logger(__name__)
 
+_REQUIRED_CAMERAS = {"anterior", "sagittal", "posterior"}
+
+
+# ── public entry-point ────────────────────────────────────────────────────────
+
 
 def align_frames(
     frame_streams: Dict[str, Iterable[Frame]],
     config: IngestionConfig,
 ) -> Generator[SyncedFrameSet, None, None]:
-    """Align frames from three cameras (anterior, sagittal, posterior) into time-synchronized sets.
+    """Yield time-aligned SyncedFrameSet objects from three camera streams.
 
-    Validates that exactly three cameras are present: "anterior", "sagittal", "posterior".
-    For each anchor frame (anterior), finds the closest frame from sagittal and posterior
-    within sync_tolerance_ms. Frames that cannot be aligned are dropped with a WARNING.
-
-    Raises FrameSyncError after max_unsync_frames_before_error consecutive
-    windows where at least one camera is out of sync.
+    Routing:
+      sync_mode="timestamp"   → _align_by_timestamp()
+      sync_mode="frame_index" → _align_by_frame_index()
+      sync_mode="auto"        → timestamp first; falls back to frame_index
     """
-    required_cameras = {"anterior", "sagittal", "posterior"}
     if not frame_streams:
         raise FrameSyncError("frame_streams cannot be empty")
 
-    provided_cameras = set(frame_streams.keys())
-    if provided_cameras != required_cameras:
-        missing = required_cameras - provided_cameras
-        extra = provided_cameras - required_cameras
-        error_msg = f"Expected cameras {required_cameras}, got {provided_cameras}"
+    provided = set(frame_streams.keys())
+    if provided != _REQUIRED_CAMERAS:
+        missing = _REQUIRED_CAMERAS - provided
+        extra = provided - _REQUIRED_CAMERAS
+        msg = f"Expected cameras {_REQUIRED_CAMERAS}, got {provided}"
         if missing:
-            error_msg += f"; missing: {missing}"
+            msg += f"; missing: {missing}"
         if extra:
-            error_msg += f"; unexpected: {extra}"
-        raise FrameSyncError(error_msg)
+            msg += f"; unexpected: {extra}"
+        raise FrameSyncError(msg)
 
+    sync_mode: str = getattr(config, "sync_mode", "auto")
+
+    if sync_mode == "frame_index":
+        logger.info("frame_sync.mode", extra={"mode": "frame_index"})
+        yield from _align_by_frame_index(frame_streams)
+    elif sync_mode == "timestamp":
+        logger.info("frame_sync.mode", extra={"mode": "timestamp"})
+        yield from _align_by_timestamp(frame_streams, config)
+    else:  # "auto" or any unrecognised value
+        logger.info("frame_sync.mode", extra={"mode": "auto"})
+        yield from _align_auto(frame_streams, config)
+
+
+# ── sync implementations ──────────────────────────────────────────────────────
+
+
+def _align_by_frame_index(
+    frame_streams: Dict[str, Iterable[Frame]],
+) -> Generator[SyncedFrameSet, None, None]:
+    """Pair cameras by frame position (frame N <-> frame N <-> frame N).
+
+    Stops when the shortest stream is exhausted.  All frames in a set
+    share the anchor camera's timestamp in the SyncedFrameSet.
+    Ignores wall-clock timestamps entirely — safe for consumer cameras and
+    file uploads where cameras were not hardware-synchronized.
+    """
+    camera_names = sorted(frame_streams.keys())
+    anchor_cam = camera_names[0]
+
+    iterators: Dict[str, Iterator[Frame]] = {
+        cam: iter(frames) for cam, frames in frame_streams.items()
+    }
+
+    frame_count = 0
+    while True:
+        synced: Dict[str, Frame] = {}
+        for cam in camera_names:
+            frame = next(iterators[cam], None)
+            if frame is None:
+                # Shortest stream exhausted — stop.
+                logger.info(
+                    "frame_index_sync.exhausted",
+                    extra={"cam": cam, "frames_yielded": frame_count},
+                )
+                return
+            synced[cam] = frame
+
+        anchor_ts = synced[anchor_cam].timestamp_ms
+        frame_count += 1
+        yield SyncedFrameSet(anchor_timestamp_ms=anchor_ts, frames=synced)
+
+
+def _align_by_timestamp(
+    frame_streams: Dict[str, Iterable[Frame]],
+    config: IngestionConfig,
+) -> Generator[SyncedFrameSet, None, None]:
+    """Original timestamp-based alignment (for hardware-synced cameras).
+
+    The alphabetically-first camera ("anterior") is the anchor.  For each
+    anchor frame, non-anchor camera buffers are advanced until a frame
+    within sync_tolerance_ms is found.
+
+    Raises FrameSyncError after config.max_unsync_frames_before_error
+    consecutive windows where at least one camera is out of sync.
+    """
     camera_names = sorted(frame_streams.keys())
     anchor_cam = camera_names[0]
     other_cams = camera_names[1:]
@@ -55,9 +134,9 @@ def align_frames(
     }
 
     # One buffered frame per non-anchor camera (pre-fetched)
-    buffers: Dict[str, Frame | None] = {}
-    for cam in other_cams:
-        buffers[cam] = next(iterators[cam], None)
+    buffers: Dict[str, Frame | None] = {
+        cam: next(iterators[cam], None) for cam in other_cams
+    }
 
     consecutive_unsync = 0
     tolerance_ms = config.sync_tolerance_ms
@@ -73,10 +152,10 @@ def align_frames(
                 if abs(delta) <= tolerance_ms:
                     break
                 if delta < -tolerance_ms:
-                    # Camera is behind anchor â€” advance it
+                    # Camera is behind anchor — advance it
                     buffers[cam] = next(iterators[cam], None)
                 else:
-                    # Camera is ahead of anchor â€” anchor frame has no match
+                    # Camera is ahead of anchor — anchor frame has no match
                     break
 
             if buffers[cam] is not None:
@@ -105,8 +184,103 @@ def align_frames(
                 raise FrameSyncError(
                     f"{consecutive_unsync} consecutive frames could not be synced "
                     f"(tolerance={tolerance_ms} ms). Check that all camera clocks "
-                    f"are synchronized."
+                    f"are synchronized, or set sync_mode=frame_index in pipeline.yaml "
+                    f"if uploading independently-recorded video files."
                 )
+
+
+def _align_auto(
+    frame_streams: Dict[str, Iterable[Frame]],
+    config: IngestionConfig,
+) -> Generator[SyncedFrameSet, None, None]:
+    """Auto-detect sync mode by probing the first PROBE frames.
+
+    Buffers up to PROBE frames from every camera, evaluates timestamp
+    alignment quality, then routes to the appropriate implementation.
+    Falls back to frame_index if < 50% of probe frames pass the tolerance
+    check (which is the normal case for uploaded consumer video files).
+    """
+    PROBE = 100
+
+    camera_names = sorted(frame_streams.keys())
+    anchor_cam = camera_names[0]
+    other_cams = camera_names[1:]
+
+    # Buffer the probe window in memory (at most PROBE frames per camera)
+    probe_buffer: Dict[str, List[Frame]] = {cam: [] for cam in camera_names}
+    iterators: Dict[str, Iterator[Frame]] = {
+        cam: iter(frames) for cam, frames in frame_streams.items()
+    }
+
+    # Collect up to PROBE frames from each stream
+    for _ in range(PROBE):
+        for cam in camera_names:
+            f = next(iterators[cam], None)
+            if f is not None:
+                probe_buffer[cam].append(f)
+
+    # Evaluate timestamp sync quality on the probe window using same-index
+    # comparison (fast O(N) estimate instead of full O(N²) nearest-neighbour)
+    tolerance_ms = config.sync_tolerance_ms
+    probe_anchor = probe_buffer[anchor_cam]
+    probe_count = len(probe_anchor)
+    sync_hits = 0
+
+    if probe_count > 0:
+        for i, a_frame in enumerate(probe_anchor):
+            all_match = True
+            for cam in other_cams:
+                if i < len(probe_buffer[cam]):
+                    delta = abs(probe_buffer[cam][i].timestamp_ms - a_frame.timestamp_ms)
+                    if delta > tolerance_ms:
+                        all_match = False
+                        break
+                else:
+                    all_match = False
+                    break
+            if all_match:
+                sync_hits += 1
+
+        hit_rate = sync_hits / probe_count
+    else:
+        hit_rate = 0.0
+
+    # Decision
+    if hit_rate >= 0.5:
+        logger.info(
+            "frame_sync.auto_selected",
+            extra={"mode": "timestamp", "probe_hit_rate": round(hit_rate, 3)},
+        )
+        use_frame_index = False
+    else:
+        logger.warning(
+            "frame_sync.auto_fallback",
+            extra={
+                "mode": "frame_index",
+                "probe_hit_rate": round(hit_rate, 3),
+                "reason": (
+                    f"Only {sync_hits}/{probe_count} probe frames synced within "
+                    f"{tolerance_ms} ms. Falling back to frame-index alignment. "
+                    "For hardware-synced cameras set sync_mode=timestamp in pipeline.yaml."
+                ),
+            },
+        )
+        use_frame_index = True
+
+    # Build combined iterators: probe buffer first, then the live remainder
+    def _chained(cam: str) -> Iterator[Frame]:
+        yield from probe_buffer[cam]
+        yield from iterators[cam]
+
+    combined: Dict[str, Iterable[Frame]] = {cam: _chained(cam) for cam in camera_names}
+
+    if use_frame_index:
+        yield from _align_by_frame_index(combined)
+    else:
+        yield from _align_by_timestamp(combined, config)
+
+
+# ── utilities ─────────────────────────────────────────────────────────────────
 
 
 def flatten_synced_frames(synced_sets: Iterable[SyncedFrameSet]) -> List[Frame]:
@@ -119,4 +293,3 @@ def flatten_synced_frames(synced_sets: Iterable[SyncedFrameSet]) -> List[Frame]:
     for synced in synced_sets:
         result.extend(synced.frames.values())
     return result
-

@@ -1,6 +1,10 @@
 """Health check utilities for monitoring."""
 from __future__ import annotations
 
+MODULE_STATUS = "UNUSED"
+# Part of the gait.monitoring package — see gait/monitoring/__init__.py for
+# why this exists and what activating it would take.
+
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, Optional

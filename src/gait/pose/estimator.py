@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import List
+from typing import Dict, List
 
 from gait.common.interfaces import Frame, KeypointFrame, PoseDetector
 from gait.common.logging_utils import get_logger, log_stage_timing
@@ -37,46 +37,59 @@ class PoseEstimator:
     def run(self, frames: List[Frame]) -> List[KeypointFrame]:
         """Detect and smooth keypoints for all frames.
 
-        Frames where MediaPipe finds no pose are dropped (logged as WARNING).
-        Returns smoothed KeypointFrame objects in input order.
+        Frames are grouped by camera_view and processed independently: MediaPipe
+        VIDEO mode requires strictly increasing timestamps per detector instance,
+        and the 1-Euro smoother keys trajectories by frame_index (which collides
+        across cameras that each start their own frame_index at 0). Interleaving
+        unrelated camera angles into a single temporal sequence would also corrupt
+        MediaPipe's internal pose tracking between frames. Frames where MediaPipe
+        finds no pose are dropped (logged as WARNING).
         """
         if not frames:
             return []
 
         t0 = time.perf_counter()
 
-        # â”€â”€ Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        raw: List[KeypointFrame] = []
+        frames_by_camera: Dict[str, List[Frame]] = {}
+        for f in frames:
+            frames_by_camera.setdefault(f.camera_view, []).append(f)
+
         dropped = 0
         batch_size = self._config.batch_size
+        smoothed: List[KeypointFrame] = []
 
-        with create_pose_detector(self._config) as detector:
-            for start in range(0, len(frames), batch_size):
-                batch = frames[start : start + batch_size]
-                for kf in detector.batch_detect(batch):
-                    if kf.keypoints:
-                        raw.append(kf)
-                    else:
-                        dropped += 1
-                        logger.warning(
-                            "pose_frame_dropped",
-                            extra={
-                                "frame_index": kf.frame_index,
-                                "camera_view": kf.camera_view,
-                            },
-                        )
+        for camera_view in sorted(frames_by_camera):
+            camera_frames = frames_by_camera[camera_view]
+
+            # â”€â”€ Detection (one detector instance per camera) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            raw: List[KeypointFrame] = []
+            with create_pose_detector(self._config) as detector:
+                for start in range(0, len(camera_frames), batch_size):
+                    batch = camera_frames[start : start + batch_size]
+                    for kf in detector.batch_detect(batch):
+                        if kf.keypoints:
+                            raw.append(kf)
+                        else:
+                            dropped += 1
+                            logger.warning(
+                                "pose_frame_dropped",
+                                extra={
+                                    "frame_index": kf.frame_index,
+                                    "camera_view": kf.camera_view,
+                                },
+                            )
+
+            # â”€â”€ Smoothing (per camera, avoids cross-camera frame_index collisions) â”€â”€
+            smoothed.extend(self._smoother.smooth_frame(raw))
 
         logger.info(
             "pose_detection_complete",
             extra={
                 "total_frames": len(frames),
-                "detected_frames": len(raw),
+                "detected_frames": len(smoothed),
                 "dropped_frames": dropped,
             },
         )
-
-        # â”€â”€ Smoothing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        smoothed = self._smoother.smooth_frame(raw)
 
         log_stage_timing(
             logger,

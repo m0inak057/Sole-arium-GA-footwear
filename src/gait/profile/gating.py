@@ -46,16 +46,21 @@ def discard_boundary_cycles(cycles: List[GaitCycle]) -> List[GaitCycle]:
 
     Boundary cycles are contaminated by gait initiation/termination and
     direction-change artefacts; discarding them produces cleaner steady-state
-    biomechanical averages.  Passes with fewer than three cycles are dropped
-    entirely because every cycle in such a pass is a boundary cycle.
+    biomechanical averages. Passes with fewer than three cycles would
+    previously be dropped entirely (every cycle in such a pass is a boundary
+    cycle) — but for short/low-quality recordings that is the *only* data
+    available. Such passes are now kept in full, with their cycles marked
+    down to a low confidence, rather than discarded — a best-effort result
+    beats no result.
 
     Args:
         cycles: GaitCycle objects with ``pass_id`` already assigned by
                 ``assign_pass_ids()``.
 
     Returns:
-        The subset of cycles that are not boundary cycles, sorted by
-        frame_start within each pass.
+        The subset of cycles that are not boundary cycles (plus any
+        low-confidence short passes kept in full), sorted by frame_start
+        within each pass.
     """
     if not cycles:
         return cycles
@@ -66,9 +71,18 @@ def discard_boundary_cycles(cycles: List[GaitCycle]) -> List[GaitCycle]:
 
     kept: List[GaitCycle] = []
     discarded = 0
+    short_passes_kept = 0
     for pass_id in sorted(pass_groups):
         pass_cycles = sorted(pass_groups[pass_id], key=lambda c: c.frame_start)
-        inner = pass_cycles[1:-1]  # empty when len <= 2
+        if len(pass_cycles) <= 2:
+            # Too few cycles to safely discard boundaries. Keep them all,
+            # capping confidence since none of them are steady-state cycles.
+            for c in pass_cycles:
+                c.confidence = min(c.confidence, 0.4)
+            kept.extend(pass_cycles)
+            short_passes_kept += len(pass_cycles)
+            continue
+        inner = pass_cycles[1:-1]
         kept.extend(inner)
         discarded += len(pass_cycles) - len(inner)
 
@@ -78,6 +92,7 @@ def discard_boundary_cycles(cycles: List[GaitCycle]) -> List[GaitCycle]:
             "n_passes": len(pass_groups),
             "cycles_kept": len(kept),
             "cycles_discarded": discarded,
+            "short_passes_kept_low_confidence": short_passes_kept,
         },
     )
     return kept

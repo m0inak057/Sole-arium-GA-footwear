@@ -15,40 +15,40 @@ The system is a **linear, staged pipeline**. Raw video enters at the top; a stru
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       CAPTURE LAYER (hardware)                       │
-│   Anterior cam │ Sagittal cam │ Posterior cam                        │
-│   Calibration board │ Lighting │ Hardware/software sync trigger      │
+│                       CAPTURE LAYER (hardware)                      │
+│   Anterior cam │ Sagittal cam │ Posterior cam                       │
+│   Calibration board │ Lighting │ Hardware/software sync trigger     │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ raw video streams
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│                       INGESTION & PREPROCESSING                      │
+│                       INGESTION & PREPROCESSING                     │
 │   Frame sync │ Undistort │ Calibrate │ Background subtract │ ROI    │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ clean frames
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│                    POSE & FOOT KEYPOINT ESTIMATION                   │
+│                    POSE & FOOT KEYPOINT ESTIMATION                  │
 │   Whole-body 2D pose (MediaPipe/MMPose) │ Custom foot-keypoint net  │
-│   3D lifting / multi-view triangulation │ Temporal smoothing         │
+│   3D lifting / multi-view triangulation │ Temporal smoothing        │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ time-series of 2D/3D keypoints
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│                       GAIT EVENT DETECTION                           │
+│                       GAIT EVENT DETECTION                          │
 │   Heel-strike & toe-off │ Stance/swing segmentation │ Cycle norm.   │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ segmented cycles
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│                    BIOMECHANICAL ANALYSIS ENGINE                     │
+│                    BIOMECHANICAL ANALYSIS ENGINE                    │
 │  Spatiotemporal │ Kinematics │ Rearfoot angle │ Foot progression    │
-│  Foot-strike classifier │ Arch index │ Symmetry indices              │
+│  Foot-strike classifier │ Arch index │ Symmetry indices             │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ parameter vector + classifications
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│                    PATIENT PROFILE GENERATOR                         │
+│                    PATIENT PROFILE GENERATOR                        │
 │   JSON schema │ Confidence scores │ Footwear-relevant recommendations│
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ profile.json
 ┌──────────────────────────────▼──────────────────────────────────────┐
-│         DOWNSTREAM: SHOE DESIGN MODULE (out of scope here)           │
+│         DOWNSTREAM: SHOE DESIGN MODULE (out of scope here)          │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -334,3 +334,4 @@ agents:
 - Every agent decision is audit-logged (input, output, confidence, was_overridden).
 
 > Full roadmap: **[AI_AGENTS_INTEGRATION.md](../AI_AGENTS_INTEGRATION.md)**
+

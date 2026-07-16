@@ -38,6 +38,98 @@ const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'vide
 const ACCEPTED_EXTS = ['.mp4', '.mov', '.avi']
 const MAX_POLL_RETRIES = 40
 
+const ANTHRO_FIELDS = [
+  { key: 'heightCm', label: 'Height', unit: 'cm', min: 100, max: 220, required: true },
+  { key: 'massKg', label: 'Weight', unit: 'kg', min: 20, max: 200, required: true },
+  { key: 'footLengthMm', label: 'Foot Length', unit: 'mm', min: 180, max: 340, required: true },
+  { key: 'footWidthMm', label: 'Foot Width', unit: 'mm', min: 60, max: 130, required: true },
+  { key: 'ageYears', label: 'Age', unit: 'years', min: 5, max: 100, required: false },
+]
+
+function validateAnthropometrics(form) {
+  const errors = {}
+  for (const field of ANTHRO_FIELDS) {
+    const raw = form[field.key]
+    if (raw === '' || raw === null || raw === undefined) {
+      if (field.required) errors[field.key] = `${field.label} is required`
+      continue
+    }
+    const num = Number(raw)
+    if (Number.isNaN(num)) {
+      errors[field.key] = `${field.label} must be a number`
+    } else if (num < field.min || num > field.max) {
+      errors[field.key] = `${field.label} must be between ${field.min} and ${field.max} ${field.unit}`
+    }
+  }
+  return errors
+}
+
+function AnthropometricsForm({ form, setForm, errors, showErrors }) {
+  const handleChange = (key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  }
+
+  return (
+    <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl shadow-2xl shadow-black/50 border border-slate-700/50 p-8 mb-6">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+        <p className="text-xs font-semibold text-slate-400 tracking-widest uppercase px-3">Patient Measurements</p>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent" />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
+        {ANTHRO_FIELDS.map((field) => (
+          <div key={field.key}>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              {field.label} ({field.unit}){field.required && <span className="text-emerald-400"> *</span>}
+            </label>
+            <input
+              type="number"
+              value={form[field.key]}
+              onChange={handleChange(field.key)}
+              min={field.min}
+              max={field.max}
+              placeholder={`${field.min}–${field.max}`}
+              className={`w-full px-3 py-2.5 rounded-xl bg-slate-800/70 border text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-colors ${
+                showErrors && errors[field.key]
+                  ? 'border-red-500/60 focus:ring-red-500/40'
+                  : 'border-slate-700 focus:ring-emerald-500/40 focus:border-emerald-400'
+              }`}
+            />
+            {showErrors && errors[field.key] && (
+              <p className="text-xs text-red-400 mt-1">{errors[field.key]}</p>
+            )}
+          </div>
+        ))}
+
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1.5">Dominant Foot</label>
+          <div className="flex gap-2">
+            {['right', 'left'].map((side) => (
+              <button
+                key={side}
+                type="button"
+                onClick={() => setForm((prev) => ({ ...prev, dominantFoot: side }))}
+                className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-medium capitalize transition-colors border ${
+                  form.dominantFoot === side
+                    ? 'bg-emerald-900/60 border-emerald-500/60 text-emerald-300'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}
+              >
+                {side}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-slate-500">
+        Required for an accurate biomechanical assessment and shoe prescription. Age and dominant foot are optional.
+      </p>
+    </div>
+  )
+}
+
 function UploadIcon() {
   return (
     <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -142,10 +234,16 @@ export default function UploadPage() {
   const [analysing, setAnalysing] = useState(false)
   const [statusIdx, setStatusIdx] = useState(0)
   const [error, setError] = useState(null)
+  const [anthroForm, setAnthroForm] = useState({
+    heightCm: '', massKg: '', footLengthMm: '', footWidthMm: '', ageYears: '', dominantFoot: 'right',
+  })
+  const [showAnthroErrors, setShowAnthroErrors] = useState(false)
   const cycleRef = useRef(null)
 
   const allSelected = files.anterior && files.sagittal && files.posterior
   const selectedCount = Object.values(files).filter(Boolean).length
+  const anthroErrors = validateAnthropometrics(anthroForm)
+  const anthroValid = Object.keys(anthroErrors).length === 0
 
   const handleFile = useCallback((key, file) => {
     setFiles(prev => ({ ...prev, [key]: file }))
@@ -165,13 +263,26 @@ export default function UploadPage() {
   }
 
   const handleAnalyse = async () => {
+    if (!anthroValid) {
+      setShowAnthroErrors(true)
+      return
+    }
+
     setError(null)
     setAnalysing(true)
     startCycle()
 
     try {
       const patientId = `patient_${Date.now()}`
-      const session = await createSession(patientId)
+      const anthropometrics = {
+        height_cm: Number(anthroForm.heightCm),
+        mass_kg: Number(anthroForm.massKg),
+        foot_length_mm: { L: Number(anthroForm.footLengthMm), R: Number(anthroForm.footLengthMm) },
+        foot_width_mm: { L: Number(anthroForm.footWidthMm), R: Number(anthroForm.footWidthMm) },
+        ...(anthroForm.ageYears !== '' ? { age_years: Number(anthroForm.ageYears) } : {}),
+        dominant_foot: anthroForm.dominantFoot,
+      }
+      const session = await createSession(patientId, anthropometrics)
       const sessionId = session.session_id || session.id || session.sessionId
 
       await uploadVideos(sessionId, files.anterior, files.sagittal, files.posterior)
@@ -249,6 +360,14 @@ export default function UploadPage() {
         </div>
       )}
 
+      {/* Patient measurements */}
+      <AnthropometricsForm
+        form={anthroForm}
+        setForm={setAnthroForm}
+        errors={anthroErrors}
+        showErrors={showAnthroErrors}
+      />
+
       {/* Upload card */}
       <div className="bg-slate-900/50 backdrop-blur-md rounded-3xl shadow-2xl shadow-black/50 border border-slate-700/50 p-8">
         {/* Step labels */}
@@ -321,6 +440,11 @@ export default function UploadPage() {
                 ? 'Analyse My Walk'
                 : `Select all 3 videos to continue (${selectedCount}/3)`}
             </button>
+          )}
+          {!analysing && allSelected && !anthroValid && showAnthroErrors && (
+            <p className="text-xs text-red-400 mt-3">
+              Please fill in the required patient measurements above before continuing.
+            </p>
           )}
         </div>
       </div>

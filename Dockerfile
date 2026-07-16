@@ -31,6 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
     libopenblas0 \
+    # MediaPipe Tasks API OpenGL ES dependencies
+    libgles2 \
+    libgles2-mesa \
+    libegl1 \
+    libegl-mesa0 \
+    # Haar cascade XML files for face_blur.py — opencv-python-headless ships
+    # an empty cv2/data/ directory, so these must come from the system package
+    opencv-data \
     # Video codec support — required for cv2.VideoCapture to decode H.264/H.265 on Linux
     ffmpeg \
     libavcodec-extra \

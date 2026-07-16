@@ -1,4 +1,14 @@
 """Monitoring module (Prometheus metrics and health checks)."""
+
+MODULE_STATUS = "UNUSED"
+# Not wired into the live API: MetricsMiddleware is never passed to
+# app.add_middleware() in gait.api.main, and no endpoint calls
+# get_metrics_endpoint() or get_health_check_result() (main.py's own /health
+# is a hand-rolled liveness probe, unrelated to this HealthChecker). Kept as
+# scaffolding for Prometheus/health-check integration. To activate: add
+# app.add_middleware(MetricsMiddleware) and a GET /metrics route in
+# gait.api.main that returns get_metrics_endpoint()'s output.
+
 from gait.monitoring.dependencies import get_health_check_result, get_metrics_endpoint
 from gait.monitoring.health import (
     HealthCheck,

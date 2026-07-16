@@ -15,7 +15,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from gait.api.main import app, get_pipeline_task, get_session_store
+from gait.api.main import (
+    app,
+    check_api_key,
+    get_pipeline_task,
+    get_session_store,
+    rate_limit_process,
+    rate_limit_upload,
+)
 from gait.api.models import SessionStatus
 from gait.api.session_store import SessionStore
 
@@ -108,6 +115,14 @@ def mock_async_result() -> MagicMock:
 def client(store: SessionStore, fake_task, mock_async_result) -> TestClient:
     app.dependency_overrides[get_session_store] = lambda: store
     app.dependency_overrides[get_pipeline_task] = lambda: fake_task
+    # These tests exercise business logic, not the auth/rate-limit layers
+    # (covered separately in TestAuth/TestRateLimit below) — bypass them
+    # regardless of GAIT_API_KEYS / shared Redis state in the environment the
+    # test suite happens to run in (the rate limit counters are per-IP in a
+    # real Redis DB, not reset between tests).
+    app.dependency_overrides[check_api_key] = lambda: None
+    app.dependency_overrides[rate_limit_process] = lambda: None
+    app.dependency_overrides[rate_limit_upload] = lambda: None
     with patch("gait.api.tasks.celery_app") as mock_celery:
         mock_celery.AsyncResult.return_value = mock_async_result
         yield TestClient(app)
@@ -581,5 +596,98 @@ class TestFullLifecycle:
         s2 = client.get(f"/api/v1/sessions/{sid2}/status").json()["status"]
         assert s1 == "COMPLETED"
         assert s2 == "CREATED"
+
+
+class TestAuth:
+    """Exercises check_api_key directly (bypassing the `client` fixture's
+    override so these tests see real auth enforcement)."""
+
+    @pytest.fixture()
+    def auth_client(self, store: SessionStore) -> TestClient:
+        app.dependency_overrides[get_session_store] = lambda: store
+        with patch("gait.api.main.API_KEYS", {"valid-test-key"}):
+            yield TestClient(app)
+        app.dependency_overrides.clear()
+
+    def test_missing_key_returns_401(self, auth_client: TestClient):
+        r = auth_client.post(
+            "/api/v1/sessions",
+            json={"patient_id": "P001", "anthropometrics": ANTHRO, "trial_condition": "barefoot"},
+        )
+        assert r.status_code == 401
+        assert r.json() == {"detail": "Invalid or missing API key"}
+
+    def test_wrong_key_returns_401(self, auth_client: TestClient):
+        r = auth_client.post(
+            "/api/v1/sessions",
+            json={"patient_id": "P001", "anthropometrics": ANTHRO, "trial_condition": "barefoot"},
+            headers={"X-API-Key": "wrong-key"},
+        )
+        assert r.status_code == 401
+
+    def test_valid_key_returns_201(self, auth_client: TestClient):
+        r = auth_client.post(
+            "/api/v1/sessions",
+            json={"patient_id": "P001", "anthropometrics": ANTHRO, "trial_condition": "barefoot"},
+            headers={"X-API-Key": "valid-test-key"},
+        )
+        assert r.status_code == 201
+
+    def test_health_unauthenticated(self, auth_client: TestClient):
+        assert auth_client.get("/health").status_code == 200
+
+    def test_root_info_unauthenticated(self, auth_client: TestClient):
+        assert auth_client.get("/api/v1/").status_code == 200
+
+
+class _FakeRateLimitRedis:
+    """Minimal in-memory stand-in for the DB-3 Redis client (INCR/EXPIRE only)."""
+
+    def __init__(self) -> None:
+        self._counts: Dict[str, int] = {}
+
+    def incr(self, key: str) -> int:
+        self._counts[key] = self._counts.get(key, 0) + 1
+        return self._counts[key]
+
+    def expire(self, key: str, seconds: int) -> None:
+        pass  # no TTL semantics needed for a single-test-scoped fake
+
+
+class TestRateLimit:
+    """Exercises the real rate_limit_process/rate_limit_upload dependencies
+    (bypassing the `client` fixture's override) against a fake Redis so the
+    10/min and 60/min ceilings are verified without a live Redis DB 3."""
+
+    @pytest.fixture()
+    def limited_client(self, store: SessionStore, fake_task, mock_async_result) -> TestClient:
+        app.dependency_overrides[get_session_store] = lambda: store
+        app.dependency_overrides[get_pipeline_task] = lambda: fake_task
+        app.dependency_overrides[check_api_key] = lambda: None
+        with patch("gait.api.tasks.celery_app") as mock_celery, \
+             patch("gait.api.main._rate_limit_redis", _FakeRateLimitRedis()):
+            mock_celery.AsyncResult.return_value = mock_async_result
+            yield TestClient(app)
+        app.dependency_overrides.clear()
+
+    def test_process_11th_request_returns_429(self, limited_client: TestClient):
+        session_ids = []
+        for _ in range(10):
+            r = limited_client.post(
+                "/api/v1/sessions",
+                json={"patient_id": "P001", "anthropometrics": ANTHRO, "trial_condition": "barefoot"},
+            )
+            session_ids.append(r.json()["session_id"])
+
+        responses = [
+            limited_client.post(f"/api/v1/sessions/{sid}/process", json={})
+            for sid in session_ids
+        ]
+        assert all(r.status_code == 202 for r in responses)
+
+        # 11th call in the same 60s window, regardless of session, is rejected.
+        r11 = limited_client.post(f"/api/v1/sessions/{session_ids[0]}/process", json={})
+        assert r11.status_code == 429
+        assert "Maximum 10 analysis requests per minute" in r11.json()["detail"]
 
 
