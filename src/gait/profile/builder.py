@@ -251,8 +251,8 @@ class StandardProfileBuilder(ProfileBuilder):
             # Spatiotemporal
             "step_length_left_m": params_l.get("step_length_left_m", 0.0),
             "step_length_right_m": params_l.get("step_length_right_m", 0.0),
-            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg", 0.0),
-            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg", 0.0),
+            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg") or 0.0,
+            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg") or 0.0,
             # Pronation (left)
             "rearfoot_angle_deg_mean_L": params_l.get("rearfoot_angle_deg_mean", 0.0),
             "frontal_plane_excursion_deg_mean_L": params_l.get("frontal_plane_excursion_deg_mean", 0.0),
@@ -405,8 +405,8 @@ class StandardProfileBuilder(ProfileBuilder):
             },
             "step_length_left_m": params_l.get("step_length_left_m", 0.0),
             "step_length_right_m": params_l.get("step_length_right_m", 0.0),
-            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg", 0.0),
-            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg", 0.0),
+            "foot_progression_angle_left_deg": params_l.get("foot_progression_angle_left_deg") or 0.0,
+            "foot_progression_angle_right_deg": params_l.get("foot_progression_angle_right_deg") or 0.0,
             "foot_progression_classification_left": parameters.get("foot_progression_classification_left", "neutral"),
             "foot_progression_classification_right": parameters.get("foot_progression_classification_right", "neutral"),
         }
@@ -458,6 +458,7 @@ class StandardProfileBuilder(ProfileBuilder):
                 "L": params_l.get("rearfoot_alignment_frame_count", 0),
                 "R": params_r.get("rearfoot_alignment_frame_count", 0),
             },
+            "method": parameters.get("rearfoot_alignment_method", "walking_video_midstance"),
         }
 
         # â”€â”€ arch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -534,7 +535,12 @@ class StandardProfileBuilder(ProfileBuilder):
             step_length_right_m=step_len_r,
             patient_id=patient_id,
         )
-        wedging_prescription = _compute_wedging_prescription(params_l, params_r, anthropometrics)
+        wedging_prescription = _compute_wedging_prescription(
+            params_l,
+            params_r,
+            anthropometrics,
+            rearfoot_alignment_method=parameters.get("rearfoot_alignment_method"),
+        )
 
         profile: Dict[str, Any] = {
             "schema_version": "profile/v1",

@@ -48,6 +48,14 @@ _LOWER_BODY_KEYPOINTS = (
 # instead of restricting to one.
 _MIN_USABLE_EVENT_FRAMES = 10
 
+# Foot progression angle requires a lateral view where heel->toe pixel
+# separation tracks direction of travel; posterior collapses that
+# separation to noise (see _compute_mean_fpa).
+_FPA_ALLOWED_CAMERAS = ("sagittal", "anterior")
+# Normal human foot progression angle is roughly -20 to +20 deg; anything
+# beyond this is a computation error, not a real gait finding.
+_FPA_MAX_PLAUSIBLE_DEG = 45.0
+
 
 def _lower_body_confidence(kf: KeypointFrame) -> float:
     """Max confidence among lower-body keypoints present in this frame (0.0 if none)."""
@@ -276,17 +284,28 @@ class GaitPipeline:
         if session_timestamp is None:
             session_timestamp = datetime.now(timezone.utc).isoformat()
 
+        # The static posterior photo isn't a walking video â€” it must not be
+        # fed to ingestion/pose-per-frame processing (which expects a video
+        # stream). Split it out here; it's routed separately to the rearfoot
+        # alignment computation in _run_analysis.
+        static_posterior_path = video_paths.get("static_posterior")
+        walking_video_paths = {k: v for k, v in video_paths.items() if k != "static_posterior"}
+
         logger.info(
             "pipeline.start",
-            extra={"patient_id": patient_id, "n_cameras": len(video_paths)},
+            extra={
+                "patient_id": patient_id,
+                "n_cameras": len(walking_video_paths),
+                "has_static_posterior": static_posterior_path is not None,
+            },
         )
 
         # â”€â”€ Stage 1: Ingestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        keypoint_frames = self._run_ingestion_and_pose(video_paths)
+        keypoint_frames = self._run_ingestion_and_pose(walking_video_paths)
 
         # â”€â”€ Stages 3â€“4: Events + Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         parameters, cadence_from_heel_strikes, session_params = self._run_analysis(
-            keypoint_frames, anthropometrics
+            keypoint_frames, anthropometrics, static_posterior_path=static_posterior_path
         )
 
         # â”€â”€ Stage 5: Profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -310,7 +329,7 @@ class GaitPipeline:
         )
 
         # â”€â”€ Video quality metadata (for the results-page quality banner) â”€â”€â”€â”€â”€
-        video_quality = _probe_video_quality(video_paths, self._cfg)
+        video_quality = _probe_video_quality(walking_video_paths, self._cfg)
         qm = profile.get("quality_metrics", {})
         cycle_counts = [qm.get("cycle_count_L", 0), qm.get("cycle_count_R", 0)]
         video_quality["is_low_quality"] = bool(
@@ -426,6 +445,7 @@ class GaitPipeline:
         self,
         keypoint_frames: List[KeypointFrame],
         anthropometrics: Dict[str, Any],
+        static_posterior_path: Optional[Path] = None,
     ) -> Tuple[Dict[str, Dict[str, Any]], Optional[float], Dict[str, Any]]:
         """Stages 3â€“4: event detection + analysis.
 
@@ -433,6 +453,11 @@ class GaitPipeline:
         session_params). `session_params` holds the non-per-foot metrics
         (speed_mps, stride_length_m, step_width_m, double_support_pct) that
         builder.py reads directly off the top-level parameters dict.
+
+        `static_posterior_path`, when given, routes rearfoot alignment through
+        the static-photo method instead of the walking-video midstance
+        estimate (falls back to the latter if the photo yields no usable
+        pose).
         """
         from gait.analysis.parameters import (
             compute_double_support_pct,
@@ -515,6 +540,26 @@ class GaitPipeline:
         # â”€â”€ Rearfoot alignment (posterior camera only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         posterior_frames = [kf for kf in all_keypoint_frames if kf.camera_view == "posterior"]
 
+        # â”€â”€ Rearfoot alignment method selection (static photo vs. walking video) â”€
+        static_alignment_result: Optional[Dict[str, Optional[Dict[str, Any]]]] = None
+        rearfoot_alignment_method = "walking_video_midstance"
+        if static_posterior_path is not None:
+            from gait.analysis.parameters import compute_rearfoot_alignment_from_image
+
+            static_alignment_result = compute_rearfoot_alignment_from_image(
+                str(static_posterior_path), model_path=self._cfg.pose.model_path
+            )
+            if static_alignment_result is not None:
+                rearfoot_alignment_method = "static_image"
+
+        logger.info(
+            "rearfoot_alignment_method_selected",
+            extra={
+                "rearfoot_alignment_method": rearfoot_alignment_method,
+                "static_posterior_provided": static_posterior_path is not None,
+            },
+        )
+
         # â”€â”€ Step width (needs the frontal/anterior-posterior view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         frontal_frames, frontal_camera = _select_frontal_view_frames(all_keypoint_frames)
         step_width_m = compute_step_width(frontal_frames, scale_m_per_px)
@@ -527,9 +572,13 @@ class GaitPipeline:
             },
         )
 
-        # Compute foot progression angles (mean per foot)
-        fpa_l = self._compute_mean_fpa(keypoint_frames, hs_l, "left")
-        fpa_r = self._compute_mean_fpa(keypoint_frames, hs_r, "right")
+        # Compute foot progression angles (mean per foot). Uses
+        # all_keypoint_frames (every camera), not the possibly
+        # event-detection-selected `keypoint_frames`, because FPA needs a
+        # lateral view specifically and must not silently fall back to
+        # whichever camera event detection happened to pick.
+        fpa_l = self._compute_mean_fpa(all_keypoint_frames, hs_l, "left")
+        fpa_r = self._compute_mean_fpa(all_keypoint_frames, hs_r, "right")
 
         result: Dict[str, Dict[str, Any]] = {}
         to_by_foot: Dict[str, List] = {}
@@ -542,7 +591,15 @@ class GaitPipeline:
             )
             cycles = assign_pass_ids(cycles, self._cfg.events.pass_gap_multiplier)
             cycles = discard_boundary_cycles(cycles)
-            agg_params = analyzer.aggregate_parameters(cycles, foot, posterior_frames=posterior_frames)
+            foot_static_alignment = (
+                static_alignment_result.get(foot) if static_alignment_result is not None else None
+            )
+            agg_params = analyzer.aggregate_parameters(
+                cycles,
+                foot,
+                posterior_frames=posterior_frames,
+                static_alignment=foot_static_alignment,
+            )
 
             # Raw event counts + partial-cycle flag, independent of whether a
             # cycle could be formed â€” lets the profile builder distinguish
@@ -571,6 +628,7 @@ class GaitPipeline:
                     "std_deg": agg_params.get("rearfoot_alignment_angle_deg_std"),
                     "frame_count": agg_params.get("rearfoot_alignment_frame_count"),
                     "classification": agg_params.get("rearfoot_alignment_classification"),
+                    "rearfoot_alignment_method": rearfoot_alignment_method,
                 },
             )
 
@@ -603,6 +661,7 @@ class GaitPipeline:
             "stride_length_m": stride_length_m,
             "step_width_m": step_width_m,
             "double_support_pct": double_support_pct,
+            "rearfoot_alignment_method": rearfoot_alignment_method,
         }
 
         peak_debug = detector.get_peak_debug_summary()
@@ -662,11 +721,36 @@ class GaitPipeline:
 
     def _compute_mean_fpa(
         self, keypoint_frames: List[KeypointFrame], heel_strikes: List, foot: str
-    ) -> float:
-        """Compute mean foot progression angle across heel strikes."""
+    ) -> Optional[float]:
+        """Compute mean foot progression angle across heel strikes.
+
+        Foot progression angle needs a lateral view (sagittal or anterior),
+        where heel->toe pixel separation actually tracks the direction of
+        travel. A posterior camera (person walking directly away) collapses
+        that separation to near-zero landmark noise and produces
+        meaningless angles, so posterior-camera frames are excluded here
+        regardless of which camera event detection used. Restricted to
+        whichever of sagittal/anterior has the most usable frames, rather
+        than merging both, to avoid mixing two different camera geometries
+        into one average.
+
+        Returns None (not 0.0) when no lateral-camera data is available, or
+        when the resulting mean is outside the physiologically plausible
+        range — a null result is safer than a fabricated placeholder.
+        """
         from gait.analysis.parameters import compute_foot_progression_angle
 
-        kf_by_index = {kf.frame_index: kf for kf in keypoint_frames}
+        frames_by_camera: Dict[str, List[KeypointFrame]] = {}
+        for kf in keypoint_frames:
+            if kf.camera_view in _FPA_ALLOWED_CAMERAS:
+                frames_by_camera.setdefault(kf.camera_view, []).append(kf)
+
+        camera_used: Optional[str] = None
+        kf_by_index: Dict[int, KeypointFrame] = {}
+        if frames_by_camera:
+            camera_used = max(frames_by_camera, key=lambda cam: len(frames_by_camera[cam]))
+            kf_by_index = {kf.frame_index: kf for kf in frames_by_camera[camera_used]}
+
         angles = []
         for event in heel_strikes:
             frame = kf_by_index.get(event.frame_index)
@@ -676,7 +760,29 @@ class GaitPipeline:
                 if heel_kp and toe_kp:
                     angle = compute_foot_progression_angle(heel_kp, toe_kp)
                     angles.append(angle)
-        return sum(angles) / len(angles) if angles else 0.0
+
+        logger.info(
+            "foot_progression_angle_camera_used",
+            extra={"foot": foot, "camera_used": camera_used, "n_frames_used": len(angles)},
+        )
+
+        if not angles:
+            return None
+
+        mean_angle = sum(angles) / len(angles)
+        if abs(mean_angle) > _FPA_MAX_PLAUSIBLE_DEG:
+            logger.warning(
+                "foot_progression_angle_unreliable",
+                extra={
+                    "foot": foot,
+                    "mean_angle_deg": mean_angle,
+                    "camera_used": camera_used,
+                    "n_frames_used": len(angles),
+                },
+            )
+            return None
+
+        return mean_angle
 
 
 def create_pipeline(config: Optional[PipelineConfig] = None) -> GaitPipeline:

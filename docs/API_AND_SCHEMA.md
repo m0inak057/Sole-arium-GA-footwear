@@ -524,7 +524,76 @@ When `step_length_asymmetric` is flagged (>10% asymmetry), 3 mm of heel lift is 
 
 ---
 
-## 8. Versioning policy
+## 8. Rearfoot Alignment Measurement (July 2026 update)
+
+### Input: Static Posterior Standing Photo
+
+Clinicians may now upload a static posterior standing photo (head-to-toe, barefoot, facing away from camera) during session creation. This is stored as `camera_view: static_posterior` and processed by `compute_rearfoot_alignment_from_image()` to measure rearfoot alignment directly from a standing posture, avoiding gait-cycle variability.
+
+**Requirements:**
+- Full body visible (head to toe) — crops will be rejected with a specific error message.
+- Posterior view (facing away from camera).
+- Barefoot or low-profile shoe (to see ankle/heel).
+- Natural stance.
+
+### Output: `rearfoot_alignment` field
+
+When a valid static photo is available, the profile includes:
+
+```json
+{
+  "rearfoot_alignment": {
+    "angle_deg": {"L": 5.2, "R": -13.8},
+    "classification": {"L": "mild_overpronation", "R": "severe_supination"},
+    "frame_count": {"L": 1, "R": 1},
+    "method": "static_image"
+  }
+}
+```
+
+When only walking video is available, the fallback is:
+
+```json
+{
+  "rearfoot_alignment": {
+    "angle_deg": {"L": null, "R": 16.3},
+    "classification": {"L": null, "R": "severe_overpronation"},
+    "frame_count": {"L": 4, "R": 5},
+    "method": "walking_video_midstance"
+  }
+}
+```
+
+**Measurement reliability (July 2026 fix):**
+- **Static method:** Single frame, no temporal averaging; high confidence when pose is detected.
+- **Walking video fallback:** Uses median + outlier rejection (frames > 20° from median are rejected) over midstance window (20%–80% of stance phase); minimum 5 frames required post-rejection. Values > ±30° are flagged as unreliable and nulled.
+- **Foot progression angle:** Restricted to sagittal/anterior cameras only (posterior collapses to noise); values > ±45° are flagged as unreliable.
+
+### Output: `wedging_prescription` field
+
+Derived directly from the rearfoot alignment measurement (static photo, preferred; walking video fallback):
+
+```json
+{
+  "wedging_prescription": {
+    "left_wedge_type": "medial",
+    "left_wedge_degree_deg": 3.0,
+    "left_wedge_placement": "heel wedge only (posterior 1/3 of shoe)",
+    "right_wedge_type": "lateral",
+    "right_wedge_degree_deg": 5.0,
+    "right_wedge_placement": "full-length wedge",
+    "primary_cushioning_side": "medial",
+    "clinical_rationale": "Left foot shows 5.2° eversion indicating mild overpronation. A 3° heel medial wedge is recommended to restore neutral alignment. Right foot shows 13.8° inversion indicating severe supination. A 5° full-length lateral wedge is recommended to restore neutral alignment."
+  }
+}
+```
+
+When the walking video fallback method is used, a disclaimer is appended to `clinical_rationale`:
+> "Note: measurement derived from dynamic gait video — for clinical use confirm with static standing assessment."
+
+---
+
+## 9. Versioning policy
 
 - **Additive change** (new optional field) → same version (`profile/v1`).
 - **Breaking change** (rename, type change, removed field, changed enum) → new version (`profile/v2`) + a migration note in this doc.

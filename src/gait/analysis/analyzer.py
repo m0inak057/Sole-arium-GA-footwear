@@ -127,6 +127,7 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
         cycles: List[GaitCycle],
         foot: str,
         posterior_frames: Optional[List[KeypointFrame]] = None,
+        static_alignment: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Aggregate per-cycle parameters across all cycles for one foot.
 
@@ -137,6 +138,12 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
         `posterior_frames`, when supplied, are used to additionally compute
         the clinical rearfoot alignment angle (posterior-camera-only metric,
         independent of the sagittal-camera rearfoot_angle already above).
+
+        `static_alignment`, when supplied (a single {mean_deg, classification,
+        confidence} result from a static posterior photo), takes priority
+        over `posterior_frames` for the rearfoot alignment fields â€” the
+        walking-video midstance estimate is only used as a fallback when no
+        static photo was captured.
         """
         if not cycles:
             return {"foot": foot, "cycle_count": 0, "quality_flag": "RERECORD"}
@@ -164,7 +171,12 @@ class StandardBiomechanicalAnalyzer(BiomechanicalAnalyzer):
             if vals:
                 agg[key] = statistics.mode(vals)
 
-        if posterior_frames:
+        if static_alignment is not None:
+            agg["rearfoot_alignment_angle_deg_mean"] = static_alignment["mean_deg"]
+            agg["rearfoot_alignment_angle_deg_std"] = 0.0
+            agg["rearfoot_alignment_frame_count"] = 1
+            agg["rearfoot_alignment_classification"] = static_alignment["classification"]
+        elif posterior_frames:
             alignment = compute_rearfoot_alignment_angle(posterior_frames, foot, cycles)
             agg["rearfoot_alignment_angle_deg_mean"] = alignment["mean_deg"]
             agg["rearfoot_alignment_angle_deg_std"] = alignment["std_deg"]

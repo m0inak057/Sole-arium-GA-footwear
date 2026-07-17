@@ -447,9 +447,11 @@ async def upload_video(
     camera_view: str = Query(default="sagittal", description="Camera view for this file"),
     store: SessionStore = Depends(get_session_store),
 ) -> UploadResponse:
-    """Upload a video file for a session.
+    """Upload a video file for a session, or the static posterior photo.
 
-    Call once per camera view (sagittal, posterior, etc.).
+    Call once per camera view (anterior, sagittal, posterior). Call once more
+    with camera_view="static_posterior" for the single standing posture photo
+    used for rearfoot alignment / wedging prescription instead of a video.
     The session must be in CREATED or UPLOADING state.
     """
     state = _require_session(session_id, store)
@@ -459,6 +461,14 @@ async def upload_video(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot upload to session in {state.status} state.",
         )
+
+    if camera_view == "static_posterior":
+        ext = "." + (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
+        if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="static_posterior must be an image file (.jpg, .jpeg, .png, .webp).",
+            )
 
     # Save file to disk under a per-camera subfolder so the view can be recovered later
     dest_dir = UPLOAD_DIR / session_id / camera_view

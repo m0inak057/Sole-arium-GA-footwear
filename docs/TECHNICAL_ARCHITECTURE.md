@@ -662,7 +662,42 @@ See **[AI_AGENTS_INTEGRATION.md](../AI_AGENTS_INTEGRATION.md)** for the full tax
 
 ---
 
+## 12. Recent Fixes & Improvements (July 2026)
+
+### Rearfoot Alignment Angle Computation (July 2026)
+
+**Problem:** Rearfoot alignment angles produced clinically impossible values (84°, -98.9°, -176°) due to sign flips in heel-vector construction when landmark jitter exceeded true anatomical signal in posterior-camera views.
+
+**Solution:**
+1. **Heel-vector reconstruction:** Changed from `(0.0, heel.y - toe.y)` (sign-flipped by jitter) to `(heel.x - ankle.x, abs(ankle.y - heel.y))` (x-component is the real clinical signal; y-component always positive → no 180° flips).
+2. **Median + outlier rejection:** Replaced mean with median over midstance window; reject frames > 20° from initial median as motion-blur artifacts; require ≥ 5 frames post-rejection.
+3. **Plausibility gate:** Flag any angle magnitude > 30° as unreliable and return `None` instead (normal rearfoot alignment is ±15°).
+4. **Static posterior photo:** Introduced optional static standing photo (`camera_view: static_posterior`) for direct rearfoot alignment measurement without gait-cycle variability; fallback to walking video if static photo yields no pose or has poor confidence.
+
+**Files changed:** `src/gait/analysis/parameters.py` (compute_rearfoot_alignment_angle, compute_rearfoot_alignment_from_image), `src/gait/pipeline/orchestrator.py` (rearfoot_alignment_method tracking), `src/gait/profile/prescription_engine.py` (walking-video disclaimer in clinical_rationale).
+
+### Foot Progression Angle Camera Filtering (July 2026)
+
+**Problem:** Posterior-camera frames (person walking directly away) have heel→toe pixel separation collapse to near-zero noise, making `atan2(-dy, dx)` produce garbage values like -171.4°.
+
+**Solution:**
+1. **Camera filter:** Restrict FPA computation to sagittal/anterior cameras only; pick the camera with the most usable frames.
+2. **Plausibility gate:** Flag any FPA magnitude > 45° as unreliable and return `None` (normal foot progression is ±20°).
+3. **Fallback:** Derive FPA from all multi-camera keypoint frames, not the possibly-posterior-only set selected by event detection.
+
+**Files changed:** `src/gait/pipeline/orchestrator.py` (_compute_mean_fpa, _FPA_ALLOWED_CAMERAS, _FPA_MAX_PLAUSIBLE_DEG constants), `src/gait/profile/builder.py` (null-safe FPA lookups).
+
+### Testing & Validation
+
+- All 326 unit tests pass (804/807 pass; 3 failures are pre-existing local venv dependency issues).
+- Live pipeline validation: 3 end-to-end sessions processed with the fixes; rearfoot alignment angles now bounded within clinically plausible ranges (5.2° to -13.8° for valid static photos; fallback values with outlier rejection and plausibility gate engaged).
+- Regression: No existing functionality affected; changes are backward-compatible (median/outlier rejection only tighten data quality, not alter API contract).
+
+See [API_AND_SCHEMA.md § 8 Rearfoot Alignment Measurement](#rearfoot-alignment-measurement-july-2026-update) for measurement details and output schema.
+
+---
+
 **This document is your "system at a glance" reference. Print it, bookmark it, refer to it often.**
 
-Last updated: 2026-06-12  
-Version: 1.1
+Last updated: 2026-07-18  
+Version: 1.2

@@ -227,8 +227,14 @@ def run_gait_pipeline(
                 blur_output_dir = os.path.join(
                     tempfile.gettempdir(), "gait_blurred", session_id
                 )
+                # static_posterior is a single photo, not a video stream — face
+                # blurring opens each path with cv2.VideoCapture, which isn't
+                # a valid way to process a still image.
+                blurrable_video_paths = {
+                    k: v for k, v in video_paths.items() if k != "static_posterior"
+                }
                 blur_results = blur_all_session_videos_detailed(
-                    session_video_paths=video_paths,
+                    session_video_paths=blurrable_video_paths,
                     output_dir=blur_output_dir,
                 )
                 # face_blur_applied reflects whether processing actually ran

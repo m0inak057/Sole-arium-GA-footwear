@@ -31,11 +31,21 @@ logger = get_logger(__name__)
 _MIN_SCALE_MEASUREMENTS = 3
 _FALLBACK_SCALE_M_PER_PX = 0.01
 
-# Minimum valid midstance frames required to trust a rearfoot alignment estimate.
-_MIN_REARFOOT_ALIGNMENT_FRAMES = 3
+# Minimum valid midstance frames required to trust a rearfoot alignment
+# estimate — raised from 3 to 5: a result from only 3-4 high-variance frames
+# is not clinically trustworthy (checked *after* outlier rejection below).
+_MIN_REARFOOT_ALIGNMENT_FRAMES = 5
 _REARFOOT_ALIGNMENT_MIN_CONFIDENCE = 0.1
 # Fraction-of-stance window used to avoid heel-strike / toe-off artifacts.
 _REARFOOT_ALIGNMENT_STANCE_WINDOW = (0.2, 0.8)
+# Frames whose angle deviates more than this many degrees from the initial
+# median are dropped as outliers (motion blur / tracking error) before the
+# final median is computed.
+_REARFOOT_ALIGNMENT_OUTLIER_THRESHOLD_DEG = 20.0
+# Normal human rearfoot alignment from a posterior view is within ~±15 deg;
+# anything past this is a computation problem, not a clinical finding —
+# applies to both the walking-video and static-photo methods.
+_REARFOOT_ALIGNMENT_MAX_PLAUSIBLE_DEG = 30.0
 
 
 # â”€â”€ Camera scale calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -405,8 +415,18 @@ def compute_rearfoot_alignment_angle(
             calf_mid = compute_midpoint((knee.x, knee.y), (ankle.x, ankle.y))
             calf_vector = (ankle.x - calf_mid[0], ankle.y - calf_mid[1])
 
-            lower_calcaneus_y = heel.y + (heel.y - toe.y) * 0.3
-            heel_vector = (0.0, lower_calcaneus_y - heel.y)
+            # Heel bisection axis, posterior view: approximately vertical
+            # (pointing down, y always positive) with a lateral tilt equal to
+            # how far the heel center sits from the ankle center. Using
+            # heel.y - toe.y here (as a previous version did) is wrong: from
+            # directly behind, heel and toe project to nearly the same
+            # vertical position, so that difference is a few pixels of
+            # landmark jitter whose *sign* can flip, reversing heel_vector by
+            # 180 deg and producing clinically impossible angles. abs() on
+            # the y component guarantees heel_vector always points down, so
+            # only the real lateral-deviation signal (x) can move the angle.
+            lateral_tilt_x = heel.x - ankle.x
+            heel_vector = (lateral_tilt_x, abs(ankle.y - heel.y))
 
             angle = signed_angle_deg(calf_vector, heel_vector)
             # Same left/right sign convention as compute_rearfoot_angle:
@@ -415,26 +435,253 @@ def compute_rearfoot_alignment_angle(
                 angle = -angle
             angles_deg.append(angle)
 
-    if len(angles_deg) < _MIN_REARFOOT_ALIGNMENT_FRAMES:
+    if not angles_deg:
         logger.warning(
             "rearfoot_alignment_insufficient_data",
-            extra={"foot": foot, "valid_frame_count": len(angles_deg)},
+            extra={"foot": foot, "valid_frame_count": 0},
         )
         return {
             "mean_deg": None,
             "std_deg": None,
-            "frame_count": len(angles_deg),
+            "frame_count": 0,
             "classification": None,
         }
 
-    mean_deg = float(np.mean(angles_deg))
-    std_deg = float(np.std(angles_deg))
+    # Outlier rejection: with only a handful of midstance frames, one or two
+    # frames with motion blur / tracking error during dynamic gait loading
+    # can dominate a mean. Reject anything far from the initial median, then
+    # take the median of the survivors — median is far more robust to
+    # outliers than mean for small, noisy samples like this.
+    initial_median = float(np.median(angles_deg))
+    surviving_angles = [
+        a for a in angles_deg
+        if abs(a - initial_median) <= _REARFOOT_ALIGNMENT_OUTLIER_THRESHOLD_DEG
+    ]
+    n_rejected = len(angles_deg) - len(surviving_angles)
+    if n_rejected:
+        logger.debug(
+            "rearfoot_alignment_outliers_rejected",
+            extra={
+                "foot": foot,
+                "n_rejected": n_rejected,
+                "n_total": len(angles_deg),
+                "initial_median_deg": initial_median,
+            },
+        )
+
+    if len(surviving_angles) < _MIN_REARFOOT_ALIGNMENT_FRAMES:
+        logger.warning(
+            "rearfoot_alignment_insufficient_data",
+            extra={"foot": foot, "valid_frame_count": len(surviving_angles)},
+        )
+        return {
+            "mean_deg": None,
+            "std_deg": None,
+            "frame_count": len(surviving_angles),
+            "classification": None,
+        }
+
+    # NOTE: "mean_deg" key name kept for backward compatibility with callers
+    # (analyzer.py, orchestrator.py, builder.py) — the value is now a median.
+    median_deg = float(np.median(surviving_angles))
+    std_deg = float(np.std(surviving_angles))
+
+    if abs(median_deg) > _REARFOOT_ALIGNMENT_MAX_PLAUSIBLE_DEG:
+        logger.warning(
+            "rearfoot_alignment_unreliable",
+            extra={
+                "foot": foot,
+                "median_deg": median_deg,
+                "frame_count": len(surviving_angles),
+            },
+        )
+        return {
+            "mean_deg": None,
+            "std_deg": None,
+            "frame_count": len(surviving_angles),
+            "classification": None,
+        }
+
     return {
-        "mean_deg": mean_deg,
+        "mean_deg": median_deg,
         "std_deg": std_deg,
-        "frame_count": len(angles_deg),
-        "classification": classify_rearfoot_alignment(mean_deg),
+        "frame_count": len(surviving_angles),
+        "classification": classify_rearfoot_alignment(median_deg),
     }
+
+
+# Minimum per-landmark confidence to trust a static-photo rearfoot alignment
+# measurement (single frame, no temporal averaging to smooth out a bad detection).
+_STATIC_REARFOOT_MIN_CONFIDENCE = 0.3
+
+# Only the BlazePose landmark indices this measurement actually needs.
+_STATIC_REARFOOT_LANDMARK_INDICES: Dict[str, int] = {
+    "left_knee": 25,
+    "right_knee": 26,
+    "left_ankle": 27,
+    "right_ankle": 28,
+    "left_heel": 29,
+    "right_heel": 30,
+    "left_foot_index": 31,
+    "right_foot_index": 32,
+}
+
+
+def compute_rearfoot_alignment_from_image(
+    image_path: str,
+    model_path: str = "data/models/pose_landmarker_lite.task",
+) -> Optional[Dict[str, Optional[Dict[str, Any]]]]:
+    """Clinical rearfoot alignment angle (both feet) from a single static
+    posterior-view standing photo.
+
+    Uses MediaPipe's IMAGE running mode rather than VIDEO mode: a single
+    photo has no temporal sequence for the landmarker to track across, so
+    VIDEO mode's inter-frame tracking state would be meaningless (and its
+    monotonic-timestamp requirement doesn't apply to a lone frame anyway).
+
+    Computes the same calf-bisection-to-heel-bisection angle as
+    `compute_rearfoot_alignment_angle`, but from one frame instead of an
+    average over midstance frames.
+
+    Args:
+        image_path: Path to the static posterior standing photo.
+        model_path: Path to the pose_landmarker_lite.task model file.
+
+    Returns:
+        {"L": {mean_deg, classification, confidence} | None,
+         "R": {mean_deg, classification, confidence} | None}
+        A foot's entry is None when its required landmarks are missing or
+        below `_STATIC_REARFOOT_MIN_CONFIDENCE`. Returns None outright when
+        MediaPipe detects no pose at all in the image.
+    """
+    import cv2
+    import mediapipe as mp
+    from mediapipe.tasks import python as mp_tasks
+    from mediapipe.tasks.python import vision as mp_vision
+
+    image = cv2.imread(str(image_path))
+    if image is None:
+        logger.warning(
+            "static_rearfoot_alignment_failed",
+            extra={"reason": "image_load_failed", "image_path": str(image_path)},
+        )
+        return None
+
+    h, w = image.shape[:2]
+    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+    options = mp_vision.PoseLandmarkerOptions(
+        base_options=mp_tasks.BaseOptions(model_asset_path=str(model_path)),
+        running_mode=mp_vision.RunningMode.IMAGE,
+    )
+    landmarker = mp_vision.PoseLandmarker.create_from_options(options)
+    try:
+        results = landmarker.detect(mp_image)
+    finally:
+        landmarker.close()
+
+    if not results.pose_landmarks:
+        # MediaPipe pose detection needs a visible head/torso to initialize;
+        # a knee-to-floor crop reliably fails here. Give the user a specific,
+        # actionable warning instead of a generic "no pose" message when the
+        # image's shape suggests that's what happened.
+        is_possibly_cropped = (h > 2 * w) or (h < 400)
+        if is_possibly_cropped:
+            logger.warning(
+                "static_rearfoot_possibly_cropped_image",
+                extra={
+                    "reason": "possibly_cropped_lower_body_photo",
+                    "image_path": str(image_path),
+                    "image_size_wh": (w, h),
+                    "detail": (
+                        "Image may be a lower-body crop. MediaPipe requires the "
+                        "full body to be visible including head and torso. "
+                        "Re-upload a full-body posterior standing photo."
+                    ),
+                },
+            )
+        else:
+            logger.warning(
+                "static_rearfoot_alignment_failed",
+                extra={"reason": "no_pose_detected", "image_path": str(image_path)},
+            )
+        return None
+
+    pose = results.pose_landmarks[0]
+    keypoints: Dict[str, Keypoint] = {}
+    for name, idx in _STATIC_REARFOOT_LANDMARK_INDICES.items():
+        lm = pose[idx]
+        keypoints[name] = Keypoint(
+            x=float(lm.x * w),
+            y=float(lm.y * h),
+            z=None,
+            confidence=float(lm.presence),
+            name=name,
+        )
+
+    result: Dict[str, Optional[Dict[str, Any]]] = {}
+    for foot, side in (("L", "left"), ("R", "right")):
+        knee = keypoints[f"{side}_knee"]
+        ankle = keypoints[f"{side}_ankle"]
+        heel = keypoints[f"{side}_heel"]
+        toe = keypoints[f"{side}_foot_index"]
+        required = (knee, ankle, heel, toe)
+        min_confidence = min(kp.confidence for kp in required)
+        if min_confidence < _STATIC_REARFOOT_MIN_CONFIDENCE:
+            logger.warning(
+                "static_rearfoot_alignment_failed",
+                extra={
+                    "reason": "low_confidence_landmarks",
+                    "foot": foot,
+                    "image_path": str(image_path),
+                    "min_confidence": min_confidence,
+                },
+            )
+            result[foot] = None
+            continue
+
+        calf_mid = compute_midpoint((knee.x, knee.y), (ankle.x, ankle.y))
+        calf_vector = (ankle.x - calf_mid[0], ankle.y - calf_mid[1])
+
+        # See compute_rearfoot_alignment_angle for why abs() on the y
+        # component is required: it guarantees heel_vector always points
+        # down, so a sign flip from heel/toe landmark jitter can never
+        # reverse the vector by 180 deg. The lateral tilt (heel.x - ankle.x)
+        # is the real clinical signal — how far the heel center deviates
+        # sideways from the ankle/calf axis.
+        lateral_tilt_x = heel.x - ankle.x
+        heel_vector = (lateral_tilt_x, abs(ankle.y - heel.y))
+
+        angle = signed_angle_deg(calf_vector, heel_vector)
+        # Same left/right sign convention as compute_rearfoot_angle: positive
+        # = eversion for the left foot; negate for the right.
+        if foot == "R":
+            angle = -angle
+
+        if abs(angle) > _REARFOOT_ALIGNMENT_MAX_PLAUSIBLE_DEG:
+            logger.warning(
+                "rearfoot_alignment_unreliable",
+                extra={
+                    "foot": foot,
+                    "angle_deg": angle,
+                    "image_path": str(image_path),
+                    "method": "static_image",
+                },
+            )
+            result[foot] = None
+            continue
+
+        result[foot] = {
+            "mean_deg": angle,
+            "classification": classify_rearfoot_alignment(angle),
+            "confidence": min_confidence,
+        }
+
+    if result["L"] is None and result["R"] is None:
+        return None
+
+    return result
 
 
 # â”€â”€ Arch assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

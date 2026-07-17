@@ -191,6 +191,7 @@ def _compute_wedging_prescription(
     params_l: Dict[str, Any],
     params_r: Dict[str, Any],
     anthropometrics: Dict[str, Any],
+    rearfoot_alignment_method: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Derive per-foot wedging and cushioning prescription from the measured
     rearfoot alignment classification (posterior-camera-only metric).
@@ -198,6 +199,12 @@ def _compute_wedging_prescription(
     ``anthropometrics`` is accepted for a consistent call signature and
     possible future use (e.g. mass-based wedge stiffness) but is not
     currently used to alter the wedge geometry.
+
+    ``rearfoot_alignment_method`` is the method that produced the angle
+    (``"static_image"`` or ``"walking_video_midstance"``, see
+    ``gait.pipeline.orchestrator``). When it's the walking-video fallback,
+    a disclaimer is appended to ``clinical_rationale`` — that measurement is
+    noisier than a static standing photo and should be confirmed clinically.
 
     Returns all-null wedge fields and ``primary_cushioning_side="balanced"``
     when neither foot has a rearfoot alignment classification available
@@ -273,6 +280,11 @@ def _compute_wedging_prescription(
     result["clinical_rationale"] = " ".join(rationale_parts) if rationale_parts else (
         "Rearfoot alignment within normal limits; balanced cushioning recommended."
     )
+    if rearfoot_alignment_method == "walking_video_midstance":
+        result["clinical_rationale"] += (
+            " Note: measurement derived from dynamic gait video — for clinical "
+            "use confirm with static standing assessment."
+        )
     return result
 
 

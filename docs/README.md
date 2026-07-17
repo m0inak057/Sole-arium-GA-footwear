@@ -80,10 +80,11 @@ If you are new to the project, read in this order:
 
 | Field | Value |
 |---|---|
-| Document version | 1.1 |
-| Last updated | 2026-06-12 |
-| Module phase | Phase 0 Complete; Phase 1 In Progress (Task 3: Ingestion) |
-| AI agents status | Infrastructure scaffolded (Phase 1B); agents disabled in MVP; Phase 2+ deployment |
+| Document version | 1.2 |
+| Last updated | 2026-07-18 |
+| Module phase | Phase E Complete (Clinical Validation); 326 tests passing; production-ready |
+| Recent updates | Rearfoot alignment angle fixes (median + outlier rejection + plausibility gate, July 2026); foot progression angle camera filtering; static posterior photo upload for improved measurements |
+| AI agents status | Infrastructure scaffolded; agents disabled in MVP; Phase 2+ deployment (future) |
 | Source of truth | This `/docs` folder, version-controlled with the code |
 
 > **Convention:** documentation lives in the same repository as the code and is reviewed in the same pull requests. A code change that breaks the patient-profile schema **must** update `API_AND_SCHEMA.md` in the same PR.

@@ -89,6 +89,19 @@ A test pyramid keeps the pipeline trustworthy as it evolves.
 ### 4.4 Regression guard
 - Golden-sample outputs are snapshotted. A code or model change that shifts a classification or a key numeric beyond tolerance fails CI and requires explicit sign-off.
 
+### 4.5 Rearfoot alignment & foot progression angle fixes (July 2026)
+
+**New measurement modes & gates:**
+- **Static posterior photo rearfoot alignment:** Validate against clinician manual goniometer measurement on standing photos; ICC ≥ 0.90 target.
+- **Walking video fallback with outlier rejection:** Confirm median + rejection threshold (20°) produces tighter, more stable estimates than raw mean. Validate against pressure-mat rearfoot angle ICC; target ≥ 0.85.
+- **Foot progression angle camera filtering:** Restrict to sagittal/anterior only; verify posterior-only frames are rejected in mixed-camera setups; confirm no FPA values outside ±45° pass the plausibility gate.
+
+**Test additions:**
+- Unit test: `compute_rearfoot_alignment_from_image()` on a synthetic full-body image with known ankle/heel positions; verify angle is bounded within ±30° and method is logged as `"static_image"`.
+- Unit test: median + outlier rejection on a midstance angle series with simulated jitter; verify surviving frame count ≥ 5 and outliers are logged.
+- Unit test: foot progression angle with sagittal camera frames; verify non-sagittal frames are excluded and `camera_used` is logged.
+- Integration test: walking video + static photo session; verify static photo method is preferred; verify fallback to walking video when static photo yields no pose.
+
 ---
 
 ## 5. Acceptance criteria (gate to "trusted")

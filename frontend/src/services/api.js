@@ -21,11 +21,12 @@ export async function createSession(patientId, anthropometrics) {
   return data
 }
 
-export async function uploadVideos(sessionId, anteriorFile, sagittalFile, posteriorFile) {
+export async function uploadVideos(sessionId, anteriorFile, sagittalFile, posteriorFile, staticPosteriorFile) {
   const uploads = [
     { file: anteriorFile, view: 'anterior' },
     { file: sagittalFile, view: 'sagittal' },
     { file: posteriorFile, view: 'posterior' },
+    ...(staticPosteriorFile ? [{ file: staticPosteriorFile, view: 'static_posterior' }] : []),
   ]
 
   for (const { file, view } of uploads) {
