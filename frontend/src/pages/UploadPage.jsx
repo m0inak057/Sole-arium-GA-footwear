@@ -38,7 +38,7 @@ const ACCEPTED_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'vide
 const ACCEPTED_EXTS = ['.mp4', '.mov', '.avi']
 const IMAGE_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const IMAGE_ACCEPTED_EXTS = ['.jpg', '.jpeg', '.png', '.webp']
-const MAX_POLL_RETRIES = 40
+const MAX_POLL_RETRIES = 400
 
 const CHECKLIST_ITEMS = [
   { key: 'attire', label: 'Shorts are recommended for best results — full trousers also work but may reduce measurement accuracy' },
@@ -55,35 +55,9 @@ const ANTHRO_FIELDS = [
   { key: 'ageYears', label: 'Age', unit: 'years', min: 5, max: 100, required: false },
 ]
 
-// UK: 3–15 in 0.5 steps · EU: 35–50 whole numbers · US (Men): 4–16 in 0.5 steps
-const SHOE_SIZE_SYSTEMS = {
-  UK: { label: 'UK', min: 3, max: 15, step: 0.5 },
-  EU: { label: 'EU', min: 35, max: 50, step: 1 },
-  US: { label: 'US', min: 4, max: 16, step: 0.5 },
-}
-
-function shoeSizesFor(system) {
-  const { min, max, step } = SHOE_SIZE_SYSTEMS[system]
-  const sizes = []
-  for (let s = min; s <= max + 1e-9; s += step) {
-    sizes.push(Math.round(s * 2) / 2)
-  }
-  return sizes
-}
-
-// EU size -> foot length (mm). UK/US are converted to an equivalent EU size first.
-function shoeSizeToFootLengthMm(system, size) {
-  let euSize = size
-  if (system === 'UK') euSize = size + 33
-  if (system === 'US') euSize = size + 31
-  return euSize * 6.667 + 17
-}
-
-const FOOT_WIDTH_OPTIONS = [
-  { key: 'narrow', label: 'Narrow', mm: 85 },
-  { key: 'standard', label: 'Standard', mm: 95 },
-  { key: 'wide', label: 'Wide', mm: 105 },
-  { key: 'extra_wide', label: 'Extra Wide', mm: 115 },
+const FOOT_MEASUREMENT_FIELDS = [
+  { key: 'footLengthMm', label: 'Foot Length', unit: 'mm', min: 180, max: 340, step: 1, required: true },
+  { key: 'footWidthMm', label: 'Foot Width', unit: 'mm', min: 60, max: 130, step: 1, required: true },
 ]
 
 function validateAnthropometrics(form) {
@@ -101,11 +75,18 @@ function validateAnthropometrics(form) {
       errors[field.key] = `${field.label} must be between ${field.min} and ${field.max} ${field.unit}`
     }
   }
-  if (form.shoeSize === '' || form.shoeSize === null || form.shoeSize === undefined) {
-    errors.shoeSize = 'Shoe size is required'
-  }
-  if (!form.footWidthCategory) {
-    errors.footWidthCategory = 'Foot width is required'
+  for (const field of FOOT_MEASUREMENT_FIELDS) {
+    const raw = form[field.key]
+    if (raw === '' || raw === null || raw === undefined) {
+      if (field.required) errors[field.key] = `${field.label} is required`
+      continue
+    }
+    const num = Number(raw)
+    if (Number.isNaN(num)) {
+      errors[field.key] = `${field.label} must be a number`
+    } else if (num < field.min || num > field.max) {
+      errors[field.key] = `${field.label} must be between ${field.min} and ${field.max} ${field.unit}`
+    }
   }
   return errors
 }
@@ -113,12 +94,6 @@ function validateAnthropometrics(form) {
 function AnthropometricsForm({ form, setForm, errors, showErrors }) {
   const handleChange = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }))
-  }
-
-  const sizeOptions = shoeSizesFor(form.shoeSizeSystem)
-
-  const handleSystemChange = (system) => {
-    setForm((prev) => ({ ...prev, shoeSizeSystem: system, shoeSize: '' }))
   }
 
   return (
@@ -154,44 +129,30 @@ function AnthropometricsForm({ form, setForm, errors, showErrors }) {
           </div>
         ))}
 
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1.5">
-            Shoe Size <span className="text-emerald-400">*</span>
-          </label>
-          <div className="flex gap-1 mb-2">
-            {Object.keys(SHOE_SIZE_SYSTEMS).map((system) => (
-              <button
-                key={system}
-                type="button"
-                onClick={() => handleSystemChange(system)}
-                className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                  form.shoeSizeSystem === system
-                    ? 'bg-emerald-900/60 border-emerald-500/60 text-emerald-300'
-                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                {SHOE_SIZE_SYSTEMS[system].label}
-              </button>
-            ))}
+        {FOOT_MEASUREMENT_FIELDS.map((field) => (
+          <div key={field.key}>
+            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              {field.label} ({field.unit})<span className="text-emerald-400"> *</span>
+            </label>
+            <input
+              type="number"
+              value={form[field.key]}
+              onChange={handleChange(field.key)}
+              min={field.min}
+              max={field.max}
+              step={field.step}
+              placeholder={`${field.min}–${field.max}`}
+              className={`w-full px-3 py-2.5 rounded-xl bg-slate-800/70 border text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-colors ${
+                showErrors && errors[field.key]
+                  ? 'border-red-500/60 focus:ring-red-500/40'
+                  : 'border-slate-700 focus:ring-emerald-500/40 focus:border-emerald-400'
+              }`}
+            />
+            {showErrors && errors[field.key] && (
+              <p className="text-xs text-red-400 mt-1">{errors[field.key]}</p>
+            )}
           </div>
-          <select
-            value={form.shoeSize}
-            onChange={handleChange('shoeSize')}
-            className={`w-full px-3 py-2.5 rounded-xl bg-slate-800/70 border text-sm text-white focus:outline-none focus:ring-2 transition-colors ${
-              showErrors && errors.shoeSize
-                ? 'border-red-500/60 focus:ring-red-500/40'
-                : 'border-slate-700 focus:ring-emerald-500/40 focus:border-emerald-400'
-            }`}
-          >
-            <option value="" disabled>Select size</option>
-            {sizeOptions.map((size) => (
-              <option key={size} value={size}>{size}</option>
-            ))}
-          </select>
-          {showErrors && errors.shoeSize && (
-            <p className="text-xs text-red-400 mt-1">{errors.shoeSize}</p>
-          )}
-        </div>
+        ))}
 
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1.5">Dominant Foot</label>
@@ -212,31 +173,6 @@ function AnthropometricsForm({ form, setForm, errors, showErrors }) {
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-slate-300 mb-1.5">
-          Foot Width <span className="text-emerald-400">*</span>
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {FOOT_WIDTH_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => setForm((prev) => ({ ...prev, footWidthCategory: opt.key }))}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                form.footWidthCategory === opt.key
-                  ? 'bg-emerald-900/60 border-emerald-500/60 text-emerald-300'
-                  : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:border-slate-600'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {showErrors && errors.footWidthCategory && (
-          <p className="text-xs text-red-400 mt-1">{errors.footWidthCategory}</p>
-        )}
       </div>
 
       <p className="text-xs text-slate-500">
@@ -493,7 +429,7 @@ export default function UploadPage() {
   const [error, setError] = useState(null)
   const [anthroForm, setAnthroForm] = useState({
     heightCm: '', massKg: '', ageYears: '', dominantFoot: 'right',
-    shoeSizeSystem: 'UK', shoeSize: '', footWidthCategory: '',
+    footLengthMm: '', footWidthMm: '',
   })
   const [showAnthroErrors, setShowAnthroErrors] = useState(false)
   const cycleRef = useRef(null)
@@ -539,13 +475,11 @@ export default function UploadPage() {
 
     try {
       const patientId = `patient_${Date.now()}`
-      const footLengthMm = shoeSizeToFootLengthMm(anthroForm.shoeSizeSystem, Number(anthroForm.shoeSize))
-      const footWidthMm = FOOT_WIDTH_OPTIONS.find((o) => o.key === anthroForm.footWidthCategory)?.mm
       const anthropometrics = {
         height_cm: Number(anthroForm.heightCm),
         mass_kg: Number(anthroForm.massKg),
-        foot_length_mm: { L: footLengthMm, R: footLengthMm },
-        foot_width_mm: { L: footWidthMm, R: footWidthMm },
+        foot_length_mm: { L: Number(anthroForm.footLengthMm), R: Number(anthroForm.footLengthMm) },
+        foot_width_mm: { L: Number(anthroForm.footWidthMm), R: Number(anthroForm.footWidthMm) },
         ...(anthroForm.ageYears !== '' ? { age_years: Number(anthroForm.ageYears) } : {}),
         dominant_foot: anthroForm.dominantFoot,
       }

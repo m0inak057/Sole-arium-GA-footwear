@@ -164,8 +164,8 @@ celery_app.conf.update(
     bind=True,
     name="gait.tasks.run_pipeline",
     max_retries=1,
-    soft_time_limit=300,  # 5 minutes
-    time_limit=360,
+    soft_time_limit=900,  # 15 minutes
+    time_limit=1080,      # 18 minutes
 )
 def run_gait_pipeline(
     self,

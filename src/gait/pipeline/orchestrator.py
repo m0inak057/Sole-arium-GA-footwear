@@ -1,4 +1,4 @@
-"""GaitPipeline â€” end-to-end pipeline orchestrator.
+"""GaitPipeline â€" end-to-end pipeline orchestrator.
 
 Stitches together the five pipeline stages:
   1. Ingestion & preprocessing  (IngestionPreprocessor)
@@ -132,7 +132,7 @@ def _select_frontal_view_frames(
     """Pick anterior or posterior camera frames for step-width measurement.
 
     Step width is a lateral (left/right) separation, which only a frontal
-    (anterior or posterior) camera view can resolve â€” the sagittal/side view
+    (anterior or posterior) camera view can resolve â€" the sagittal/side view
     used for event detection can't. Picks whichever of the two frontal
     cameras has more frames with both left_heel and right_heel present.
     """
@@ -273,7 +273,7 @@ class GaitPipeline:
         """Run all pipeline stages and return a GaitPatientProfile-shaped dict.
 
         Args:
-            video_paths:       camera_name â†’ path mapping (e.g. {"sagittal": Path(...)}).
+            video_paths:       camera_name â†' path mapping (e.g. {"sagittal": Path(...)}).
             anthropometrics:   Patient measurements (height_cm, mass_kg, foot_length_mm, ...).
             patient_id:        Pseudonymous patient identifier.
             session_timestamp: ISO 8601 string; defaults to current UTC time.
@@ -284,7 +284,7 @@ class GaitPipeline:
         if session_timestamp is None:
             session_timestamp = datetime.now(timezone.utc).isoformat()
 
-        # The static posterior photo isn't a walking video â€” it must not be
+        # The static posterior photo isn't a walking video â€" it must not be
         # fed to ingestion/pose-per-frame processing (which expects a video
         # stream). Split it out here; it's routed separately to the rearfoot
         # alignment computation in _run_analysis.
@@ -300,15 +300,15 @@ class GaitPipeline:
             },
         )
 
-        # â”€â”€ Stage 1: Ingestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Stage 1: Ingestion â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         keypoint_frames = self._run_ingestion_and_pose(walking_video_paths)
 
-        # â”€â”€ Stages 3â€“4: Events + Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Stages 3â€"4: Events + Analysis â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         parameters, cadence_from_heel_strikes, session_params = self._run_analysis(
             keypoint_frames, anthropometrics, static_posterior_path=static_posterior_path
         )
 
-        # â”€â”€ Stage 5: Profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Stage 5: Profile â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         rules_config = load_recommendation_rules()
         builder = create_profile_builder(rules_config, self._cfg.analysis)
 
@@ -328,7 +328,7 @@ class GaitPipeline:
             confidence_scores={"pipeline": 0.80},
         )
 
-        # â”€â”€ Video quality metadata (for the results-page quality banner) â”€â”€â”€â”€â”€
+        # â"€â"€ Video quality metadata (for the results-page quality banner) â"€â"€â"€â"€â"€
         video_quality = _probe_video_quality(walking_video_paths, self._cfg)
         qm = profile.get("quality_metrics", {})
         cycle_counts = [qm.get("cycle_count_L", 0), qm.get("cycle_count_R", 0)]
@@ -343,7 +343,7 @@ class GaitPipeline:
         )
         profile["video_quality"] = video_quality
 
-        # â”€â”€ Claude prescription refinement (post-build) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Claude prescription refinement (post-build) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         if self._prescription_agent is not None and profile.get("prescription_spec"):
             try:
                 # Reconstruct rule_params for the prescription agent
@@ -384,7 +384,7 @@ class GaitPipeline:
         logger.info("pipeline.complete", extra={"patient_id": patient_id})
         return profile
 
-    # â”€â”€ static calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ static calibration â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def process_static_trial(
         self,
@@ -425,12 +425,12 @@ class GaitPipeline:
         )
         return trial
 
-    # â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _run_ingestion_and_pose(
         self, video_paths: Dict[str, Path]
     ) -> List[KeypointFrame]:
-        """Stages 1â€“2: ingestion + pose â†’ keypoint frames."""
+        """Stages 1â€"2: ingestion + pose â†' keypoint frames."""
         from gait.ingestion.preprocessor import IngestionPreprocessor
         from gait.pose.estimator import PoseEstimator
 
@@ -447,7 +447,7 @@ class GaitPipeline:
         anthropometrics: Dict[str, Any],
         static_posterior_path: Optional[Path] = None,
     ) -> Tuple[Dict[str, Dict[str, Any]], Optional[float], Dict[str, Any]]:
-        """Stages 3â€“4: event detection + analysis.
+        """Stages 3â€"4: event detection + analysis.
 
         Returns ({L: agg_params, R: agg_params}, cadence_from_heel_strikes_spm,
         session_params). `session_params` holds the non-per-foot metrics
@@ -467,14 +467,14 @@ class GaitPipeline:
         )
 
         # Event detection (heel-strike/toe-off via heel/toe y-trajectory peaks)
-        # requires a single, geometrically consistent camera perspective â€”
+        # requires a single, geometrically consistent camera perspective â€"
         # mixing anterior/posterior/sagittal pixel coordinates into one
         # trajectory produces meaningless peaks. Rather than hardcoding
         # sagittal (which is often the worst camera for pose detection since
         # the subject is side-on and partially visible), pick whichever
         # camera actually produced the most usable lower-body keypoints; fall
         # back to a merged multi-camera set if none has enough data alone.
-        # Keep the original multi-camera frame set too â€” step width needs the
+        # Keep the original multi-camera frame set too â€" step width needs the
         # anterior/posterior (frontal) view specifically, which the selected
         # event-detection camera may not be.
         all_keypoint_frames = keypoint_frames
@@ -495,7 +495,7 @@ class GaitPipeline:
         hs_l = detector.detect_heel_strikes(keypoint_frames, "L")
         hs_r = detector.detect_heel_strikes(keypoint_frames, "R")
 
-        # â”€â”€ Camera scale calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Camera scale calibration â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         foot_length_mm_l = None
         raw_foot_length = anthropometrics.get("foot_length_mm")
         if isinstance(raw_foot_length, dict):
@@ -504,11 +504,19 @@ class GaitPipeline:
             foot_length_mm_l = raw_foot_length
         height_cm = anthropometrics.get("height_cm")
 
+        foot_width_mm_l = None
+        raw_foot_width = anthropometrics.get("foot_width_mm")
+        if isinstance(raw_foot_width, dict):
+            foot_width_mm_l = raw_foot_width.get("L")
+        elif isinstance(raw_foot_width, (int, float)):
+            foot_width_mm_l = raw_foot_width
+
         scale_m_per_px, scale_method, scale_n = estimate_scale_m_per_px(
             keypoint_frames,
             [e.frame_index for e in hs_l],
             foot_length_mm_l,
             height_cm,
+            foot_width_mm=foot_width_mm_l,
         )
         if scale_method == "fallback_default":
             logger.warning(
@@ -524,6 +532,8 @@ class GaitPipeline:
                 "method": scale_method,
                 "scale_m_per_px": scale_m_per_px,
                 "n_measurements": scale_n,
+                "foot_length_mm": foot_length_mm_l,
+                "foot_width_mm": foot_width_mm_l,
             },
         )
 
@@ -537,10 +547,10 @@ class GaitPipeline:
         if step_length_l > 0.0 or step_length_r > 0.0:
             stride_length_m = (step_length_l + step_length_r) / 2.0
 
-        # â”€â”€ Rearfoot alignment (posterior camera only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Rearfoot alignment (posterior camera only) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         posterior_frames = [kf for kf in all_keypoint_frames if kf.camera_view == "posterior"]
 
-        # â”€â”€ Rearfoot alignment method selection (static photo vs. walking video) â”€
+        # â"€â"€ Rearfoot alignment method selection (static photo vs. walking video) â"€
         static_alignment_result: Optional[Dict[str, Optional[Dict[str, Any]]]] = None
         rearfoot_alignment_method = "walking_video_midstance"
         if static_posterior_path is not None:
@@ -560,7 +570,7 @@ class GaitPipeline:
             },
         )
 
-        # â”€â”€ Step width (needs the frontal/anterior-posterior view) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Step width (needs the frontal/anterior-posterior view) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         frontal_frames, frontal_camera = _select_frontal_view_frames(all_keypoint_frames)
         step_width_m = compute_step_width(frontal_frames, scale_m_per_px)
         logger.info(
@@ -602,7 +612,7 @@ class GaitPipeline:
             )
 
             # Raw event counts + partial-cycle flag, independent of whether a
-            # cycle could be formed â€” lets the profile builder distinguish
+            # cycle could be formed â€" lets the profile builder distinguish
             # "zero cycles because zero events were ever detected" from
             # "zero complete cycles but real partial data exists" (Fix D).
             agg_params["heel_strike_count"] = len(hs)
@@ -634,7 +644,7 @@ class GaitPipeline:
 
         cadence_from_heel_strikes = _compute_cadence_from_heel_strikes(hs_l, hs_r)
 
-        # â”€â”€ Speed: prefer real per-cycle cadence over the heel-strike estimate â”€â”€
+        # â"€â"€ Speed: prefer real per-cycle cadence over the heel-strike estimate â"€â"€
         cadence_l = result["L"].get("cadence_steps_per_min_mean")
         cadence_r = result["R"].get("cadence_steps_per_min_mean")
         if cadence_l is not None or cadence_r is not None:
@@ -646,7 +656,7 @@ class GaitPipeline:
         if stride_length_m is not None and cadence_for_speed is not None:
             speed_mps = (stride_length_m * cadence_for_speed / 60.0) / 2.0
 
-        # â”€â”€ Double support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Double support â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         stride_time_ms = result["L"].get("gait_cycle_time_ms_mean") or result["R"].get(
             "gait_cycle_time_ms_mean"
         )
@@ -693,7 +703,7 @@ class GaitPipeline:
         """Extract heel x-coordinates from heel strike events."""
         # frame_index is the original ingestion frame number, not this list's
         # position (frames are dropped whenever pose detection fails, and this
-        # list may already be event-camera-filtered/merged) â€” look up by the
+        # list may already be event-camera-filtered/merged) â€" look up by the
         # real index rather than treating it as a position.
         kf_by_index = {kf.frame_index: kf for kf in keypoint_frames}
         coords = []

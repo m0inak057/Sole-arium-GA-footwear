@@ -1,4 +1,4 @@
-"""StandardProfileBuilder â€” assembles GaitPatientProfile from aggregated parameters.
+"""StandardProfileBuilder â€" assembles GaitPatientProfile from aggregated parameters.
 
 The builder:
   1. Extracts L/R aggregated parameters from the parameters dict.
@@ -58,7 +58,7 @@ _POPULATION_AVERAGE_DEFAULTS: Dict[str, Any] = {
     "foot_progression_angle_right_deg": 5.0,
 }
 
-# â”€â”€ pronation severity (higher = more pronated; used to pick dominant foot) â”€â”€â”€
+# â"€â"€ pronation severity (higher = more pronated; used to pick dominant foot) â"€â"€â"€
 
 _PRONATION_RANK: Dict[str, int] = {
     "overpronation": 5,
@@ -69,7 +69,7 @@ _PRONATION_RANK: Dict[str, int] = {
 }
 
 
-# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 
 def _mean_of(a: Optional[float], b: Optional[float]) -> float:
@@ -149,7 +149,7 @@ def _derive_rule_parameters(
     return combined
 
 
-# â”€â”€ builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ builder â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 
 class StandardProfileBuilder(ProfileBuilder):
@@ -167,7 +167,7 @@ class StandardProfileBuilder(ProfileBuilder):
         self._health_coach = health_coach
         self._rules_config = rules_config
 
-    # â”€â”€ agent integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ agent integration â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _generate_health_assessment(
         self,
@@ -282,7 +282,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-    # â”€â”€ ProfileBuilder ABC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ ProfileBuilder ABC â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def build(
         self,
@@ -351,12 +351,12 @@ class StandardProfileBuilder(ProfileBuilder):
             params_l.get("has_partial_cycle") or params_r.get("has_partial_cycle")
         )
 
-        # â”€â”€ symmetry flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ symmetry flags â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         symmetry_flags = _compute_symmetry_flags(
             params_l, params_r, self._cfg.symmetry_flag_threshold_pct
         )
 
-        # â”€â”€ combined parameters for rule-condition matching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ combined parameters for rule-condition matching â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         extra_flags = list(symmetry_flags) + list(parameters.get("flags", []))
         rule_params = _derive_rule_parameters(
             params_l,
@@ -368,20 +368,20 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         )
 
-        # â”€â”€ health assessment (agent â†’ fallback to rules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ health assessment (agent â†' fallback to rules) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         health_data, agent_decisions = self._generate_health_assessment(
             rule_params, patient_id, params_l, params_r, parameters
         )
         needs_human_review = bool(health_data.pop("needs_human_review", False))
 
-        # â”€â”€ spatiotemporal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ spatiotemporal â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         # Cadence: prefer real per-cycle timing (mean of L/R cadence_steps_per_min_mean,
-        # which is only populated for COMPLETE cycles â€” see compute_spatiotemporal).
+        # which is only populated for COMPLETE cycles â€" see compute_spatiotemporal).
         # If neither foot has that, fall back to the heel-strike-interval estimate
-        # (needs >=2 heel strikes combined across both feet â€” see
+        # (needs >=2 heel strikes combined across both feet â€" see
         # GaitPipeline._compute_cadence_from_heel_strikes). If that's also
         # unavailable, leave cadence as None (null in the profile) rather than
-        # a population-average guess â€” a missing value is honest; a fabricated
+        # a population-average guess â€" a missing value is honest; a fabricated
         # one is not.
         cadence_l = params_l.get("cadence_steps_per_min_mean")
         cadence_r = params_r.get("cadence_steps_per_min_mean")
@@ -411,7 +411,7 @@ class StandardProfileBuilder(ProfileBuilder):
             "foot_progression_classification_right": parameters.get("foot_progression_classification_right", "neutral"),
         }
 
-        # â”€â”€ foot strike â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ foot strike â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         foot_strike = {
             "pattern": {
                 "L": params_l.get("foot_strike_type", "rearfoot"),
@@ -423,7 +423,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-        # â”€â”€ pronation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ pronation â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         fpe_l = params_l.get("frontal_plane_excursion_deg_mean", 0.0)
         fpe_r = params_r.get("frontal_plane_excursion_deg_mean", 0.0)
         pronation = {
@@ -444,7 +444,7 @@ class StandardProfileBuilder(ProfileBuilder):
             "frontal_plane_excursion_right_deg": fpe_r,
         }
 
-        # â”€â”€ rearfoot alignment (posterior camera; feeds wedging_prescription) â”€â”€â”€â”€
+        # â"€â"€ rearfoot alignment (posterior camera; feeds wedging_prescription) â"€â"€â"€â"€
         rearfoot_alignment = {
             "angle_deg": {
                 "L": params_l.get("rearfoot_alignment_angle_deg_mean"),
@@ -461,7 +461,7 @@ class StandardProfileBuilder(ProfileBuilder):
             "method": parameters.get("rearfoot_alignment_method", "walking_video_midstance"),
         }
 
-        # â”€â”€ arch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ arch â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         arch = {
             "type": {
                 "L": params_l.get("arch_type", "normal"),
@@ -473,7 +473,7 @@ class StandardProfileBuilder(ProfileBuilder):
             },
         }
 
-        # â”€â”€ quality metrics (internal; not for shoe-design) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ quality metrics (internal; not for shoe-design) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         qf_l = params_l.get("quality_flag", "RERECORD")
         qf_r = params_r.get("quality_flag", "RERECORD")
         if qf_l in ("RERECORD", "LOW_CONFIDENCE_PLACEHOLDER", "PARTIAL_DATA_NO_CYCLE") or qf_r in (
@@ -504,14 +504,14 @@ class StandardProfileBuilder(ProfileBuilder):
             ],
         }
 
-        # â”€â”€ health assessment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ health assessment â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         health_assessment = {
             "what_went_right": health_data.get("what_went_right", []),
             "defects_found": health_data.get("defects_found", []),
             "improvement_plan": health_data.get("improvements", []),
         }
 
-        # â”€â”€ prescription spec â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ prescription spec â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         from gait.profile.prescription_engine import PrescriptionEngine, _compute_wedging_prescription
         from gait.pipeline.config import load_recommendation_rules
 
@@ -534,6 +534,7 @@ class StandardProfileBuilder(ProfileBuilder):
             step_length_left_m=step_len_l,
             step_length_right_m=step_len_r,
             patient_id=patient_id,
+            anthropometrics=anthropometrics,
         )
         wedging_prescription = _compute_wedging_prescription(
             params_l,
@@ -592,7 +593,7 @@ class StandardProfileBuilder(ProfileBuilder):
             return False, [str(exc)]
 
 
-# â”€â”€ factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ factory â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 
 def create_profile_builder(

@@ -1,4 +1,4 @@
-"""PrescriptionEngine â€” rule-based orthotist/shoe-designer specification generator.
+"""PrescriptionEngine â€" rule-based orthotist/shoe-designer specification generator.
 
 Reads the ``prescription_rules`` section from ``rules.yaml`` and applies them
 in ascending priority order to the same ``rule_params`` dict that drives the
@@ -6,9 +6,9 @@ health recommendation engine.  Later (higher-priority) rules override scalar
 fields; ``clinician_notes`` accumulates across all matching rules.
 
 Body-mass Shore-C modifiers are applied on top of all rule-derived values:
-  < 60 kg  â†’ subtract 5 from all Shore C values
-  80â€“100 kg â†’ add 10
-  > 100 kg  â†’ add 15 (+ PU midsole note)
+  < 60 kg  â†' subtract 5 from all Shore C values
+  80â€"100 kg â†' add 10
+  > 100 kg  â†' add 15 (+ PU midsole note)
 
 Heel lift for step-length asymmetry > 10 % is computed directly from the
 supplied ``step_length_left_m`` / ``step_length_right_m`` values.
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-# â”€â”€ Sensible defaults â€” produced when no rule matches at all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Sensible defaults â€" produced when no rule matches at all â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 _PRESCRIPTION_DEFAULTS: Dict[str, Any] = {
     "last_shape": "semi_curved",
@@ -63,7 +63,7 @@ _WEDGE_PLACEMENT_ADJECTIVE: Dict[str, str] = {
 }
 
 
-# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 
 def _match_condition(when: Dict[str, Any], params: Dict[str, Any]) -> bool:
@@ -142,8 +142,51 @@ def _compute_heel_lift(
         return 3.0, 0.0
     if step_length_right_m < step_length_left_m:
         return 0.0, 3.0
-    # Equal lengths but flag set â€” default to left
+    # Equal lengths but flag set â€" default to left
     return 3.0, 0.0
+
+
+def _apply_foot_measurement_modifiers(
+    spec: Dict[str, Any],
+    anthropometrics: Dict[str, Any],
+) -> None:
+    """Apply foot length and width modifiers directly to spec dict.
+
+    Foot width modifies toe_box and extra_depth.
+    Foot length modifies arch_support_height_mm.
+    Modifies spec in place.
+    """
+    raw_foot_width = anthropometrics.get("foot_width_mm")
+    foot_width_mm = None
+    if isinstance(raw_foot_width, dict):
+        foot_width_mm = raw_foot_width.get("L") or raw_foot_width.get("R")
+    elif isinstance(raw_foot_width, (int, float)):
+        foot_width_mm = raw_foot_width
+
+    raw_foot_length = anthropometrics.get("foot_length_mm")
+    foot_length_mm = None
+    if isinstance(raw_foot_length, dict):
+        foot_length_mm = raw_foot_length.get("L") or raw_foot_length.get("R")
+    elif isinstance(raw_foot_length, (int, float)):
+        foot_length_mm = raw_foot_length
+
+    if foot_width_mm is not None:
+        if foot_width_mm > 115:
+            spec["toe_box"] = "extra_wide"
+            spec["extra_depth"] = True
+        elif foot_width_mm > 105:
+            spec["toe_box"] = "wide"
+            spec["extra_depth"] = True
+        elif foot_width_mm < 85:
+            spec["toe_box"] = "narrow"
+
+    if foot_length_mm is not None:
+        arch_support_height = spec.get("arch_support_height_mm", 18.0)
+        if foot_length_mm < 220:
+            arch_support_height -= 2.0
+        elif foot_length_mm > 280:
+            arch_support_height += 2.0
+        spec["arch_support_height_mm"] = max(10.0, min(40.0, arch_support_height))
 
 
 def _derive_primary_condition(rule_params: Dict[str, Any]) -> str:
@@ -196,9 +239,8 @@ def _compute_wedging_prescription(
     """Derive per-foot wedging and cushioning prescription from the measured
     rearfoot alignment classification (posterior-camera-only metric).
 
-    ``anthropometrics`` is accepted for a consistent call signature and
-    possible future use (e.g. mass-based wedge stiffness) but is not
-    currently used to alter the wedge geometry.
+    ``anthropometrics`` provides foot_width_mm and foot_length_mm for
+    refined toe_box and cushioning prescription.
 
     ``rearfoot_alignment_method`` is the method that produced the angle
     (``"static_image"`` or ``"walking_video_midstance"``, see
@@ -210,7 +252,6 @@ def _compute_wedging_prescription(
     when neither foot has a rearfoot alignment classification available
     (old profiles, or insufficient posterior-camera data).
     """
-    del anthropometrics  # not used yet; kept for signature parity/future use
 
     result: Dict[str, Any] = {
         "left_wedge_type": None,
@@ -288,7 +329,7 @@ def _compute_wedging_prescription(
     return result
 
 
-# â”€â”€ Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Engine â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 
 class PrescriptionEngine:
@@ -309,14 +350,15 @@ class PrescriptionEngine:
         step_length_left_m: float = 0.0,
         step_length_right_m: float = 0.0,
         patient_id: Optional[str] = None,
-    ) -> "PrescriptionSpec":  # noqa: F821 â€” forward ref resolved at call time
+        anthropometrics: Optional[Dict[str, Any]] = None,
+    ) -> "PrescriptionSpec":  # noqa: F821 â€" forward ref resolved at call time
         """Apply prescription rules and return a fully populated PrescriptionSpec.
 
         Args:
             rule_params:          Same flat dict used by the health rules engine
                                   (pronation_type, arch_type, foot_strike_type,
                                   flags, ...).
-            body_mass_kg:         Patient body mass â€” used for Shore-C modifiers.
+            body_mass_kg:         Patient body mass â€" used for Shore-C modifiers.
             step_length_left_m:   Mean left step length in metres.
             step_length_right_m:  Mean right step length in metres.
             patient_id:           Optional, for logging only.
@@ -339,7 +381,7 @@ class PrescriptionEngine:
                     else:
                         spec[key] = value
 
-        # â”€â”€ Body-mass Shore-C modifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Body-mass Shore-C modifier â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         modifier = _shore_c_modifier(body_mass_kg)
         if modifier != 0:
             spec["medial_shore_c"] = _clamp_shore_c(spec["medial_shore_c"] + modifier)
@@ -353,12 +395,15 @@ class PrescriptionEngine:
                 if note not in clinician_notes:
                     clinician_notes.append(note)
 
-        # â”€â”€ Heel lift from step asymmetry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Heel lift from step asymmetry â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
         heel_lift_l, heel_lift_r = _compute_heel_lift(
             rule_params, step_length_left_m, step_length_right_m
         )
 
-        # â”€â”€ Assemble Pydantic models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # â"€â"€ Assemble Pydantic models â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+        if anthropometrics:
+            _apply_foot_measurement_modifiers(spec, anthropometrics)
+
         from gait.profile.schema import (  # local import avoids circular dep
             ArchSupportSpec,
             FootLiftSpec,
